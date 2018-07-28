@@ -54,12 +54,14 @@ int main(void)
     ttyout_init();
 
     do {
-        //printf("task:\tHello world, I'm\ttty_test!\n");
+        printf("task:\tHello world, I'm\ttty_test!\n");
+
         char *msg = "The quick brown fox jumps over the lazy dog.\n";
-        //sos_write(msg, strlen(msg));
+        sos_write(msg, strlen(msg));
+
         msg = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum aliquam quis nibh vitae efficitur. Nunc fringilla erat nec pharetra pharetra. Maecenas vehicula dignissim urna. Proin eu eleifend tortor, id pharetra enim. Aliquam varius velit vel velit sagittis vulputate. Phasellus augue neque, tempor eu luctus a, blandit id justo. Curabitur aliquam ex at turpis blandit, ac egestas neque pretium. Nam dui turpis, viverra venenatis molestie non, faucibus quis est. Nulla efficitur, turpis nec sollicitudin consectetur, velit diam pulvinar sapien, non hendrerit mauris ipsum nec turpis. Nulla facilisi. Nullam pharetra commodo imperdiet. Integer non tortor purus. Ut lorem orci, sodales ultrices efficitur a, viverra vitae mauris.\n";
 
-        //sos_write(msg, strlen(msg));
+        sos_write(msg, strlen(msg));
         printf("WOWOWOWOWOWOOWOW\n");
         thread_block();
         // sleep(1);	// Implement this as a syscall

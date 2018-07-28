@@ -52,7 +52,6 @@ size_t sos_write(void *vData, size_t count)
     char *msg = vData;
 
     for (size_t i = 0; i < npackets; i++) {
-        sos_debug_print("sending...\n", 11);
         tag = seL4_MessageInfo_new(0, 0, 0, 3);
 
         if (i == npackets - 1) {
