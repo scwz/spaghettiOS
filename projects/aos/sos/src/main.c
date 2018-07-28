@@ -55,6 +55,7 @@
  * A dummy starting syscall
  */
 #define SOS_SYSCALL0 0
+#define SOS_SYS_WRITE 1
 
 /* The linker will link this symbol to the start address  *
  * of an archive of attached applications.                */
@@ -65,6 +66,9 @@ extern void (__register_frame)(void *);
 
 /* root tasks cspace */
 static cspace_t cspace;
+
+/* serial port */
+static struct serial *serial_port;
 
 /* the one process we start */
 static struct {
@@ -115,7 +119,24 @@ void handle_syscall(UNUSED seL4_Word badge, UNUSED int num_args)
          * capability was consumed by the send. */
         cspace_free_slot(&cspace, reply);
         break;
+    case SOS_SYS_WRITE:
+        ZF_LOGV("syscall: thread called sys_write (1)\n");
 
+        seL4_Word msg = seL4_GetIPCBuffer()->msg[1];
+        char *data = (char *) &msg;
+        data[sizeof(seL4_Word)] = '\0';
+        printf("syscall: thread called sys_write (1) %s\n", data);
+
+        int bytes_sent = serial_send(serial_port, data, sizeof(seL4_Word));
+        printf("sent %d bytes\n", bytes_sent);
+
+        /* send back the number of bytes transmitted */
+        reply_msg = seL4_MessageInfo_new(0, 0, 0, 1);
+        seL4_SetMR(0, bytes_sent);
+        seL4_Send(reply, reply_msg);
+
+        cspace_free_slot(&cspace, reply);
+        break;
     default:
         ZF_LOGE("Unknown syscall %lu\n", syscall_number);
         /* don't reply to an unknown syscall */
@@ -516,6 +537,9 @@ NORETURN void *main_continued(UNUSED void *arg)
                  badge_irq_ntfn(ntfn, IRQ_BADGE_NETWORK_IRQ),
                  badge_irq_ntfn(ntfn, IRQ_BADGE_NETWORK_TICK),
                  timer_vaddr);
+
+    printf("Serial init\n");
+    serial_port = serial_init();
 
     /* Start the user application */
     printf("Start first process\n");

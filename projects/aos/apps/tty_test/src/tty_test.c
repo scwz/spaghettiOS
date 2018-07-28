@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 #include <sel4/sel4.h>
 #include <syscalls.h>
 
@@ -38,7 +39,7 @@ thread_block(void)
      * to sos -- it's 1 word long */
     seL4_MessageInfo_t tag = seL4_MessageInfo_new(0, 0, 0, 1);
     /* Set the first word in the message to 0 */
-    seL4_SetMR(0, 1);
+    seL4_SetMR(0, 2);
     /* Now send the ipc -- call will send the ipc, then block until a reply
      * message is received */
     seL4_Call(SYSCALL_ENDPOINT_SLOT, tag);
@@ -53,6 +54,8 @@ int main(void)
     ttyout_init();
 
     do {
+        char *msg = "test message\n";
+        sos_write(msg, strlen(msg));
         printf("task:\tHello world, I'm\ttty_test!\n");
         thread_block();
         // sleep(1);	// Implement this as a syscall
