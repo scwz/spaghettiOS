@@ -122,14 +122,15 @@ void handle_syscall(UNUSED seL4_Word badge, UNUSED int num_args)
     case SOS_SYS_WRITE:
         ZF_LOGV("syscall: thread called sys_write (1)\n");
 
+        // get data from message registers
         seL4_Word msg_len = seL4_GetMR(1);
-        seL4_Word msg = seL4_GetMR(2);
+        void *data = seL4_GetIPCBuffer()->msg + 2;
+        char *msg = data;
+        msg[msg_len] = '\0';
 
-        char *data = (char *) &msg;
-        data[msg_len] = '\0';
-        printf("syscall: thread called sys_write (1) %s\n", data);
+        printf("syscall: thread called sys_write (1) %s\n", msg);
 
-        size_t bytes_sent = serial_send(serial_port, data, msg_len);
+        size_t bytes_sent = serial_send(serial_port, msg, msg_len);
         printf("sent %ld bytes\n", bytes_sent);
 
         /* send back the number of bytes transmitted */
