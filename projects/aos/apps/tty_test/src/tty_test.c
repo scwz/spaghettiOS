@@ -52,15 +52,22 @@ int main(void)
 
     /* initialise communication */
     ttyout_init();
-    char *msg;
 
     do {
-        printf("task:\tHello world, I'm\ttty_test!\n");
-        msg = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum aliquam quis nibh vitae efficitur. Nunc fringilla erat nec pharetra pharetra. Maecenas vehicula dignissim urna. Proin eu eleifend tortor, id pharetra enim. Aliquam varius velit vel velit sagittis vulputate. Phasellus augue neque, tempor eu luctus a, blandit id justo. Curabitur aliquam ex at turpis blandit, ac egestas neque pretium. Nam dui turpis, viverra venenatis molestie non, faucibus quis est. Nulla efficitur, turpis nec sollicitudin consectetur, velit diam pulvinar sapien, non hendrerit mauris ipsum nec turpis. Nulla facilisi. Nullam pharetra commodo imperdiet. Integer non tortor purus. Ut lorem orci, sodales ultrices efficitur a, viverra vitae mauris.\n";
+        printf("HELLO\tI\tAM\tTTY_TEST!\n");
+        char *msg = "############### Testing tty_test!!! ##################\n";
         sos_write(msg, strlen(msg));
+
         msg = "The quick brown fox jumps over the lazy dog.\n";
         sos_write(msg, strlen(msg));
-        printf("WOWOWOWOWOWOOWOW\n");
+
+        msg = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum aliquam quis nibh vitae efficitur. Nunc fringilla erat nec pharetra pharetra. Maecenas vehicula dignissim urna. Proin eu eleifend tortor, id pharetra enim. Aliquam varius velit vel velit sagittis vulputate. Phasellus augue neque, tempor eu luctus a, blandit id justo. Curabitur aliquam ex at turpis blandit, ac egestas neque pretium. Nam dui turpis, viverra venenatis molestie non, faucibus quis est. Nulla efficitur, turpis nec sollicitudin consectetur, velit diam pulvinar sapien, non hendrerit mauris ipsum nec turpis. Nulla facilisi. Nullam pharetra commodo imperdiet. Integer non tortor purus. Ut lorem orci, sodales ultrices efficitur a, viverra vitae mauris.\n";
+        sos_write(msg, strlen(msg));
+
+        msg = "############### Finished testing!!! ##################\n";
+        sos_write(msg, strlen(msg));
+
+        printf("GOODBYE\tI\tAM\tTTY_TEST!\n");
         thread_block();
         // sleep(1);	// Implement this as a syscall
     } while (1);

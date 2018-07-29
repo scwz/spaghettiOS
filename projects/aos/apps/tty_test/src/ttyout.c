@@ -63,8 +63,8 @@ size_t sos_write(void *vData, size_t count)
         // send syscall, message length, and message in message registers
         seL4_SetMR(0, 1);
         seL4_SetMR(1, buf_len);
-        memcpy((char *)seL4_GetIPCBuffer()->msg + (2 * sizeof(seL4_Word)), 
-                &msg[i * sizeof(seL4_Word)], 
+        memcpy(seL4_GetIPCBuffer()->msg + 2,
+                msg + (i * sizeof(seL4_Word)), 
                 buf_len);
 
         seL4_Call(SYSCALL_ENDPOINT_SLOT, tag);
