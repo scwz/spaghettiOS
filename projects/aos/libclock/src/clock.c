@@ -29,13 +29,15 @@ int start_timer(seL4_CPtr ntfn, seL4_CPtr irqhandler, void *device_vaddr)
         stop_timer();
     }
 
+    // initalise timer
     timer = device_vaddr + (TIMER_MUX & MASK((size_t) seL4_PageBits));
     timer_irq_handler = irqhandler;
     timer_initialised = 1;
 
-    printf("%u\n", timer->timer_mux);
-    timer->timer_mux |= TIMER_F_EN | TIMER_F_INPUT_CLK | TIMEBASE_1000_US; 
-    printf("%u\n", timer->timer_mux);
+    // setup registers
+    timer->timer_mux |= TIMER_F_EN | TIMER_F_INPUT_CLK | TIMEBASE_1_US; 
+    timer->timer_f |= 1;
+
     return CLOCK_R_OK;
 }
 
@@ -51,6 +53,7 @@ int remove_timer(uint32_t id)
 
 int timer_interrupt(void)
 {
+    printf("dong\n");
     return CLOCK_R_OK;
 }
 

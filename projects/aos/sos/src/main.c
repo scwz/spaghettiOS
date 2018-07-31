@@ -171,6 +171,7 @@ NORETURN void syscall_loop(seL4_CPtr ep)
                 network_tick();
             }
             if (badge & IRQ_BADGE_TIMER) {
+                /* It's an interrupt from one of the timers */
                 printf("ding!\n");
                 timer_interrupt();
             }
