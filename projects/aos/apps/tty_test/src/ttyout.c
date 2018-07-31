@@ -48,12 +48,12 @@ size_t sos_write(void *vData, size_t count)
 {
     seL4_MessageInfo_t tag;
     size_t total_bytes = 0;
-    size_t buf_len = sizeof(seL4_Word);
+    size_t buf_len = 10 * sizeof(seL4_Word);
     size_t npackets = ((count - 1) / buf_len) + 1;
     char *msg = vData;
 
     for (size_t i = 0; i < npackets; i++) {
-        tag = seL4_MessageInfo_new(0, 0, 0, 3);
+        tag = seL4_MessageInfo_new(0, 0, 0, 2 + buf_len);
 
         // truncate junk data
         if (i == npackets - 1) {
@@ -64,7 +64,7 @@ size_t sos_write(void *vData, size_t count)
         seL4_SetMR(0, 1);
         seL4_SetMR(1, buf_len);
         memcpy(seL4_GetIPCBuffer()->msg + 2,
-                msg + (i * sizeof(seL4_Word)), 
+                msg + (i * 10 * sizeof(seL4_Word)), 
                 buf_len);
 
         seL4_Call(SYSCALL_ENDPOINT_SLOT, tag);

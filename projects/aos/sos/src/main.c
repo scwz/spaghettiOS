@@ -130,12 +130,12 @@ void handle_syscall(UNUSED seL4_Word badge, UNUSED int num_args)
 
         printf("syscall: thread called sys_write (1) %s\n", msg);
 
-        size_t bytes_sent = serial_send(serial_port, msg, msg_len);
-        printf("sent %ld bytes\n", bytes_sent);
+        size_t sent = serial_send(serial_port, msg, msg_len);
+        printf("sent %ld bytes\n", sent);
 
         /* send back the number of bytes transmitted */
         reply_msg = seL4_MessageInfo_new(0, 0, 0, 1);
-        seL4_SetMR(0, bytes_sent);
+        seL4_SetMR(0, sent);
         seL4_Send(reply, reply_msg);
 
         cspace_free_slot(&cspace, reply);
