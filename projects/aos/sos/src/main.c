@@ -82,6 +82,9 @@ static struct {
     seL4_CPtr stack;
 } tty_test_process;
 
+/*serial driver*/
+static struct serial * serial_driver;
+
 void handle_syscall(UNUSED seL4_Word badge, UNUSED int num_args)
 {
 
@@ -115,7 +118,24 @@ void handle_syscall(UNUSED seL4_Word badge, UNUSED int num_args)
          * capability was consumed by the send. */
         cspace_free_slot(&cspace, reply);
         break;
-
+    case 2: // from ttyout
+        ;
+        ZF_LOGV("syscall: thread example made syscall 0!\n");
+        int length = (int) (seL4_GetIPCBuffer()->msg[1]);
+        char* str = (char*) &(seL4_GetIPCBuffer()->msg[2]);
+        int bytes_to_write = length;
+        while(bytes_to_write > 0){
+            int bytes_written = serial_send(serial_driver, str, length);
+            if(bytes_written){
+                bytes_to_write = bytes_to_write - bytes_written;
+                str = str + bytes_written;
+            } else {
+                ZF_LOGE("0 bytes written");
+                break;
+            }
+        }
+        //seL4_Send(reply, seL4_MessageInfo_new(0, 0, 0, 1));
+        break;
     default:
         ZF_LOGE("Unknown syscall %lu\n", syscall_number);
         /* don't reply to an unknown syscall */
@@ -496,6 +516,7 @@ void init_muslc(void)
     muslcsys_install_syscall(__NR_madvise, sys_madvise);
 }
 
+
 NORETURN void *main_continued(UNUSED void *arg)
 {
     /* Initialise other system compenents here */
@@ -516,6 +537,10 @@ NORETURN void *main_continued(UNUSED void *arg)
                  badge_irq_ntfn(ntfn, IRQ_BADGE_NETWORK_IRQ),
                  badge_irq_ntfn(ntfn, IRQ_BADGE_NETWORK_TICK),
                  timer_vaddr);
+
+    /* Initialise serial driver */
+    
+    serial_driver = serial_init();
 
     /* Start the user application */
     printf("Start first process\n");
