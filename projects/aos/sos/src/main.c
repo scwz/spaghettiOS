@@ -46,6 +46,7 @@
  * distinguish interrupt sources */
 #define IRQ_BADGE_NETWORK_IRQ  BIT(0)
 #define IRQ_BADGE_NETWORK_TICK BIT(1)
+#define IRQ_BADGE_TIMER        BIT(2)
 
 #define TTY_NAME             "tty_test"
 #define TTY_PRIORITY         (0)
@@ -168,6 +169,10 @@ NORETURN void syscall_loop(seL4_CPtr ep)
             if (badge & IRQ_BADGE_NETWORK_TICK) {
                 /* It's an interrupt from the watchdog keeping our TCP/IP stack alive */
                 network_tick();
+            }
+            if (badge & IRQ_BADGE_TIMER) {
+                printf("ding!\n");
+                timer_interrupt();
             }
         } else if (label == seL4_Fault_NullFault) {
             /* It's not a fault or an interrupt, it must be an IPC
@@ -520,6 +525,19 @@ void init_muslc(void)
     muslcsys_install_syscall(__NR_madvise, sys_madvise);
 }
 
+/* taken from projects/aos/sos/src/network.c */
+static seL4_CPtr init_irq(cspace_t *cspace, int irq_number, int edge_triggered,
+                          seL4_CPtr ntfn) {
+    seL4_CPtr irq_handler = cspace_alloc_slot(cspace);
+    ZF_LOGF_IF(irq_handler == seL4_CapNull, "Failed to alloc slot for irq handler!");
+    seL4_Error error = cspace_irq_control_get(cspace, irq_handler, seL4_CapIRQControl, irq_number, edge_triggered);
+    ZF_LOGF_IF(error, "Failed to get irq handler for irq %d", irq_number);
+    error = seL4_IRQHandler_SetNotification(irq_handler, ntfn);
+    ZF_LOGF_IF(error, "Failed to set irq handler ntfn");
+    seL4_IRQHandler_Ack(irq_handler);
+    return irq_handler;
+}
+
 NORETURN void *main_continued(UNUSED void *arg)
 {
     /* Initialise other system compenents here */
@@ -543,6 +561,11 @@ NORETURN void *main_continued(UNUSED void *arg)
 
     printf("Serial init\n");
     serial_port = serial_init();
+
+    printf("Starting timers\n");
+    seL4_CPtr timer_ntfn = badge_irq_ntfn(ntfn, IRQ_BADGE_TIMER);
+    seL4_CPtr timer_irq_handler = init_irq(&cspace, TIMER_F_IRQ, 1, timer_ntfn);
+    start_timer(timer_ntfn, timer_irq_handler, timer_vaddr);
 
     /* Start the user application */
     printf("Start first process\n");
