@@ -539,6 +539,10 @@ static seL4_CPtr init_irq(cspace_t *cspace, int irq_number, int edge_triggered,
     return irq_handler;
 }
 
+void test_timer(void) {
+    printf("wew\n");
+}
+
 NORETURN void *main_continued(UNUSED void *arg)
 {
     /* Initialise other system compenents here */
@@ -567,6 +571,8 @@ NORETURN void *main_continued(UNUSED void *arg)
     seL4_CPtr timer_ntfn = badge_irq_ntfn(ntfn, IRQ_BADGE_TIMER);
     seL4_CPtr timer_irq_handler = init_irq(&cspace, TIMER_F_IRQ, 1, timer_ntfn);
     start_timer(timer_ntfn, timer_irq_handler, timer_vaddr);
+
+    register_timer(65535, &test_timer, NULL);
 
     /* Start the user application */
     printf("Start first process\n");
