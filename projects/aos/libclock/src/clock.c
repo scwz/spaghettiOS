@@ -23,10 +23,7 @@ static volatile struct {
 
 static seL4_CPtr timer_irq_handler;
 static int timer_initialised = 0;
-static timer_callback_t cb;
-static void *cb_data;
-uint64_t start = 0;
-uint64_t end = 0;
+static struct pqueue *pq = NULL;
 
 int start_timer(seL4_CPtr ntfn, seL4_CPtr irqhandler, void *device_vaddr)
 {
@@ -34,13 +31,15 @@ int start_timer(seL4_CPtr ntfn, seL4_CPtr irqhandler, void *device_vaddr)
         stop_timer();
     }
 
+    pq = pqueue_init();
+
     // initalise timer
     timer = device_vaddr + (TIMER_MUX & MASK((size_t) seL4_PageBits));
     timer_irq_handler = irqhandler;
     timer_initialised = 1;
 
     // setup registers
-    timer->timer_mux |= TIMER_F_EN | TIMER_F_INPUT_CLK | TIMEBASE_1000_US; 
+    timer->timer_mux |= TIMER_F_EN | TIMER_F_INPUT_CLK | TIMEBASE_1000_US | TIMER_F_MODE; 
     timer->timer_f |= 1;
 
     return CLOCK_R_OK;
@@ -48,10 +47,6 @@ int start_timer(seL4_CPtr ntfn, seL4_CPtr irqhandler, void *device_vaddr)
 
 uint32_t register_timer(uint64_t delay, timer_callback_t callback, void *data)
 {
-    timer->timer_f |= delay;
-    start = timestamp_ms(timestamp_get_freq());
-    cb = callback;
-    cb_data = data;
     return 0;
 }
 
@@ -62,15 +57,13 @@ int remove_timer(uint32_t id)
 
 int timer_interrupt(void)
 {
-    if (TIMER_VAL(timer->timer_f) == 0) {
-        cb(1, cb_data);
-        end = timestamp_ms(timestamp_get_freq());
-        printf("TIME %lu\n", end - start);
-    }
+    pq->time++;
+    seL4_IRQHandler_Ack(timer_irq_handler);
     return CLOCK_R_OK;
 }
 
 int stop_timer(void)
 {
+    timer_initialised = 0;
     return CLOCK_R_FAIL;
 }
