@@ -571,7 +571,7 @@ NORETURN void *main_continued(UNUSED void *arg)
     seL4_CPtr timer_irq_handler = init_irq(&cspace, TIMER_F_IRQ, 1, timer_ntfn);
     start_timer(timer_ntfn, timer_irq_handler, timer_vaddr);
 
-    register_timer(65535, &test_timer, NULL);
+    register_timer(2, &test_timer, NULL);
 
     /* Start the user application */
     printf("Start first process\n");

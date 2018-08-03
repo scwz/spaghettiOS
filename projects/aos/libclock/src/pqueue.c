@@ -52,8 +52,8 @@ int pqueue_push(struct pqueue *pq, uint64_t delay, timer_callback_t callback, vo
     return 0;
 }
 
-struct job pqueue_peek(struct pqueue *pq) {
-    return *(pq->head);
+struct job *pqueue_peek(struct pqueue *pq) {
+    return pq->head;
 }
 
 int pqueue_pop(struct pqueue *pq) {

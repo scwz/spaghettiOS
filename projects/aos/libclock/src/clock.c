@@ -67,14 +67,15 @@ int timer_interrupt(void)
         return CLOCK_R_UINT;
     }
 
-    pq->time++;
-    struct job job = pqueue_peek(pq);
+    struct job *job = pqueue_peek(pq);
     
-    while (job.delay > (pq->time * TEN_MS) && job.delay < (pq->time + 1) * TEN_MS) {
-        job.callback(job.id, job.data);
+
+    while (job != NULL && ((job->delay > pq->time && job->delay < pq->time + 10000))) {
+        job->callback(job->id, job->data);
         pqueue_pop(pq);
         job = pqueue_peek(pq);
     }
+    pq->time+=10000;
 
     seL4_IRQHandler_Ack(timer_irq_handler);
 

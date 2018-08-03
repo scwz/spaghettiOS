@@ -21,7 +21,7 @@ struct pqueue *pqueue_init(void);
 
 int pqueue_push(struct pqueue *pq, uint64_t delay, timer_callback_t callback, void *data);
 
-struct job pqueue_peek(struct pqueue *pq);
+struct job *pqueue_peek(struct pqueue *pq);
 
 int pqueue_pop(struct pqueue *pq);
 
