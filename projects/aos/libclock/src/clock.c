@@ -13,6 +13,8 @@
 #include <utils/io.h>
 #include <pqueue.h>
 
+#define TEN_MS 10
+
 static volatile struct {
     uint32_t timer_mux;
     uint32_t timer_f;
@@ -40,30 +42,55 @@ int start_timer(seL4_CPtr ntfn, seL4_CPtr irqhandler, void *device_vaddr)
 
     // setup registers
     timer->timer_mux |= TIMER_F_EN | TIMER_F_INPUT_CLK | TIMEBASE_1000_US | TIMER_F_MODE; 
-    timer->timer_f |= 1;
+    timer->timer_f |= TEN_MS;
 
     return CLOCK_R_OK;
 }
 
 uint32_t register_timer(uint64_t delay, timer_callback_t callback, void *data)
 {
-    return 0;
+    return pqueue_push(pq, delay, callback, data);
 }
 
 int remove_timer(uint32_t id)
 {
-    return CLOCK_R_FAIL;
+    if (!timer_initialised) {
+        return CLOCK_R_UINT;
+    }
+
+    return CLOCK_R_OK;
 }
 
 int timer_interrupt(void)
 {
+    if (!timer_initialised) {
+        return CLOCK_R_UINT;
+    }
+
     pq->time++;
+    struct job job = pqueue_peek(pq);
+    
+    while (job.delay > (pq->time * TEN_MS) && job.delay < (pq->time + 1) * TEN_MS) {
+        job.callback(job.id, job.data);
+        pqueue_pop(pq);
+        job = pqueue_peek(pq);
+    }
+
     seL4_IRQHandler_Ack(timer_irq_handler);
+
     return CLOCK_R_OK;
 }
 
 int stop_timer(void)
 {
+    if (!timer_initialised) {
+        return CLOCK_R_UINT;
+    }
+
     timer_initialised = 0;
-    return CLOCK_R_FAIL;
+    pqueue_destroy(pq);
+
+    seL4_IRQHandler_Clear(timer_irq_handler);
+
+    return CLOCK_R_OK;
 }
