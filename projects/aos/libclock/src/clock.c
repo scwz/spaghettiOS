@@ -71,8 +71,9 @@ int timer_interrupt(void)
     }
 
     struct job *job = pqueue_peek(pq);
-    uint64_t curr_tick = timestamp_ms(timestamp_get_freq());
+    uint64_t curr_tick = 0;
     while (job != NULL && (((job->delay > pq->time) && (job->delay <= pq->time + TICK_10000_US)))) {
+        curr_tick = timestamp_ms(timestamp_get_freq());
         printf("CALLBACK RECEIVED: %lu ms diff: %lu ms\n", curr_tick, curr_tick - last_tick);
         job->callback(job->id, job->data);
         pqueue_pop(pq);
@@ -82,7 +83,7 @@ int timer_interrupt(void)
         job = pqueue_peek(pq);
     }
 
-    last_tick = curr_tick;
+    last_tick = curr_tick ? curr_tick : last_tick;
     pq->time += TICK_10000_US;
 
     seL4_IRQHandler_Ack(timer_irq_handler);
