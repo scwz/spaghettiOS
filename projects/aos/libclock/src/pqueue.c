@@ -25,13 +25,13 @@ int pqueue_push(struct pqueue *pq, uint64_t delay, timer_callback_t callback, vo
     
     if(pq->head == NULL){
         pq->head = new_job;
-        return 0;
+        return CLOCK_R_OK;
     }
 
     if(new_job->delay < pq->head->delay){
         new_job->next_job = pq->head;
         pq->head = new_job;
-        return 0;
+        return CLOCK_R_OK;
     }
 
     struct job* curr_job = pq->head;
@@ -49,7 +49,7 @@ int pqueue_push(struct pqueue *pq, uint64_t delay, timer_callback_t callback, vo
         }
         curr_job = curr_job->next_job;
     }
-    return 0;
+    return CLOCK_R_OK;
 }
 
 struct job *pqueue_peek(struct pqueue *pq) {
@@ -58,28 +58,36 @@ struct job *pqueue_peek(struct pqueue *pq) {
 
 int pqueue_pop(struct pqueue *pq) {
     if(pq->head == NULL){
-        return -1;
+        return CLOCK_R_FAIL;
     }
     struct job* delete_job = pq->head;
     pq->head = delete_job->next_job;
     free(delete_job);
-    return 0;
+    return CLOCK_R_OK;
 }
 
 int pqueue_remove(struct pqueue *pq, uint32_t id){
-    /*if(pq->head == NULL){
-        return -1;
+    if(pq->head == NULL){
+        return CLOCK_R_FAIL;
     }
-    if(pq->head->next_job == NULL && pq->head->id == id){
-        free(pq->head);
-        pq->head == NULL;
+    if(pq->head->id == id){
+        struct job* remove_job = pq->head;
+        pq->head = pq->head->next_job;
+        free(remove_job);
+        return CLOCK_R_OK;
     }
+
     struct job* curr_job = pq->head;
     while(curr_job->next_job != NULL){
-        if(curr_job->next_job->id == 0);
-    }*/
-    return 0;
-
+        if(curr_job->next_job->id == id){
+            struct job* remove_job = curr_job->next_job;
+            curr_job->next_job = remove_job->next_job;
+            free(remove_job);
+            return CLOCK_R_OK;
+        }
+        curr_job = curr_job->next_job;
+    }
+    return CLOCK_R_FAIL;
 }
 
 void pqueue_destroy(struct pqueue *pq) {

@@ -57,8 +57,7 @@ int remove_timer(uint32_t id)
     if (!timer_initialised) {
         return CLOCK_R_UINT;
     }
-
-    return CLOCK_R_OK;
+    return pqueue_remove(pq, id);
 }
 
 int timer_interrupt(void)
