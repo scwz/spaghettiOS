@@ -11,15 +11,14 @@ struct job {
 };
 
 struct pqueue {
-    int cur_size;
-    int max_size;
+    uint32_t size;
     uint64_t time;
     struct job *head;
 };
 
 struct pqueue *pqueue_init(void);
 
-int pqueue_push(struct pqueue *pq, uint64_t delay, timer_callback_t callback, void *data);
+uint32_t pqueue_push(struct pqueue *pq, uint64_t delay, timer_callback_t callback, void *data);
 
 struct job *pqueue_peek(struct pqueue *pq);
 

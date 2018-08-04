@@ -13,7 +13,7 @@
 #include <utils/io.h>
 #include <pqueue.h>
 
-#define TEN_MS 10
+#define TICK_10000_US 10000
 
 static volatile struct {
     uint32_t timer_mux;
@@ -41,8 +41,10 @@ int start_timer(seL4_CPtr ntfn, seL4_CPtr irqhandler, void *device_vaddr)
     timer_initialised = 1;
 
     // setup registers
-    timer->timer_mux |= TIMER_F_EN | TIMER_F_INPUT_CLK | TIMEBASE_1000_US | TIMER_F_MODE; 
-    timer->timer_f |= TEN_MS;
+    timer->timer_mux |= TIMER_F_EN | TIMER_F_INPUT_CLK | TIMEBASE_1_US | TIMER_F_MODE; 
+    timer->timer_f |= TICK_10000_US;
+
+    printf("TIMER STARTED: %lu ms\n", timestamp_ms(timestamp_get_freq()));
 
     return CLOCK_R_OK;
 }
@@ -67,14 +69,14 @@ int timer_interrupt(void)
     }
 
     struct job *job = pqueue_peek(pq);
-    
 
-    while (job != NULL && ((job->delay > pq->time && job->delay < pq->time + 10000))) {
+    while (job != NULL && (((job->delay > pq->time) && (job->delay <= pq->time + TICK_10000_US)))) {
+        printf("CALLBACK RECEIVED: %lu ms\n", timestamp_ms(timestamp_get_freq()));
         job->callback(job->id, job->data);
         pqueue_pop(pq);
         job = pqueue_peek(pq);
     }
-    pq->time+=10000;
+    pq->time += TICK_10000_US;
 
     seL4_IRQHandler_Ack(timer_irq_handler);
 

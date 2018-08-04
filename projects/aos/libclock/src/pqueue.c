@@ -1,37 +1,36 @@
 #include <pqueue.h>
 
-#define SIZE 10
 static uint32_t next_job_id = 1;
-
 
 struct pqueue *pqueue_init(void) {
     struct pqueue *pq = malloc(sizeof(struct pqueue));
     
     pq->time = 0;
-    pq->cur_size = 0;
-    pq->max_size = SIZE;
+    pq->size = 0;
     pq->head = NULL;
 
     return pq;
 }
 
-int pqueue_push(struct pqueue *pq, uint64_t delay, timer_callback_t callback, void *data) {
+uint32_t pqueue_push(struct pqueue *pq, uint64_t delay, timer_callback_t callback, void *data) {
     struct job * new_job = malloc(sizeof(struct job));
     new_job->id = next_job_id++;
     new_job->delay = delay;
     new_job->callback = callback;
     new_job->data = data;
     new_job->next_job = NULL;
+
+    pq->size++;
     
     if(pq->head == NULL){
         pq->head = new_job;
-        return CLOCK_R_OK;
+        return new_job->id;
     }
 
     if(new_job->delay < pq->head->delay){
         new_job->next_job = pq->head;
         pq->head = new_job;
-        return CLOCK_R_OK;
+        return new_job->id;
     }
 
     struct job* curr_job = pq->head;
@@ -49,7 +48,7 @@ int pqueue_push(struct pqueue *pq, uint64_t delay, timer_callback_t callback, vo
         }
         curr_job = curr_job->next_job;
     }
-    return CLOCK_R_OK;
+    return new_job->id;
 }
 
 struct job *pqueue_peek(struct pqueue *pq) {
@@ -63,6 +62,7 @@ int pqueue_pop(struct pqueue *pq) {
     struct job* delete_job = pq->head;
     pq->head = delete_job->next_job;
     free(delete_job);
+    pq->size--;
     return CLOCK_R_OK;
 }
 
@@ -74,6 +74,7 @@ int pqueue_remove(struct pqueue *pq, uint32_t id){
         struct job* remove_job = pq->head;
         pq->head = pq->head->next_job;
         free(remove_job);
+        pq->size--;
         return CLOCK_R_OK;
     }
 
@@ -83,6 +84,7 @@ int pqueue_remove(struct pqueue *pq, uint32_t id){
             struct job* remove_job = curr_job->next_job;
             curr_job->next_job = remove_job->next_job;
             free(remove_job);
+            pq->size--;
             return CLOCK_R_OK;
         }
         curr_job = curr_job->next_job;
