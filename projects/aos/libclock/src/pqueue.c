@@ -12,10 +12,11 @@ struct pqueue *pqueue_init(void) {
     return pq;
 }
 
-uint32_t pqueue_push(struct pqueue *pq, uint64_t delay, timer_callback_t callback, void *data) {
+uint32_t pqueue_push(struct pqueue *pq, uint32_t id, uint64_t delay, job_type_t type, timer_callback_t callback, void *data) {
     struct job * new_job = malloc(sizeof(struct job));
-    new_job->id = next_job_id++;
+    new_job->id = id ? id : next_job_id++;
     new_job->delay = delay;
+    new_job->type = type;
     new_job->callback = callback;
     new_job->data = data;
     new_job->next_job = NULL;

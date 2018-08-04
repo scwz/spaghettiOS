@@ -27,6 +27,9 @@
 typedef uint64_t timestamp_t;
 typedef void (*timer_callback_t)(uint32_t id, void *data);
 
+typedef enum {
+    PERIODIC, ONESHOT
+} job_type_t;
 
 /*
  * Initialise driver. Performs implicit stop_timer() if already initialised.
@@ -45,7 +48,7 @@ int start_timer(seL4_CPtr ntfn, seL4_CPtr irqhandler, void *device_vaddr);
  *
  * Returns 0 on failure, otherwise an unique ID for this timeout
  */
-uint32_t register_timer(uint64_t delay, timer_callback_t callback, void *data);
+uint32_t register_timer(uint32_t id, uint64_t delay, job_type_t type, timer_callback_t callback, void *data);
 
 /*
  * Remove a previously registered callback by its ID

@@ -26,6 +26,7 @@ static volatile struct {
 static seL4_CPtr timer_irq_handler;
 static int timer_initialised = 0;
 static struct pqueue *pq = NULL;
+static uint64_t last_tick = 0;
 
 int start_timer(seL4_CPtr ntfn, seL4_CPtr irqhandler, void *device_vaddr)
 {
@@ -44,14 +45,15 @@ int start_timer(seL4_CPtr ntfn, seL4_CPtr irqhandler, void *device_vaddr)
     timer->timer_mux |= TIMER_F_EN | TIMER_F_INPUT_CLK | TIMEBASE_1_US | TIMER_F_MODE; 
     timer->timer_f |= TICK_10000_US;
 
-    printf("TIMER STARTED: %lu ms\n", timestamp_ms(timestamp_get_freq()));
+    last_tick = timestamp_ms(timestamp_get_freq());
+    printf("TIMER STARTED: %lu ms\n", last_tick);
 
     return CLOCK_R_OK;
 }
 
-uint32_t register_timer(uint64_t delay, timer_callback_t callback, void *data)
+uint32_t register_timer(uint32_t id, uint64_t delay, job_type_t type, timer_callback_t callback, void *data)
 {
-    return pqueue_push(pq, delay, callback, data);
+    return pqueue_push(pq, id, pq->time + delay, type, callback, data);
 }
 
 int remove_timer(uint32_t id)
@@ -69,13 +71,18 @@ int timer_interrupt(void)
     }
 
     struct job *job = pqueue_peek(pq);
-
+    uint64_t curr_tick = timestamp_ms(timestamp_get_freq());
     while (job != NULL && (((job->delay > pq->time) && (job->delay <= pq->time + TICK_10000_US)))) {
-        printf("CALLBACK RECEIVED: %lu ms\n", timestamp_ms(timestamp_get_freq()));
+        printf("CALLBACK RECEIVED: %lu ms diff: %lu ms\n", curr_tick, curr_tick - last_tick);
         job->callback(job->id, job->data);
         pqueue_pop(pq);
+        if (job->type == PERIODIC) {
+            register_timer(job->id, job->delay, job->type, job->callback, job->data);
+        }
         job = pqueue_peek(pq);
     }
+
+    last_tick = curr_tick;
     pq->time += TICK_10000_US;
 
     seL4_IRQHandler_Ack(timer_irq_handler);

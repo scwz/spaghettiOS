@@ -2,9 +2,11 @@
 
 #include <clock/clock.h>
 
+
 struct job { 
     uint32_t id;
     uint64_t delay;
+    job_type_t type;
     timer_callback_t callback;
     void *data; 
     struct job * next_job;
@@ -18,7 +20,7 @@ struct pqueue {
 
 struct pqueue *pqueue_init(void);
 
-uint32_t pqueue_push(struct pqueue *pq, uint64_t delay, timer_callback_t callback, void *data);
+uint32_t pqueue_push(struct pqueue *pq, uint32_t id, uint64_t delay, job_type_t type, timer_callback_t callback, void *data);
 
 struct job *pqueue_peek(struct pqueue *pq);
 
