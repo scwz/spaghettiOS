@@ -28,7 +28,8 @@ typedef uint64_t timestamp_t;
 typedef void (*timer_callback_t)(uint32_t id, void *data);
 
 typedef enum {
-    PERIODIC, ONESHOT
+    PERIODIC, 
+    ONE_SHOT
 } job_type_t;
 
 /*

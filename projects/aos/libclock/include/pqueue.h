@@ -6,6 +6,7 @@
 struct job { 
     uint32_t id;
     uint64_t delay;
+    uint64_t tick;
     job_type_t type;
     timer_callback_t callback;
     void *data; 
@@ -24,7 +25,7 @@ uint32_t pqueue_push(struct pqueue *pq, uint32_t id, uint64_t delay, job_type_t 
 
 struct job *pqueue_peek(struct pqueue *pq);
 
-int pqueue_pop(struct pqueue *pq);
+struct job *pqueue_pop(struct pqueue *pq);
 
 int pqueue_remove(struct pqueue *pq, uint32_t id);
 

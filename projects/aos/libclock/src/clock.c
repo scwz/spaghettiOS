@@ -53,7 +53,7 @@ int start_timer(seL4_CPtr ntfn, seL4_CPtr irqhandler, void *device_vaddr)
 
 uint32_t register_timer(uint32_t id, uint64_t delay, job_type_t type, timer_callback_t callback, void *data)
 {
-    return pqueue_push(pq, id, pq->time + delay, type, callback, data);
+    return pqueue_push(pq, id, delay, type, callback, data);
 }
 
 int remove_timer(uint32_t id)
@@ -72,13 +72,14 @@ int timer_interrupt(void)
 
     struct job *job = pqueue_peek(pq);
     uint64_t curr_tick = 0;
-    while (job != NULL && (((job->delay > pq->time) && (job->delay <= pq->time + TICK_10000_US)))) {
+    while (job != NULL && (((job->tick>= pq->time) && (job->tick < pq->time + TICK_10000_US)))) {
         curr_tick = timestamp_ms(timestamp_get_freq());
         printf("CALLBACK RECEIVED: %lu ms diff: %lu ms\n", curr_tick, curr_tick - last_tick);
         job->callback(job->id, job->data);
-        pqueue_pop(pq);
+        job = pqueue_pop(pq);
         if (job->type == PERIODIC) {
             register_timer(job->id, job->delay, job->type, job->callback, job->data);
+            free(job);
         }
         job = pqueue_peek(pq);
     }
