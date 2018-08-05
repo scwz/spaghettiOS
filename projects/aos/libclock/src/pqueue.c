@@ -57,14 +57,26 @@ struct job *pqueue_peek(struct pqueue *pq) {
     return pq->head;
 }
 
-struct job *pqueue_pop(struct pqueue *pq) {
+int pqueue_pop(struct pqueue *pq) {
     if(pq->head == NULL){
-        return NULL;
+        return CLOCK_R_FAIL;
     }
+
     struct job* delete_job = pq->head;
     pq->head = delete_job->next_job;
     pq->size--;
-    return delete_job;
+
+    if (delete_job->type == PERIODIC) {
+        pqueue_push(pq, 
+                    delete_job->id, 
+                    delete_job->delay, 
+                    delete_job->type, 
+                    delete_job->callback,
+                    delete_job->data);
+    }
+    free(delete_job);
+
+    return CLOCK_R_OK;
 }
 
 int pqueue_remove(struct pqueue *pq, uint32_t id){

@@ -49,7 +49,7 @@ int start_timer(seL4_CPtr ntfn, seL4_CPtr irqhandler, void *device_vaddr);
  *
  * Returns 0 on failure, otherwise an unique ID for this timeout
  */
-uint32_t register_timer(uint32_t id, uint64_t delay, job_type_t type, timer_callback_t callback, void *data);
+uint32_t register_timer(uint64_t delay, job_type_t type, timer_callback_t callback, void *data);
 
 /*
  * Remove a previously registered callback by its ID

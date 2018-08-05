@@ -71,6 +71,8 @@ static cspace_t cspace;
 /* serial port */
 static struct serial *serial_port;
 
+static uint32_t timer1;
+
 /* the one process we start */
 static struct {
     ut_t *tcb_ut;
@@ -539,7 +541,7 @@ static seL4_CPtr init_irq(cspace_t *cspace, int irq_number, int edge_triggered,
 }
 
 void test_timer(void) {
-    printf("wew\n");
+    printf("CALLBACK FROM PERIODIC 100MS TIMER\n");
 }
 
 NORETURN void *main_continued(UNUSED void *arg)
@@ -571,7 +573,7 @@ NORETURN void *main_continued(UNUSED void *arg)
     seL4_CPtr timer_irq_handler = init_irq(&cspace, TIMER_F_IRQ, 1, timer_ntfn);
     start_timer(timer_ntfn, timer_irq_handler, timer_vaddr);
 
-    uint32_t timer1 = register_timer(0, 100000, PERIODIC, &test_timer, NULL);
+    timer1 = register_timer(100000, PERIODIC, &test_timer, NULL);
 
     /* Start the user application */
     printf("Start first process\n");
