@@ -29,7 +29,7 @@ uint32_t pqueue_push(struct pqueue *pq, uint32_t id, uint64_t delay, job_type_t 
         return new_job->id;
     }
 
-    if(new_job->tick < pq->head->tick){
+    if(new_job->tick <= pq->head->tick){
         new_job->next_job = pq->head;
         pq->head = new_job;
         return new_job->id;
