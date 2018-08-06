@@ -596,7 +596,7 @@ NORETURN void *main_continued(UNUSED void *arg)
     seL4_CPtr timer_irq_handler_g = init_irq(&cspace, TIMER_G_IRQ, 1, timer_ntfn_g);
     start_timer(timer_ntfn, timer_irq_handler,timer_ntfn_g, timer_irq_handler_g, timer_vaddr);
 
-    timer1 = register_timer(100000, PERIODIC, &test_timer, NULL);
+    //timer1 = register_timer(100000, PERIODIC, &test_timer, NULL);
     timer2 = register_timer(200000, PERIODIC, &test_timer2, NULL);
     //timer5 = register_timer(300000000, ONE_SHOT, &test_timer5, NULL);
     //timer4 = register_timer(200000000, ONE_SHOT, &test_timer4, NULL);

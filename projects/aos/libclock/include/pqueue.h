@@ -4,6 +4,7 @@
 
 struct job { 
     uint32_t id;
+    uint64_t start;
     uint64_t delay;
     uint64_t tick;
     job_type_t type;
