@@ -594,7 +594,7 @@ NORETURN void *main_continued(UNUSED void *arg)
     seL4_CPtr timer_irq_handler = init_irq(&cspace, TIMER_F_IRQ, 1, timer_ntfn);
     seL4_CPtr timer_ntfn_g = badge_irq_ntfn(ntfn, IRQ_BADGE_TIMER_G);
     seL4_CPtr timer_irq_handler_g = init_irq(&cspace, TIMER_G_IRQ, 1, timer_ntfn_g);
-    start_timer(timer_ntfn, timer_ntfn_g, timer_irq_handler, timer_irq_handler_g, timer_vaddr);
+    start_timer(timer_ntfn, timer_irq_handler,timer_ntfn_g, timer_irq_handler_g, timer_vaddr);
 
     timer1 = register_timer(100000, PERIODIC, &test_timer, NULL);
     timer2 = register_timer(200000, PERIODIC, &test_timer2, NULL);
