@@ -13,6 +13,7 @@
 
 #include <stdint.h>
 #include <sel4/sel4.h>
+#include <cspace/cspace.h>
 #include <clock/device.h>
 #include <clock/timestamp.h>
 
@@ -39,7 +40,7 @@ typedef enum {
  *
  * Returns CLOCK_R_OK iff successful.
  */
-int start_timer(seL4_CPtr ntfn, seL4_CPtr irqhandler, void *device_vaddr);
+int start_timer(cspace_t *cspace, seL4_CPtr ntfn, void *device_vaddr);
 
 /*
  * Register a callback to be called after a given delay

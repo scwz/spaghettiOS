@@ -10,7 +10,7 @@
  * @TAG(DATA61_GPL)
  */
 #include <clock/clock.h>
-#include <utils/io.h>
+#include <cspace/cspace.h>
 #include <pqueue.h>
 
 #define TICK_10000_US 10000
@@ -28,7 +28,20 @@ static int timer_initialised = 0;
 static struct pqueue *pq = NULL;
 static uint64_t last_tick = 0;
 
-int start_timer(seL4_CPtr ntfn, seL4_CPtr irqhandler, void *device_vaddr)
+/* taken from projects/aos/sos/src/network.c */
+static seL4_CPtr init_irq(cspace_t *cspace, int irq_number, int edge_triggered,
+                          seL4_CPtr ntfn) {
+    seL4_CPtr irq_handler = cspace_alloc_slot(cspace);
+    ZF_LOGF_IF(irq_handler == seL4_CapNull, "Failed to alloc slot for irq handler!");
+    seL4_Error error = cspace_irq_control_get(cspace, irq_handler, seL4_CapIRQControl, irq_number, edge_triggered);
+    ZF_LOGF_IF(error, "Failed to get irq handler for irq %d", irq_number);
+    error = seL4_IRQHandler_SetNotification(irq_handler, ntfn);
+    ZF_LOGF_IF(error, "Failed to set irq handler ntfn");
+    seL4_IRQHandler_Ack(irq_handler);
+    return irq_handler;
+}
+
+int start_timer(cspace_t *cspace, seL4_CPtr ntfn, void *device_vaddr)
 {
     if (timer_initialised) {
         stop_timer();
@@ -38,7 +51,7 @@ int start_timer(seL4_CPtr ntfn, seL4_CPtr irqhandler, void *device_vaddr)
 
     // initalise timer
     timer = device_vaddr + (TIMER_MUX & MASK((size_t) seL4_PageBits));
-    timer_irq_handler = irqhandler;
+    timer_irq_handler = init_irq(cspace, TIMER_F_IRQ, 1, ntfn);
     timer_initialised = 1;
 
     // setup registers

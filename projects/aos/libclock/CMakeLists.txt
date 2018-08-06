@@ -15,4 +15,4 @@ project(libclock C)
 
 add_library(clock EXCLUDE_FROM_ALL src/clock.c src/pqueue.c)
 target_include_directories(clock PUBLIC include)
-target_link_libraries(clock Configuration muslc sel4 utils)
+target_link_libraries(clock Configuration muslc sel4 utils sel4cspace)

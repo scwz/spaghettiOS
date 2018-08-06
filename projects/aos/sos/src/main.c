@@ -527,19 +527,6 @@ void init_muslc(void)
     muslcsys_install_syscall(__NR_madvise, sys_madvise);
 }
 
-/* taken from projects/aos/sos/src/network.c */
-static seL4_CPtr init_irq(cspace_t *cspace, int irq_number, int edge_triggered,
-                          seL4_CPtr ntfn) {
-    seL4_CPtr irq_handler = cspace_alloc_slot(cspace);
-    ZF_LOGF_IF(irq_handler == seL4_CapNull, "Failed to alloc slot for irq handler!");
-    seL4_Error error = cspace_irq_control_get(cspace, irq_handler, seL4_CapIRQControl, irq_number, edge_triggered);
-    ZF_LOGF_IF(error, "Failed to get irq handler for irq %d", irq_number);
-    error = seL4_IRQHandler_SetNotification(irq_handler, ntfn);
-    ZF_LOGF_IF(error, "Failed to set irq handler ntfn");
-    seL4_IRQHandler_Ack(irq_handler);
-    return irq_handler;
-}
-
 void test_timer(void) {
     printf("CALLBACK FROM PERIODIC 100MS TIMER\n");
 }
@@ -585,9 +572,7 @@ NORETURN void *main_continued(UNUSED void *arg)
     serial_port = serial_init();
 
     printf("Starting timers\n");
-    seL4_CPtr timer_ntfn = badge_irq_ntfn(ntfn, IRQ_BADGE_TIMER);
-    seL4_CPtr timer_irq_handler = init_irq(&cspace, TIMER_F_IRQ, 1, timer_ntfn);
-    start_timer(timer_ntfn, timer_irq_handler, timer_vaddr);
+    start_timer(&cspace, badge_irq_ntfn(ntfn, IRQ_BADGE_TIMER), timer_vaddr);
 
     timer1 = register_timer(100000, PERIODIC, &test_timer, NULL);
     timer2 = register_timer(200000, PERIODIC, &test_timer2, NULL);
