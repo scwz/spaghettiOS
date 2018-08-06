@@ -36,38 +36,33 @@ int start_timer(seL4_CPtr ntfn, seL4_CPtr irqhandler, void *device_vaddr)
 
     pq = pqueue_init();
 
-    /*
     // initalise timer
     timer = device_vaddr + (TIMER_MUX & MASK((size_t) seL4_PageBits));
     timer_irq_handler = irqhandler;
     timer_initialised = 1;
 
     // setup registers
-    timer->timer_mux |= TIMER_F_EN | TIMER_F_INPUT_CLK | TIMEBASE_1_US | TIMER_F_MODE; 
-    timer->timer_f |= TICK_10000_US;
-    
-    last_tick = timestamp_ms(timestamp_get_freq());
-    printf("TIMER STARTED: %lu ms\n", last_tick);
-    */
-    timer = device_vaddr + (TIMER_MUX & MASK((size_t) seL4_PageBits));
-    timer_irq_handler = timer_irq_handler;
-    timer_initialised = 1;
     timer->timer_mux |= TIMER_F_EN | TIMER_F_INPUT_CLK | TIMEBASE_1_US | TIMER_F_MODE;
     timer->timer_mux |= TIMER_G_EN | TIMER_G_INPUT_CLK | TIMEBASE_1_US;
-    timer->timer_f |= 0xFFFF; // max tick
-    
+    timer->timer_f |= 0x0000FFFF;
+
     last_tick = timestamp_ms(timestamp_get_freq());
-    printf("TIMER STARTED: %lu ms\n", last_tick);
     return CLOCK_R_OK;
 }
 
 
 uint32_t register_timer(uint64_t delay, job_type_t type, timer_callback_t callback, void *data)
-{
+{   
+    printf("TIMER registered");
     uint32_t retval = pqueue_push(pq, 0, delay, type, callback, data);
     struct job * job = pqueue_peek(pq);
-    if(job->delay < 0xFFFF){
-        timer->timer_g = job->delay;
+    if(job->tick - pq->time < 0x0000FFFF){
+        printf("G TIMER registered");
+        timer->timer_g = (uint16_t) job->delay;
+        printf("timer g %x\n\n", timer->timer_g);
+        pq->time += job->tick - pq->time;
+    }else {
+        pq->time += 0xFFFF;
     }
     return retval;
 
@@ -83,6 +78,7 @@ int remove_timer(uint32_t id)
 
 int timer_interrupt(void)
 {
+    printf("TIMER Intterupt");
     if (!timer_initialised) {
         return CLOCK_R_UINT;
     }
@@ -95,7 +91,7 @@ int timer_interrupt(void)
 
     uint64_t curr_tick = 0;
     if(job->tick - pq->time <= 0xFFFF){
-        uint64_t job_tick = job->tick;
+        //uint64_t job_tick = job->tick;
         while (job != NULL && job->tick - pq->time <= 0) {
             curr_tick = timestamp_ms(timestamp_get_freq());
             printf("CALLBACK RECEIVED: %lu ms diff: %lu ms\n", curr_tick, curr_tick - last_tick);
@@ -103,16 +99,20 @@ int timer_interrupt(void)
             pqueue_pop(pq);
             job = pqueue_peek(pq);
         }
-        pq->time += job->tick - pq->time;
         if(job->tick - pq->time < 0xFFFF){
-            timer->timer_g = job->tick - pq->time;
+            printf("timer gggggg \n\n");
+            timer->timer_g = (uint16_t) (job->tick - pq->time);
+            timer->timer_g = (uint16_t) (0x0001);
+            printf("TIMER G: time: %x, bits %x \n\n", timer->timer_g, timer->timer_mux);
         }
+        pq->time += job->tick - pq->time;
+        
     } else {
-        pq->time += 0xFFFF;
+        pq->time += 0x0000FFFF;
     }
+    job = pqueue_peek(pq);
     
     last_tick = curr_tick ? curr_tick : last_tick;
-    //pq->time += TICK_10000_US;
 
     seL4_IRQHandler_Ack(timer_irq_handler);
 
