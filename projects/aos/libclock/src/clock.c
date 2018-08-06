@@ -55,7 +55,7 @@ int start_timer(cspace_t *cspace, seL4_CPtr ntfn, void *device_vaddr)
     timer_initialised = 1;
 
     // setup registers
-    timer->timer_mux |= TIMER_F_EN | TIMER_F_INPUT_CLK | TIMEBASE_1_US | TIMER_F_MODE; 
+    timer->timer_mux |= TIMER_F_EN | TIMER_F_MODE | (TIMEBASE_1_US << TIMER_F_INPUT_CLK) ; 
     timer->timer_f |= TICK_10000_US;
 
     last_tick = timestamp_ms(timestamp_get_freq());
