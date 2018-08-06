@@ -16,12 +16,17 @@
 #define TICK_10000_US 10000
 
 static volatile struct {
-    volatile uint32_t timer_mux;
-    volatile uint32_t timer_f;
-    volatile uint32_t timer_g;
-    volatile uint32_t timer_h;
-    volatile uint32_t timer_i;
+    uint32_t timer_mux;
+    uint32_t timer_f;
+    uint32_t timer_g;
+    uint32_t timer_h;
+    uint32_t timer_i;
 } *timer;
+
+static volatile struct {
+    uint32_t lo;
+    uint32_t hi;
+} *timer_e;
 
 static seL4_CPtr timer_irq_handler_f, timer_irq_handler_g;
 static int timer_initialised = 0;
@@ -38,13 +43,15 @@ int start_timer(seL4_CPtr ntfn_f, seL4_CPtr irqhandler_f, seL4_CPtr ntfn_g, seL4
 
     // initalise timer
     timer = device_vaddr + (TIMER_MUX & MASK((size_t) seL4_PageBits));
+    timer_e = device_vaddr + (TIMER_E_LO_PADDR & MASK((size_t) seL4_PageBits));
     timer_irq_handler_f = irqhandler_f;
     timer_irq_handler_g = ihg;
     timer_initialised = 1;
 
     // setup registers
-    timer->timer_mux |= TIMER_F_EN | TIMER_F_INPUT_CLK | TIMEBASE_1_US | TIMER_F_MODE;
-    timer->timer_mux |= TIMER_G_EN | TIMER_G_INPUT_CLK | TIMEBASE_1_US;
+    timer->timer_mux |= TIMER_F_EN | TIMER_F_MODE | (TIMER_F_INPUT_CLK << TIMEBASE_1_US);
+    timer->timer_mux |= TIMER_G_EN | (TIMER_G_INPUT_CLK << TIMEBASE_1_US);
+    timer->timer_mux |= (8 << 0b001);
     timer->timer_f |= 0x0000FFFF;
 
     last_tick = timestamp_ms(timestamp_get_freq());
@@ -87,6 +94,7 @@ int timer_interrupt(void)
    
     struct job *job = pqueue_peek(pq);
 
+    printf("TIMER E %u %u\n", timer_e->lo, timer_e->hi);
     if(job == NULL){
         return CLOCK_R_FAIL;
     }

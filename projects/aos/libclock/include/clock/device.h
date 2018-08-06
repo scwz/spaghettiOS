@@ -20,6 +20,8 @@
 /* this is the frame we actually need to map */
 #define TIMER_PADDR PAGE_ALIGN_4K(TIMER_MUX)
 
+#define TIMER_E_LO_PADDR 0xc1109988
+#define TIMER_E_HI_PADDR 0xc110998c
 /* Four 16 bit timers which count down to 0 */
 #define TIMER_F_PADDR    0xc1109994
 #define TIMER_G_PADDR    0xc1109998
