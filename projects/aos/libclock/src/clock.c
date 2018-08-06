@@ -49,11 +49,10 @@ int start_timer(seL4_CPtr ntfn_f, seL4_CPtr irqhandler_f, seL4_CPtr ntfn_g, seL4
     timer_initialised = 1;
 
     // setup registers
-    timer->timer_mux |= TIMER_F_EN | TIMER_F_MODE | (TIMER_F_INPUT_CLK << TIMEBASE_1_US);
-    timer->timer_mux |= TIMER_G_EN | (TIMER_G_INPUT_CLK << TIMEBASE_1_US);
+    timer->timer_mux |= TIMER_F_EN | TIMER_F_MODE | (TIMEBASE_1_US << TIMER_F_INPUT_CLK );
+    timer->timer_mux |= TIMER_G_EN | (TIMEBASE_1_US << TIMER_G_INPUT_CLK );
     timer->timer_mux |= (8 << 0b001);
     timer->timer_f |= 0x0000FFFF;
-
     last_tick = timestamp_ms(timestamp_get_freq());
     return CLOCK_R_OK;
 }
@@ -69,9 +68,6 @@ uint32_t register_timer(uint64_t delay, job_type_t type, timer_callback_t callba
         timer->timer_g = (uint16_t) job->delay;
         printf("timer g %u\n\n", TIMER_VAL(timer->timer_g));
         COMPILER_MEMORY_FENCE();
-        pq->time += job->tick - pq->time;
-    }else {
-        pq->time += 0xFFFF;
     }
     return retval;
 
@@ -87,22 +83,27 @@ int remove_timer(uint32_t id)
 
 int timer_interrupt(void)
 {
-    printf("TIMER Intterupt");
+    
     if (!timer_initialised) {
         return CLOCK_R_UINT;
     }
-   
     struct job *job = pqueue_peek(pq);
-
-    printf("TIMER E %u %u\n", timer_e->lo, timer_e->hi);
     if(job == NULL){
         return CLOCK_R_FAIL;
     }
+      
+    if(job->tick - pq->time < 0xFFFF){
+        pq->time += job->tick - pq->time;
+    } else {
+        pq->time += 0xFFFF;
+    }
+    printf("===TIMER Intterupt %lu\n", pq->time);
+    printf("job->tick = %lu\n", job->tick); 
+    printf("TIMER E %u %u\n\n", timer_e->lo, timer_e->hi);
 
     uint64_t curr_tick = 0;
     if(job->tick - pq->time <= 0xFFFF){
-        //uint64_t job_tick = job->tick;
-        while (job != NULL && job->tick - pq->time <= 0) {
+        while (job != NULL && job->tick - pq->time <= 4) {
             curr_tick = timestamp_ms(timestamp_get_freq());
             printf("CALLBACK RECEIVED: %lu ms diff: %lu ms\n", curr_tick, curr_tick - last_tick);
             job->callback(job->id, job->data);
@@ -110,17 +111,10 @@ int timer_interrupt(void)
             job = pqueue_peek(pq);
         }
         if(job->tick - pq->time < 0xFFFF){
-            printf("timer gggggg \n\n");
+            printf("timer g actiaved %lu\n\n", job->tick - pq->time);
             timer->timer_g = (uint16_t) (job->tick - pq->time);
-            timer->timer_g = (uint16_t) (0x0001);
-            printf("TIMER G: time: %x, bits %x \n\n", timer->timer_g, timer->timer_mux);
         }
-        pq->time += job->tick - pq->time;
-        
-    } else {
-        pq->time += 0x0000FFFF;
     }
-    job = pqueue_peek(pq);
     
     last_tick = curr_tick ? curr_tick : last_tick;
 
