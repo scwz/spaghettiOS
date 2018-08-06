@@ -47,6 +47,7 @@
 #define IRQ_BADGE_NETWORK_IRQ  BIT(0)
 #define IRQ_BADGE_NETWORK_TICK BIT(1)
 #define IRQ_BADGE_TIMER        BIT(2)
+#define IRQ_BADGE_TIMER_G      BIT(3)
 
 #define TTY_NAME             "tty_test"
 #define TTY_PRIORITY         (0)
@@ -173,6 +174,10 @@ NORETURN void syscall_loop(seL4_CPtr ep)
                 network_tick();
             }
             if (badge & IRQ_BADGE_TIMER) {
+                /* It's an interrupt from one of the timers */
+                timer_interrupt();
+            }
+            if (badge & IRQ_BADGE_TIMER_G) {
                 /* It's an interrupt from one of the timers */
                 timer_interrupt();
             }
@@ -587,7 +592,9 @@ NORETURN void *main_continued(UNUSED void *arg)
     printf("Starting timers\n");
     seL4_CPtr timer_ntfn = badge_irq_ntfn(ntfn, IRQ_BADGE_TIMER);
     seL4_CPtr timer_irq_handler = init_irq(&cspace, TIMER_F_IRQ, 1, timer_ntfn);
-    start_timer(timer_ntfn, timer_irq_handler, timer_vaddr);
+    seL4_CPtr timer_ntfn_g = badge_irq_ntfn(ntfn, IRQ_BADGE_TIMER_G);
+    seL4_CPtr timer_irq_handler_g = init_irq(&cspace, TIMER_G_IRQ, 1, timer_ntfn_g);
+    start_timer(timer_ntfn, timer_ntfn_g, timer_irq_handler, timer_irq_handler_g, timer_vaddr);
 
     timer1 = register_timer(100000, PERIODIC, &test_timer, NULL);
     timer2 = register_timer(200000, PERIODIC, &test_timer2, NULL);

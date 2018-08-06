@@ -16,19 +16,19 @@
 #define TICK_10000_US 10000
 
 static volatile struct {
-    uint32_t timer_mux;
-    uint32_t timer_f;
-    uint32_t timer_g;
-    uint32_t timer_h;
-    uint32_t timer_i;
+    volatile uint32_t timer_mux;
+    volatile uint32_t timer_f;
+    volatile uint32_t timer_g;
+    volatile uint32_t timer_h;
+    volatile uint32_t timer_i;
 } *timer;
 
-static seL4_CPtr timer_irq_handler;
+static seL4_CPtr timer_irq_handler_f, timer_irq_handler_g;
 static int timer_initialised = 0;
 static struct pqueue *pq = NULL;
 static uint64_t last_tick = 0;
 
-int start_timer(seL4_CPtr ntfn, seL4_CPtr irqhandler, void *device_vaddr)
+int start_timer(seL4_CPtr ntfn_f, seL4_CPtr irqhandler_f, seL4_CPtr ntfn_g, seL4_CPtr ihg, void *device_vaddr)
 {
     if (timer_initialised) {
         stop_timer();
@@ -38,7 +38,8 @@ int start_timer(seL4_CPtr ntfn, seL4_CPtr irqhandler, void *device_vaddr)
 
     // initalise timer
     timer = device_vaddr + (TIMER_MUX & MASK((size_t) seL4_PageBits));
-    timer_irq_handler = irqhandler;
+    timer_irq_handler_f = irqhandler_f;
+    timer_irq_handler_g = ihg;
     timer_initialised = 1;
 
     // setup registers
@@ -59,7 +60,8 @@ uint32_t register_timer(uint64_t delay, job_type_t type, timer_callback_t callba
     if(job->tick - pq->time < 0x0000FFFF){
         printf("G TIMER registered");
         timer->timer_g = (uint16_t) job->delay;
-        printf("timer g %x\n\n", timer->timer_g);
+        printf("timer g %u\n\n", TIMER_VAL(timer->timer_g));
+        COMPILER_MEMORY_FENCE();
         pq->time += job->tick - pq->time;
     }else {
         pq->time += 0xFFFF;
@@ -114,7 +116,8 @@ int timer_interrupt(void)
     
     last_tick = curr_tick ? curr_tick : last_tick;
 
-    seL4_IRQHandler_Ack(timer_irq_handler);
+    seL4_IRQHandler_Ack(timer_irq_handler_f);
+    seL4_IRQHandler_Ack(timer_irq_handler_g);
 
     return CLOCK_R_OK;
 }
@@ -128,7 +131,7 @@ int stop_timer(void)
     timer_initialised = 0;
     pqueue_destroy(pq);
 
-    seL4_IRQHandler_Clear(timer_irq_handler);
+    seL4_IRQHandler_Clear(timer_irq_handler_f);
 
     return CLOCK_R_OK;
 }
