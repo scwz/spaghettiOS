@@ -574,11 +574,16 @@ NORETURN void *main_continued(UNUSED void *arg)
     printf("Starting timers\n");
     start_timer(&cspace, badge_irq_ntfn(ntfn, IRQ_BADGE_TIMER), timer_vaddr);
 
-    timer1 = register_timer(100000, PERIODIC, &test_timer, NULL);
-    timer2 = register_timer(200000, PERIODIC, &test_timer2, NULL);
+    //timer1 = register_timer(100000, PERIODIC, &test_timer, NULL);
+    //timer2 = register_timer(200000, PERIODIC, &test_timer2, NULL);
     //timer5 = register_timer(300000000, ONE_SHOT, &test_timer5, NULL);
     //timer4 = register_timer(200000000, ONE_SHOT, &test_timer4, NULL);
     //timer3 = register_timer(100000000, ONE_SHOT, &test_timer3, NULL);
+    
+    /* milestone 2 initial tests */
+    m2_1();
+    m2_2();
+    m2_3();
 
     /* Start the user application */
     printf("Start first process\n");

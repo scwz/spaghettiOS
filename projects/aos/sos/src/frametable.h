@@ -16,11 +16,12 @@
 #include <elf/elf.h>
 #include <serial/serial.h>
 
-struct frame_table {
-
+struct frame_table_entry {
+    seL4_CPtr cap;
+    struct frame_table_entry *next_free;
 };
 
-void frame_table_init(void);
+void frame_table_init(cspace_t *cs);
 
 seL4_Word frame_alloc(seL4_Word *vaddr);
 

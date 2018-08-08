@@ -13,6 +13,7 @@
 #include <cspace/cspace.h>
 #include "dma.h"
 #include "bootstrap.h"
+#include "frametable.h"
 
 static void test_bf_bit(unsigned long bit)
 {
@@ -141,4 +142,60 @@ void run_tests(cspace_t *cspace)
     /* test DMA */
     test_dma();
     ZF_LOGI("DMA test passed!");
+}
+
+void m2_1(void) {
+	/* Allocate 10 pages and make sure you can touch them all */
+	for (int i = 0; i < 10; i++) {
+		/* Allocate a page */
+		seL4_Word vaddr;
+		frame_alloc(&vaddr);
+		assert(vaddr);
+
+		/* Test you can touch the page */
+		*vaddr = 0x37;
+		assert(*vaddr == 0x37);
+
+		printf("Page #%d allocated at %p\n", i, (void *) vaddr);
+	}
+}
+
+void m2_2(void) {
+	/* Test that you never run out of memory if you always free frames. */
+    seL4_Word page;
+	for (int i = 0; i < 10000; i++) {
+		/* Allocate a page */
+		seL4_Word vaddr;
+		page = frame_alloc(&vaddr);
+		assert(vaddr != 0);
+
+		/* Test you can touch the page */
+		*vaddr = 0x37;
+		assert(*vaddr == 0x37);
+
+		/* print every 1000 iterations */
+		if (i % 1000 == 0) {
+			printf("Page #%d allocated at %p\n", i, vaddr);
+		}
+
+		frame_free(page);
+	}
+}
+
+void m2_3(void) {
+	/* Test that you eventually run out of memory gracefully,
+	   and doesn't crash */
+	while (true) {
+		/* Allocate a page */
+		seL4_Word vaddr;
+		frame_alloc(&vaddr);
+		if (!vaddr) {
+			printf("Out of memory!\n");
+			break;
+		}
+
+		/* Test you can touch the page */
+		*vaddr = 0x37;
+		assert(*vaddr == 0x37);
+	}
 }
