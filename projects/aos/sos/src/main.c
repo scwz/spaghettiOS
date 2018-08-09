@@ -34,6 +34,7 @@
 #include "elfload.h"
 #include "syscalls.h"
 #include "tests.h"
+#include "frametable.h"
 
 #include <aos/vsyscall.h>
 
@@ -581,9 +582,10 @@ NORETURN void *main_continued(UNUSED void *arg)
     //timer3 = register_timer(100000000, ONE_SHOT, &test_timer3, NULL);
     
     /* milestone 2 initial tests */
+    frame_table_init(&cspace);
     m2_1();
-    m2_2();
-    m2_3();
+//    m2_2();
+//    m2_3();
 
     /* Start the user application */
     printf("Start first process\n");

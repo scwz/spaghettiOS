@@ -11,10 +11,7 @@
 #include <aos/sel4_zf_logif.h>
 #include <aos/debug.h>
 
-#include <clock/clock.h>
-#include <cpio/cpio.h>
-#include <elf/elf.h>
-#include <serial/serial.h>
+#include "ut.h"
 
 struct frame_table_entry {
     seL4_CPtr cap;

@@ -146,10 +146,10 @@ void run_tests(cspace_t *cspace)
 
 void m2_1(void) {
 	/* Allocate 10 pages and make sure you can touch them all */
-	for (int i = 0; i < 10; i++) {
+	for (int i = 0; i < 1; i++) {
 		/* Allocate a page */
-		seL4_Word vaddr;
-		frame_alloc(&vaddr);
+		seL4_Word *vaddr;
+		frame_alloc(vaddr);
 		assert(vaddr);
 
 		/* Test you can touch the page */
@@ -170,12 +170,12 @@ void m2_2(void) {
 		assert(vaddr != 0);
 
 		/* Test you can touch the page */
-		*vaddr = 0x37;
-		assert(*vaddr == 0x37);
+		vaddr = 0x37;
+		assert(vaddr == 0x37);
 
 		/* print every 1000 iterations */
 		if (i % 1000 == 0) {
-			printf("Page #%d allocated at %p\n", i, vaddr);
+			printf("Page #%d allocated at %p\n", i, &vaddr);
 		}
 
 		frame_free(page);
@@ -195,7 +195,7 @@ void m2_3(void) {
 		}
 
 		/* Test you can touch the page */
-		*vaddr = 0x37;
-		assert(*vaddr == 0x37);
+		vaddr = 0x37;
+		assert(vaddr == 0x37);
 	}
 }
