@@ -4,8 +4,7 @@
  * ABN 41 687 119 230.
  *
  * This software may be distributed and modified according to the terms of
- * the GNU General Public License version 2. Note that NO WARRANTY is provided.
- * See "LICENSE_GPLv2.txt" for details.
+ * the GNU General Public License version 2. Note that NO WARRANTY is provided.  * See "LICENSE_GPLv2.txt" for details.
  *
  * @TAG(DATA61_GPL)
  */
@@ -148,13 +147,13 @@ void m2_1(void) {
 	/* Allocate 10 pages and make sure you can touch them all */
 	for (int i = 0; i < 1; i++) {
 		/* Allocate a page */
-		seL4_Word *vaddr;
-		frame_alloc(vaddr);
+		seL4_Word vaddr;
+		frame_alloc(&vaddr);
 		assert(vaddr);
 
 		/* Test you can touch the page */
-		*vaddr = 0x37;
-		assert(*vaddr == 0x37);
+		*(seL4_Word *) vaddr = 0x37;
+		assert(*(seL4_Word *) vaddr == 0x37);
 
 		printf("Page #%d allocated at %p\n", i, (void *) vaddr);
 	}
@@ -170,8 +169,8 @@ void m2_2(void) {
 		assert(vaddr != 0);
 
 		/* Test you can touch the page */
-		vaddr = 0x37;
-		assert(vaddr == 0x37);
+		*(seL4_Word) vaddr = 0x37;
+		assert(*(seL4_Word) vaddr == 0x37);
 
 		/* print every 1000 iterations */
 		if (i % 1000 == 0) {
@@ -195,7 +194,7 @@ void m2_3(void) {
 		}
 
 		/* Test you can touch the page */
-		vaddr = 0x37;
-		assert(vaddr == 0x37);
+		*(seL4_Word) vaddr = 0x37;
+		assert(*(seL4_Word) vaddr == 0x37);
 	}
 }
