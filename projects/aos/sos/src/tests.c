@@ -169,8 +169,8 @@ void m2_2(void) {
 		assert(vaddr != 0);
 
 		/* Test you can touch the page */
-		*(seL4_Word) vaddr = 0x37;
-		assert(*(seL4_Word) vaddr == 0x37);
+		*(seL4_Word *) vaddr = 0x37;
+		assert(*(seL4_Word *) vaddr == 0x37);
 
 		/* print every 1000 iterations */
 		if (i % 1000 == 0) {
@@ -194,7 +194,7 @@ void m2_3(void) {
 		}
 
 		/* Test you can touch the page */
-		*(seL4_Word) vaddr = 0x37;
-		assert(*(seL4_Word) vaddr == 0x37);
+		*(seL4_Word *) vaddr = 0x37;
+		assert(*(seL4_Word *) vaddr == 0x37);
 	}
 }

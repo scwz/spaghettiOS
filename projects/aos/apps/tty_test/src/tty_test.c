@@ -54,6 +54,7 @@ int main(void)
     ttyout_init();
 
     do {
+#if 0
         printf("HELLO\tI\tAM\tTTY_TEST!\n");
         char *msg = "############### Testing tty_test!!! ##################\n";
         sos_write(msg, strlen(msg));
@@ -68,6 +69,7 @@ int main(void)
         sos_write(msg, strlen(msg));
 
         printf("GOODBYE\tI\tAM\tTTY_TEST!\n");
+#endif
         thread_block();
         // sleep(1);	// Implement this as a syscall
     } while (1);
