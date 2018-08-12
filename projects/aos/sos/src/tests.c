@@ -145,7 +145,7 @@ void run_tests(cspace_t *cspace)
 
 void m2_1(void) {
 	/* Allocate 10 pages and make sure you can touch them all */
-	for (int i = 0; i < 1; i++) {
+	for (int i = 0; i < 10; i++) {
 		/* Allocate a page */
 		seL4_Word vaddr;
 		frame_alloc(&vaddr);
@@ -157,6 +157,7 @@ void m2_1(void) {
 
 		printf("Page #%d allocated at %p\n", i, (void *) vaddr);
 	}
+    printf("Milestone 2 test 1 passed!\n");
 }
 
 void m2_2(void) {
@@ -174,11 +175,12 @@ void m2_2(void) {
 
 		/* print every 1000 iterations */
 		if (i % 1000 == 0) {
-			printf("Page #%d allocated at %p\n", i, &vaddr);
+			printf("Page #%d allocated at %p\n", i, (void*) vaddr);
 		}
 
 		frame_free(page);
 	}
+    printf("Milestone 2 test 2 passed!\n");
 }
 
 void m2_3(void) {
@@ -197,4 +199,5 @@ void m2_3(void) {
 		*(seL4_Word *) vaddr = 0x37;
 		assert(*(seL4_Word *) vaddr == 0x37);
 	}
+    printf("Milestone 2 test 3 passed!\n");
 }

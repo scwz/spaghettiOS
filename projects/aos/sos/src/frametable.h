@@ -15,6 +15,7 @@
 
 struct frame_table_entry {
     seL4_CPtr cap;
+    ut_t* untyped;
     struct frame_table_entry *next_free;
 };
 
