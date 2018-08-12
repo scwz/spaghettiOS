@@ -23,7 +23,6 @@ static cspace_t *cspace;
 
 void frame_table_init(cspace_t *cs) {
     cspace = cs;
-    frame_table = (struct frame_table_entry*) SOS_FRAME_TABLE;
     /*
     first_paddr = 0;
     curr_paddr = first_paddr;
@@ -31,17 +30,24 @@ void frame_table_init(cspace_t *cs) {
     */
 
     //ut_size is huge, run out of cap space
-    size_t frame_table_size = ut_size() * sizeof(struct frame_table_entry) / 4096;
-    /*for(size_t i = 0; i < frame_table_size; i++){
-        printf("%d\n", i);
-        frame_alloc(SOS_FRAME_TABLE+(i*4096));
-    }*/
+    size_t frame_table_size = ut_size()/4096;
+    size_t frame_table_pages = BYTES_TO_4K_PAGES(frame_table_size * sizeof(struct frame_table_entry));
     seL4_Word frame_table_vaddr;
-    frame_alloc(&frame_table_vaddr);
+
+    for(size_t i = 0; i < frame_table_pages; i++){
+        frame_alloc(&frame_table_vaddr);
+        if(i == 0)
+        printf("%d, %d, %lx\n", frame_table_pages, i, frame_table_vaddr);
+    }
     
     // test
     assert(frame_table_vaddr);
     printf("frame_table_vaddr: %x, value %x\n", frame_table_vaddr, *(seL4_Word *)frame_table_vaddr);
+    frame_table = (struct frame_table_entry*) frame_table_vaddr;
+    *(seL4_Word *) &(frame_table[999]) = 0x37;
+    *(seL4_Word *) &(frame_table[frame_table_size-1]) = 0x37;
+    printf("%lx\n", &(frame_table[frame_table_size+4000] ));
+    *(seL4_Word *) &(frame_table[frame_table_size+999]) = 0x37;
 }
 
 seL4_Word frame_alloc(seL4_Word *vaddr) {
