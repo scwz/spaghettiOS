@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+#include <utils/page.h>
 
 #include <cspace/cspace.h>
 #include <aos/sel4_zf_logif.h>
@@ -31,15 +32,16 @@ void frame_table_init(cspace_t *cs) {
 
     //ut_size is huge, run out of cap space
     size_t frame_table_size = ut_size() * sizeof(struct frame_table_entry) / 4096;
-    for(size_t i = 0; i < frame_table_size; i++){
+    /*for(size_t i = 0; i < frame_table_size; i++){
         printf("%d\n", i);
         frame_alloc(SOS_FRAME_TABLE+(i*4096));
-    }
+    }*/
+    seL4_Word frame_table_vaddr;
+    frame_alloc(&frame_table_vaddr);
     
-
     // test
-    assert(SOS_FRAME_TABLE);
-    printf("frame_table_vaddr: %x, value %x\n", frame_table, *frame_table);
+    assert(frame_table_vaddr);
+    printf("frame_table_vaddr: %x, value %x\n", frame_table_vaddr, *(seL4_Word *)frame_table_vaddr);
 }
 
 seL4_Word frame_alloc(seL4_Word *vaddr) {
@@ -63,8 +65,8 @@ seL4_Word frame_alloc(seL4_Word *vaddr) {
         return -1;
     }
 
-    //vaddr = SOS_FRAME_TABLE + curr_paddr;
-    err = map_frame(cspace, cap, seL4_CapInitThreadVSpace, vaddr, 
+    *vaddr = SOS_FRAME_TABLE + curr_paddr;
+    err = map_frame(cspace, cap, seL4_CapInitThreadVSpace, *vaddr, 
                     seL4_AllRights, seL4_ARM_Default_VMAttributes);
     ZF_LOGE_IFERR(err, "Failed to map frame");
     if (err != seL4_NoError) {
