@@ -186,7 +186,7 @@ void m2_2(void) {
 void m2_3(void) {
 	/* Test that you eventually run out of memory gracefully,
 	   and doesn't crash */
-    int i = 0;
+    //int i = 0;
 	while (true) {
 		/* Allocate a page */
 		seL4_Word vaddr;
@@ -199,9 +199,11 @@ void m2_3(void) {
 		/* Test you can touch the page */
 		*(seL4_Word *) vaddr = 0x37;
 		assert(*(seL4_Word *) vaddr == 0x37);
+        /*
 		if (i++ % 1000 == 0) {
 			printf("Page #%d allocated at %p\n", i, (void*) vaddr);
 		}
+        */
 	}
     printf("Milestone 2 test 3 passed!\n");
 }

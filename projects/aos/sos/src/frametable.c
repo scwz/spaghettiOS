@@ -17,9 +17,8 @@
 
 static struct frame_table_entry *frame_table = NULL;
 static seL4_Word top_paddr;
-size_t frame_table_size;
 static seL4_Word bot_paddr;
-static seL4_Word curr_paddr;
+static size_t frame_table_size;
 static cspace_t *cspace;
 
 static seL4_Word paddr_to_page_num(seL4_Word paddr){
@@ -94,8 +93,7 @@ void frame_table_init(cspace_t *cs) {
         seL4_CPtr cap;
         alloc_retype_map(&cap, &frame_table_vaddr, &top_paddr);
         
-        if(i == 0);
-        printf("%ld, %ld, %lx\n", top_paddr, i, frame_table_vaddr);
+        //printf("%ld, %ld, %lx\n", top_paddr, i, frame_table_vaddr);
     }
     //init values (physical memory allocates downwards)
     top_paddr -= PAGE_SIZE_4K; // first page will be here
