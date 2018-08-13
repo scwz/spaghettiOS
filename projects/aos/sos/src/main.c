@@ -72,7 +72,7 @@ static cspace_t cspace;
 /* serial port */
 static struct serial *serial_port;
 
-static uint32_t timer1, timer2, timer3, timer4, timer5;
+//static uint32_t timer1, timer2, timer3, timer4, timer5;
 
 /* the one process we start */
 static struct {
@@ -583,8 +583,8 @@ NORETURN void *main_continued(UNUSED void *arg)
     
     /* milestone 2 initial tests */
     frame_table_init(&cspace);
-    m2_1();
-    m2_2();
+//    m2_1();
+//    m2_2();
     m2_3();
 
     /* Start the user application */
