@@ -22,19 +22,10 @@ static size_t frame_table_size;
 static cspace_t *cspace;
 
 static seL4_Word paddr_to_page_num(seL4_Word paddr){
-    if(paddr > top_paddr){
-        paddr = top_paddr;
-    }
-    if(paddr < bot_paddr){
-        paddr = bot_paddr;
-    }
     return (top_paddr - paddr)/PAGE_SIZE_4K; 
 }
 
 static seL4_Word page_num_to_paddr(seL4_Word page){
-    if(page > paddr_to_page_num(bot_paddr)){
-        return bot_paddr;
-    }
     return -(page * PAGE_SIZE_4K) + top_paddr;
 }
 
@@ -132,7 +123,6 @@ seL4_Word frame_alloc(seL4_Word *vaddr) {
     seL4_Word page_num = paddr_to_page_num(paddr);
     //printf("first: %lx, curr:%lx, diff:%lx, maxdiff: %lx, pagenum: %lx, maxpage: %lx\n", top_paddr, curr_paddr, top_paddr-curr_paddr,top_paddr-bot_paddr, page_num, paddr_to_page_num(bot_paddr));
     frame_table[page_num].cap = cap;
-    frame_table[page_num].untyped = ut;
     return page_num;
 }
 
@@ -149,7 +139,7 @@ void frame_free(seL4_Word page) {
     seL4_ARM_Page_Unmap(frame_table[page].cap);
     cspace_delete(cspace, frame_table[page].cap);
     cspace_free_slot(cspace, frame_table[page].cap);
-    ut_free(frame_table[page].untyped, PAGE_BITS_4K);
+    ut_free(paddr_to_ut(page_num_to_paddr(page)), PAGE_BITS_4K);
     frame_table[page].cap = seL4_CapNull;
 }
 

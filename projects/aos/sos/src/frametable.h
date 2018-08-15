@@ -15,7 +15,6 @@
 
 struct frame_table_entry {
     seL4_CPtr cap;
-    ut_t* untyped;
 };
 
 void frame_table_init(cspace_t *cs);

@@ -39,7 +39,7 @@ static inline seL4_Word ut_to_paddr(ut_t *ut)
     return (ut - table.untypeds) * PAGE_SIZE_4K + table.first_paddr;
 }
 
-static inline ut_t *paddr_to_ut(seL4_Word paddr)
+ut_t *paddr_to_ut(seL4_Word paddr)
 {
     return &table.untypeds[(paddr - table.first_paddr) / PAGE_SIZE_4K];
 }

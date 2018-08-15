@@ -150,3 +150,5 @@ void ut_free(ut_t *ut, size_t size_bits);
  * @return      cptr to the allocated untyped. seL4_CapNull if the paddr is not available.
  */
 ut_t *ut_alloc_4k_device(uintptr_t paddr);
+
+ut_t *paddr_to_ut(seL4_Word paddr);
