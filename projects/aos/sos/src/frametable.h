@@ -16,6 +16,7 @@
 struct frame_table_entry {
     seL4_CPtr cap;
     ut_t *ut;
+    seL4_Word next_free_page;
 };
 
 void frame_table_init(cspace_t *cs);

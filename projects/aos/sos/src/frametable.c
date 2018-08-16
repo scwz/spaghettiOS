@@ -20,6 +20,7 @@ static seL4_Word top_paddr;
 static seL4_Word bot_paddr;
 static seL4_Word vaddr_index;
 static seL4_Word base_vaddr;
+static seL4_Word next_free_page;
 static size_t frame_table_size;
 static size_t frame_table_pages;
 static cspace_t *cspace;
@@ -28,10 +29,10 @@ static seL4_Word vaddr_to_page_num(seL4_Word vaddr){
     return ((vaddr - base_vaddr) / PAGE_SIZE_4K); 
 }
 
-/*
+
 static seL4_Word page_num_to_vaddr(seL4_Word page){
     return  page * PAGE_SIZE_4K + base_vaddr;
-}*/
+}
 
 static ut_t *alloc_retype_map(seL4_CPtr *cptr, uintptr_t *vaddr, uintptr_t *paddr) {
     ut_t *ut = ut_alloc_4k_untyped(paddr);
@@ -62,9 +63,7 @@ static ut_t *alloc_retype_map(seL4_CPtr *cptr, uintptr_t *vaddr, uintptr_t *padd
         cspace_free_slot(cspace, *cptr);
         return NULL;
     }
-
-    *vaddr = SOS_FRAME_TABLE + vaddr_index;
-    vaddr_index += PAGE_SIZE_4K;
+    
     err = map_frame(cspace, *cptr, seL4_CapInitThreadVSpace, *vaddr, 
                     seL4_AllRights, seL4_ARM_Default_VMAttributes);
     ZF_LOGE_IFERR(err, "Failed to map frame");
@@ -83,19 +82,27 @@ void frame_table_init(cspace_t *cs) {
 
     frame_table_size = ut_size() / PAGE_SIZE_4K;
     frame_table_pages = BYTES_TO_4K_PAGES(frame_table_size * sizeof(struct frame_table_entry));
-    seL4_Word frame_table_vaddr;
+    seL4_Word frame_table_vaddr = SOS_FRAME_TABLE;
     seL4_CPtr cap;
-    vaddr_index = 0;
     
     alloc_retype_map(&cap, &frame_table_vaddr, &top_paddr);
     frame_table = (struct frame_table_entry *) frame_table_vaddr;
-    //base_vaddr = frame_table_vaddr + frame_table_size;
     for(size_t i = 1; i < frame_table_pages; i++){
+        frame_table_vaddr += PAGE_SIZE_4K;
         alloc_retype_map(&cap, &frame_table_vaddr, &top_paddr);
-        
-        //printf("%ld, %ld, %lx\n", top_paddr, i, frame_table_vaddr);
     }
-    base_vaddr = frame_table_vaddr;
+
+    //base is the next page after the frame table
+    base_vaddr = frame_table_vaddr + PAGE_SIZE_4K;
+
+    //set up frame table initial values
+    seL4_Word i;
+    for(i = 0; i < frame_table_size; i++){
+        frame_table[i].cap = seL4_CapNull;
+        frame_table[i].next_free_page = i+1;
+    }
+    frame_table[i].next_free_page = 0;
+
     //init values (physical memory allocates downwards)
     top_paddr -= PAGE_SIZE_4K; // first page will be here
     bot_paddr = top_paddr - ut_size();
@@ -109,16 +116,18 @@ void frame_table_init(cspace_t *cs) {
 seL4_Word frame_alloc(seL4_Word *vaddr) {
     uintptr_t paddr;
     seL4_CPtr cap;
+    seL4_Word page = next_free_page;
+    *vaddr = page_num_to_vaddr(page);
+    //printf("pagenum %ld, vaddr %lx, freepage: %ld\n", page, *vaddr, next_free_page);
     ut_t *ut = alloc_retype_map(&cap, vaddr, &paddr);
     
     if (ut == NULL) {
         return (seL4_Word) NULL;
     }
-    seL4_Word page_num = vaddr_to_page_num(*vaddr);
-    //printf("pagenum %ld, vaddr %lx\n", page_num, *vaddr);
-    frame_table[page_num].cap = cap;
-    frame_table[page_num].ut = ut;
-    return page_num;
+    frame_table[page].cap = cap;
+    frame_table[page].ut = ut;
+    next_free_page = frame_table[page].next_free_page;
+    return page;
 }
 
 void frame_free(seL4_Word page) {
@@ -132,7 +141,8 @@ void frame_free(seL4_Word page) {
         ZF_LOGE("Page is already free");
         return;
     }
-    vaddr_index -= PAGE_SIZE_4K;
+    frame_table[page].next_free_page = next_free_page;
+    next_free_page = page;
     seL4_ARM_Page_Unmap(frame_table[page].cap);
     cspace_delete(cspace, frame_table[page].cap);
     cspace_free_slot(cspace, frame_table[page].cap);
