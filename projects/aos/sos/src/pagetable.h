@@ -17,3 +17,5 @@ struct page_table_entry{
     uint32_t ctrl;
     struct page_table_entry* next;
 };
+
+void page_table_init(cspace_t *cs);

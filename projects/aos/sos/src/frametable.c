@@ -132,6 +132,7 @@ seL4_Word frame_alloc(seL4_Word *vaddr) {
     seL4_Word page_num = vaddr_to_page_num(*vaddr);
 //    printf("allocating %ld\n", page_num);
     //printf("first: %lx, curr:%lx, diff:%lx, maxdiff: %lx, pagenum: %lx, maxpage: %lx\n", top_paddr, curr_paddr, top_paddr-curr_paddr,top_paddr-bot_paddr, page_num, paddr_to_page_num(bot_paddr));
+    //printf("cap: %ld, pagenum: %ld\n", cap, page_num);
     frame_table[page_num].cap = cap;
     frame_table[page_num].ut = ut;
     return page_num;
@@ -145,9 +146,9 @@ void frame_free(seL4_Word page) {
         return;
     }
     */
-    //printf("freeing page %ld\n", page);
+    printf("freeing page %ld\n", page);
     if(frame_table[page].cap == seL4_CapNull){
-        //ZF_LOGE("Page is already free");
+        ZF_LOGE("Page is already free");
         return;
     }
     vaddr_index -= PAGE_SIZE_4K;
