@@ -205,7 +205,7 @@ void m2_3(void) {
 		}
         */
 	}
-    for (size_t i = 0; i < ut_size() / PAGE_SIZE_4K; i++) {
+    for (size_t i = 0; i < (ut_size() / PAGE_SIZE_4K) * 0.8; i++) {
         frame_free(i);
     }
     printf("Milestone 2 test 3 passed!\n");

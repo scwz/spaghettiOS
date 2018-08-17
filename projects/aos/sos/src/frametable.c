@@ -80,7 +80,7 @@ static ut_t *alloc_retype_map(seL4_CPtr *cptr, uintptr_t *vaddr, uintptr_t *padd
 void frame_table_init(cspace_t *cs) {
     cspace = cs;
 
-    frame_table_size = ut_size() / PAGE_SIZE_4K;
+    frame_table_size = 0.8 * (ut_size() / PAGE_SIZE_4K);
     frame_table_pages = BYTES_TO_4K_PAGES(frame_table_size * sizeof(struct frame_table_entry));
     seL4_Word frame_table_vaddr = SOS_FRAME_TABLE;
     seL4_CPtr cap;
@@ -136,7 +136,11 @@ void frame_free(seL4_Word page) {
         ZF_LOGE("Page does not exist");
         return;
     }
-    printf("freeing page %ld\n", page);
+    if(frame_table[page].cap == seL4_CapNull){
+        printf("%ld\n", page);
+    }
+    assert(frame_table[page].cap != seL4_CapNull);
+    //printf("freeing page %ld\n", page);
     if(frame_table[page].cap == seL4_CapNull){
         ZF_LOGE("Page is already free");
         return;
