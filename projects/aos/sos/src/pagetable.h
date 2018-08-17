@@ -31,3 +31,9 @@ struct page_table_entry{
 };
 
 void page_table_init(cspace_t *cs);
+
+int page_table_insert(void);
+
+int page_table_remove(void);
+
+void vm_fault(seL4_Word faultaddress);

@@ -35,6 +35,7 @@
 #include "syscalls.h"
 #include "tests.h"
 #include "frametable.h"
+#include "pagetable.h"
 
 #include <aos/vsyscall.h>
 
@@ -177,10 +178,15 @@ NORETURN void syscall_loop(seL4_CPtr ep)
                 /* It's an interrupt from one of the timers */
                 timer_interrupt();
             }
+        } else if (label == seL4_Fault_VMFault) {
+            // not triggering for some reason...
+            printf("help\n!");
+            vm_fault(badge);
         } else if (label == seL4_Fault_NullFault) {
             /* It's not a fault or an interrupt, it must be an IPC
              * message from tty_test! */
             handle_syscall(badge, seL4_MessageInfo_get_length(message) - 1);
+
         } else {
             /* some kind of fault */
             debug_print_fault(message, TTY_NAME);
