@@ -583,9 +583,12 @@ NORETURN void *main_continued(UNUSED void *arg)
     
     /* milestone 2 initial tests */
     frame_table_init(&cspace);
+    /*
     m2_1();
     m2_2();
     m2_3();
+    */
+    pt_test();
 
     /* Start the user application */
     printf("Start first process\n");

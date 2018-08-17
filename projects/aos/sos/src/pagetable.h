@@ -11,11 +11,23 @@
 #include <aos/sel4_zf_logif.h>
 #include <aos/debug.h>
 
+struct pgd {
+    struct pud *pud;
+};
+
+struct pud {
+    struct pd *pd;
+};
+
+struct pd {
+    struct page_table_entry *pte;
+};
+
 struct page_table_entry{
     uint32_t pid;
     uint32_t vpn;
     uint32_t ctrl;
-    struct page_table_entry* next;
+    seL4_CPtr cap;
 };
 
 void page_table_init(cspace_t *cs);

@@ -15,3 +15,4 @@ void run_tests(cspace_t *cspace);
 void m2_1(void);
 void m2_2(void);
 void m2_3(void);
+void pt_test(void);
