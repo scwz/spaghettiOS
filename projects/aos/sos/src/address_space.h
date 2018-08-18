@@ -26,7 +26,7 @@ struct addrspace *as_create(void);
 
 void as_destroy(struct addrspace *as);
 
-int as_define_region(struct addrspace *as);
+int as_define_region(struct addrspace *as, seL4_Word vbase, size_t size, int accmode);
 
 int as_define_stack(struct addrspace *as);
 
