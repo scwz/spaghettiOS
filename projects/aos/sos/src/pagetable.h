@@ -10,29 +10,36 @@
 #include <cspace/cspace.h>
 #include <aos/sel4_zf_logif.h>
 #include <aos/debug.h>
+#include <utils/page.h>
 
-struct pgd {
-    struct pud *pud;
-};
+#define PAGE_INDEX_SIZE (PAGE_SIZE_4K / 8)
 
-struct pud {
-    struct pd *pd;
+struct pt {
+    seL4_CPtr cap;
+    seL4_Word page[PAGE_INDEX_SIZE];
 };
 
 struct pd {
-    struct page_table_entry *pte;
+    seL4_CPtr cap;
+    struct pt pt[PAGE_INDEX_SIZE];
 };
 
-struct page_table_entry{
-    uint32_t pid;
-    uint32_t vpn;
-    uint32_t ctrl;
+struct pud {
     seL4_CPtr cap;
+    struct pd pd[PAGE_INDEX_SIZE];
 };
+
+struct pgd {
+    seL4_CPtr cap;
+    struct pud pud[PAGE_INDEX_SIZE];
+};
+
 
 void page_table_init(cspace_t *cs);
 
 int page_table_insert(void);
+
+int page_table_insert_cap(seL4_Word vaddr, seL4_CPtr cap, uint8_t level);
 
 int page_table_remove(void);
 

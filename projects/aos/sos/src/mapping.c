@@ -15,6 +15,7 @@
 #include "mapping.h"
 #include "ut.h"
 #include "vmem_layout.h"
+#include "pagetable.h"
 
 /**
  * Retypes and maps a page table into the root servers page global directory
@@ -146,7 +147,60 @@ seL4_Error map_frame(cspace_t *cspace, seL4_CPtr frame_cap, seL4_CPtr vspace, se
 seL4_Error sos_map_frame(cspace_t *cspace, seL4_CPtr frame_cap, seL4_CPtr vspace, seL4_Word vaddr, seL4_CapRights_t rights,
                      seL4_ARM_VMAttributes attr)
 {
-    return 0;
+    /* Attempt the mapping */
+    seL4_Error err = seL4_ARM_Page_Map(frame_cap, vspace, vaddr, rights, attr);
+    for (size_t i = 0; i < MAPPING_SLOTS && err == seL4_FailedLookup; i++) {
+        /* save this so nothing else trashes the message register value */
+        seL4_Word failed = seL4_MappingFailedLookupLevel();
+
+
+        /* Assume the error was because we are missing a paging structure */
+        ut_t *ut = ut_alloc_4k_untyped(NULL);
+        if (ut == NULL) {
+            ZF_LOGE("Out of 4k untyped");
+            return -1;
+        }
+
+        seL4_CPtr slot;
+        slot = cspace_alloc_slot(cspace);
+
+        /*
+        if (used != NULL) {
+            slot = free_slots[i];
+            *used |= BIT(i);
+        } else {
+            slot = cspace_alloc_slot(cspace);
+        }*/
+
+        if (slot == seL4_CapNull) {
+            ZF_LOGE("No cptr to alloc paging structure");
+            return -1;
+        }
+        
+        switch (failed) {
+            
+        case SEL4_MAPPING_LOOKUP_NO_PT:
+            err = retype_map_pt(cspace, vspace, vaddr, ut->cap, slot);
+            page_table_insert_cap(vaddr, slot, 4);
+            break;
+        case SEL4_MAPPING_LOOKUP_NO_PD:
+            err = retype_map_pd(cspace, vspace, vaddr, ut->cap, slot);
+            page_table_insert_cap(vaddr, slot, 3);
+            break;
+
+        case SEL4_MAPPING_LOOKUP_NO_PUD:
+            err = retype_map_pud(cspace, vspace, vaddr, ut->cap, slot);
+            page_table_insert_cap(vaddr, slot, 2);
+            break;
+        }
+
+        if (!err) {
+            /* Try the mapping again */
+            err = seL4_ARM_Page_Map(frame_cap, vspace, vaddr, rights, attr);
+        }
+    }
+
+    return err;
 }
 
 

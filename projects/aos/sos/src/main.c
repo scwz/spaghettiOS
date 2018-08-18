@@ -588,6 +588,7 @@ NORETURN void *main_continued(UNUSED void *arg)
     //timer3 = register_timer(100000000, ONE_SHOT, &test_timer3, NULL);
     
     /* milestone 2 initial tests */
+    page_table_init(&cspace);
     frame_table_init(&cspace);
     /*
     m2_1();

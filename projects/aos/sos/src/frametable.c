@@ -64,7 +64,7 @@ static ut_t *alloc_retype_map(seL4_CPtr *cptr, uintptr_t *vaddr, uintptr_t *padd
         return NULL;
     }
     
-    err = map_frame(cspace, *cptr, seL4_CapInitThreadVSpace, *vaddr, 
+    err = sos_map_frame(cspace, *cptr, seL4_CapInitThreadVSpace, *vaddr, 
                     seL4_AllRights, seL4_ARM_Default_VMAttributes);
     ZF_LOGE_IFERR(err, "Failed to map frame");
     if (err != seL4_NoError) {
