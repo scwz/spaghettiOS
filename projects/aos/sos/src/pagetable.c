@@ -40,8 +40,9 @@ static int set_cap(seL4_Word vaddr, seL4_CPtr cap, uint8_t level){
 
 void page_table_init(cspace_t *cs) {
     cspace = cs;
-    page_table = (struct pgd*) SOS_PAGE_TABLE + sizeof(struct pgd);
-    printf("page_table; %lx, %lx %lx %lx\n",page_table, page_table->pud, page_table->pud[0].pd, page_table->pud[0].pd[0].pt);
+    page_table = (struct pgd*) (SOS_PAGE_TABLE);
+    printf("sizeof page_table: %lx\n", sizeof(struct pgd));
+    printf("page_table; %lx, %lx %lx %lx\n",page_table, page_table->pud, page_table->pud[512].pd, page_table->pud[0].pd[0].pt);
     //memset(page_table, 0, sizeof(*page_table));
 }
 
