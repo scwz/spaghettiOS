@@ -18,7 +18,6 @@ void as_destroy(struct addrspace *as) {
         curr_region = next;
     }
     free(as);
-    return true;
 }
 
 static bool valid_new_region(struct addrspace *as, struct region* new_region){
@@ -56,11 +55,11 @@ int as_define_region(struct addrspace *as, seL4_Word vbase, size_t size, int acc
 
 int as_define_stack(struct addrspace *as) {
     //stub accmode and size
-    as_define_region(as, 0, 0xFFFFFFFF, 0);
+    as_define_region(as, 0, 0xFFFFFFFF, MODE_STACK);
     return 0;
 }
 
 int as_define_heap(struct addrspace *as) {
-    as_define_region(as, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    as_define_region(as, 0xFFFFFFFF, 0xFFFFFFFF, MODE_HEAP);
     return 0;
 }

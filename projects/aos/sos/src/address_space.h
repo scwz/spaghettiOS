@@ -11,6 +11,9 @@
 #include <aos/sel4_zf_logif.h>
 #include <aos/debug.h>
 
+#define MODE_STACK       1
+#define MODE_HEAP        2
+
 struct region {
     seL4_Word vbase;
     size_t size;
