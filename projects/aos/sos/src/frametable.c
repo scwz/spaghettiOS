@@ -64,7 +64,7 @@ static ut_t *alloc_retype_map(seL4_CPtr *cptr, uintptr_t *vaddr, uintptr_t *padd
         return NULL;
     }
     
-    err = sos_map_frame(cspace, *cptr, seL4_CapInitThreadVSpace, *vaddr, 
+    err = map_frame(cspace, *cptr, seL4_CapInitThreadVSpace, *vaddr, 
                     seL4_AllRights, seL4_ARM_Default_VMAttributes);
     ZF_LOGE_IFERR(err, "Failed to map frame");
     if (err != seL4_NoError) {
@@ -124,6 +124,7 @@ seL4_Word frame_alloc(seL4_Word *vaddr) {
     if (ut == NULL) {
         return (seL4_Word) NULL;
     }
+    memset(vaddr, 0, PAGE_SIZE_4K);
     frame_table[page].cap = cap;
     frame_table[page].ut = ut;
     next_free_page = frame_table[page].next_free_page;
