@@ -69,8 +69,8 @@ seL4_Error map_frame_cspace(cspace_t *cspace, seL4_CPtr frame_cap, seL4_CPtr vsp
 seL4_Error map_frame(cspace_t *cspace, seL4_CPtr frame_cap, seL4_CPtr vspace, seL4_Word vaddr, seL4_CapRights_t rights,
                      seL4_ARM_VMAttributes attr);
 
-int sos_map_frame(cspace_t *cspace, seL4_Word page, seL4_Word vaddr);
-
+int sos_map_frame(cspace_t *cspace, seL4_CPtr frame_cap, seL4_CPtr vspace, seL4_Word vaddr,
+                     seL4_CapRights_t rights, seL4_ARM_VMAttributes attr, uint8_t pid,seL4_Word page);
 /*
  * Map a device and return the virtual address it is mapped to.
  *

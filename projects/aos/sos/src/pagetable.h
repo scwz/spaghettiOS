@@ -11,8 +11,11 @@
 #include <aos/sel4_zf_logif.h>
 #include <aos/debug.h>
 #include <utils/page.h>
+#include "ut.h"
+
 
 #define PAGE_INDEX_SIZE (PAGE_SIZE_4K / 8)
+
 
 //store attributes in first n bytes 
 struct pt {
@@ -31,11 +34,22 @@ struct pgd {
     struct pud* pud[PAGE_INDEX_SIZE];
 };
 
-struct caps{
-    seL4_CPtr caps[2 << 27];
+struct seL4_page_objects{
+    ut_t* ut;
+    seL4_CPtr cap;
 };
 
+struct seL4_page_objects_frame{
+    uint64_t size;
+    seL4_Word page;
+    seL4_Word nextframe;
+    struct seL4_page_objects page_objects[253];
+};
+
+
 void page_table_init(cspace_t *cs);
+
+void save_seL4_info(uint8_t pid, ut_t * ut, seL4_CPtr slot);
 
 int page_table_insert(seL4_Word vaddr, seL4_Word page_num);
 

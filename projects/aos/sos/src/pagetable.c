@@ -3,8 +3,10 @@
 #include "frametable.h"
 #include "mapping.h"
 
+#define MAX_PROCESSES 1
 
 static struct pgd* page_table;
+static struct seL4_page_objects_frame ** seL4_pages;
 static cspace_t* cspace;
 
 static struct pt_index {
@@ -31,8 +33,8 @@ void page_table_init(cspace_t *cs) {
     assert(sizeof(struct pgd) == PAGE_SIZE_4K);
     seL4_Word page = frame_alloc(&page_table);
     printf("sizeof page_table: %lx\n", sizeof(struct pgd));
+    seL4_pages = malloc(sizeof(struct seL4_page_objects_frame *)*MAX_PROCESSES);
     //printf("page_table; %lx, %lx %lx %lx\n",page_table, page_table->pud, page_table->pud[512].pd, page_table->pud[0].pd[0].pt);
-    //memset(page_table, 0, sizeof(*page_table));
 }
 
 
@@ -76,8 +78,43 @@ int page_table_remove(seL4_Word vaddr) {
     return 0;
 }
 
+void save_seL4_info(uint8_t pid, ut_t * ut, seL4_CPtr slot){
+    struct seL4_page_objects_frame* frame;
+    if(seL4_pages[pid] == NULL){
+        seL4_Word page = frame_alloc(&(seL4_pages[pid]));
+        if(seL4_pages[pid] == NULL){
+            ZF_LOGE("frame alloc fail");
+        }  else {
+            seL4_pages[pid]->size = 0;
+            seL4_pages[pid]->nextframe = NULL;
+            page_table_insert(seL4_pages[pid], page);
+            frame = seL4_pages[pid];
+        }
+    } else {
+        frame = seL4_pages[pid];
+        while (frame->nextframe != NULL){
+            frame = frame->nextframe;
+        }
+        if(frame->size == 253){
+            seL4_Word page = frame_alloc(&(frame->nextframe));
+            if(frame->nextframe == NULL){
+                ZF_LOGE("frame alloc fail");
+            }  else {
+                frame = frame->nextframe;
+                frame->size = 0;
+                frame->nextframe = NULL;
+                page_table_insert(frame, page);
+            }
+        }
+    }
+    seL4_Word ind = frame->size++;
+    frame->page_objects[ind].ut = ut;
+    frame->page_objects[ind].cap = slot;
+}
+
 void vm_fault(seL4_Word faultaddress) {
-    seL4_Word vaddr;
+    /*seL4_Word vaddr;
     seL4_Word page_num = frame_alloc(&vaddr);
-    sos_map_frame(cspace, page_num, faultaddress);
+    sos_map_frame(cspace, page_num, faultaddress);*/
+    printf("faultaddress %lx\n", faultaddress);
 }

@@ -144,9 +144,51 @@ seL4_Error map_frame(cspace_t *cspace, seL4_CPtr frame_cap, seL4_CPtr vspace, se
     return map_frame_impl(cspace, frame_cap, vspace, vaddr, rights, attr, NULL, NULL);
 }
 
-int sos_map_frame(cspace_t *cspace, seL4_Word page, seL4_Word vaddr)
+int sos_map_frame(cspace_t *cspace, seL4_CPtr frame_cap, seL4_CPtr vspace, seL4_Word vaddr,
+                     seL4_CapRights_t rights, seL4_ARM_VMAttributes attr, uint8_t pid,seL4_Word page)
 {
-    return page_table_insert(vaddr, page);
+    /* Attempt the mapping */
+    seL4_Error err = seL4_ARM_Page_Map(frame_cap, vspace, vaddr, rights, attr);
+    for (size_t i = 0; i < MAPPING_SLOTS && err == seL4_FailedLookup; i++) {
+        /* save this so nothing else trashes the message register value */
+        seL4_Word failed = seL4_MappingFailedLookupLevel();
+
+        /* Assume the error was because we are missing a paging structure */
+        ut_t *ut = ut_alloc_4k_untyped(NULL);
+        
+        if (ut == NULL) {
+            ZF_LOGE("Out of 4k untyped");
+            return -1;
+        }
+
+        /* figure out which cptr to use to retype into*/
+        seL4_CPtr slot = cspace_alloc_slot(cspace);
+
+        if (slot == seL4_CapNull) {
+            ZF_LOGE("No cptr to alloc paging structure");
+            return -1;
+        }
+
+        switch (failed) {
+        case SEL4_MAPPING_LOOKUP_NO_PT:
+            err = retype_map_pt(cspace, vspace, vaddr, ut->cap, slot);
+            break;
+        case SEL4_MAPPING_LOOKUP_NO_PD:
+            err = retype_map_pd(cspace, vspace, vaddr, ut->cap, slot);
+            break;
+
+        case SEL4_MAPPING_LOOKUP_NO_PUD:
+            err = retype_map_pud(cspace, vspace, vaddr, ut->cap, slot);
+            break;
+        }
+        save_seL4_info(pid, ut, slot);
+        if (!err) {
+            /* Try the mapping again */
+            err = seL4_ARM_Page_Map(frame_cap, vspace, vaddr, rights, attr);
+        }
+    }
+    page_table_insert(vaddr, page);
+    return err;
 }
 
 

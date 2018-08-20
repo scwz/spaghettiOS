@@ -113,6 +113,7 @@ void frame_table_init(cspace_t *cs) {
     
 }
 
+
 seL4_Word frame_alloc(seL4_Word *vaddr) {
     uintptr_t paddr;
     seL4_CPtr cap;
@@ -124,7 +125,7 @@ seL4_Word frame_alloc(seL4_Word *vaddr) {
     if (ut == NULL) {
         return (seL4_Word) NULL;
     }
-    memset(vaddr, 0, PAGE_SIZE_4K);
+    memset(*vaddr, 0, PAGE_SIZE_4K);
     frame_table[page].cap = cap;
     frame_table[page].ut = ut;
     next_free_page = frame_table[page].next_free_page;

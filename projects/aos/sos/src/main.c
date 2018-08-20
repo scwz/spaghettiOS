@@ -180,7 +180,7 @@ NORETURN void syscall_loop(seL4_CPtr ep)
             }
         } else if (label == seL4_Fault_VMFault) {
             // not triggering for some reason...
-            printf("help\n!");
+            printf("help %lx\n!", badge);
             vm_fault(badge);
         } else if (label == seL4_Fault_NullFault) {
             /* It's not a fault or an interrupt, it must be an IPC
@@ -595,7 +595,7 @@ NORETURN void *main_continued(UNUSED void *arg)
     m2_2();
     m2_3();
     */
-    pt_test();
+    //pt_test();
 
     /* Start the user application */
     printf("Start first process\n");
