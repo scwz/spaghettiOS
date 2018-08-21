@@ -153,7 +153,6 @@ NORETURN void syscall_loop(seL4_CPtr ep)
 {
 
     while (1) {
-        printf("aahiuahciuahev\n");
         seL4_Word badge = 0;
         /* Block on ep, waiting for an IPC sent over ep, or
          * a notification from our bound notification object */
@@ -161,7 +160,6 @@ NORETURN void syscall_loop(seL4_CPtr ep)
         /* Awake! We got a message - check the label and badge to
          * see what the message is about */
         seL4_Word label = seL4_MessageInfo_get_label(message);
-        printf("label %ld\n", label);
 
         if (badge & IRQ_EP_BADGE) {
             /* It's a notification from our bound notification
@@ -179,8 +177,6 @@ NORETURN void syscall_loop(seL4_CPtr ep)
                 timer_interrupt();
             }
         } else if (label == seL4_Fault_VMFault) {
-            // not triggering for some reason...
-            printf("help %lx\n!", badge);
             vm_fault(badge);
         } else if (label == seL4_Fault_NullFault) {
             /* It's not a fault or an interrupt, it must be an IPC
