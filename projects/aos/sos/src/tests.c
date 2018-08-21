@@ -11,6 +11,7 @@
 #define ZF_LOG_LEVEL ZF_LOG_INFO
 #include <cspace/cspace.h>
 #include <utils/page.h>
+#include <clock/clock.h>
 #include "dma.h"
 #include "bootstrap.h"
 #include "frametable.h"
@@ -225,8 +226,6 @@ m2_3(void)
 static void
 do_pt_test(char *buf)
 {
-    int i;
-
     /* set */
     for (int i = 0; i < NPAGES; i++) {
 	    buf[i * PAGE_SIZE_4K] = i;
@@ -257,34 +256,37 @@ pt_test( void )
     free(buf2);
 }
 
-static void test_timer(void) {
-    printf("CALLBACK FROM PERIODIC 100MS TIMER\n");
-}
-
-static void test_timer2(void) {
-    printf("CALLBACK FROM PERIODIC 200MS TIMER\n");
-}
-
-static void test_timer3(void) {
-    printf("CALLBACK FROM ONE SHOT 100S TIMER\n");
-}
-
-static void test_timer4(void) {
-    printf("CALLBACK FROM ONE SHOT 200S TIMER\n");
-}
-
-static void test_timer5(void) {
-    printf("CALLBACK FROM ONE SHOT 300S TIMER\n");
-}
 
 void test_m1(void)
 {
+#if 0
+    static void test_timer(void) {
+        printf("CALLBACK FROM PERIODIC 100MS TIMER\n");
+    }
+
+    static void test_timer2(void) {
+        printf("CALLBACK FROM PERIODIC 200MS TIMER\n");
+    }
+
+    static void test_timer3(void) {
+        printf("CALLBACK FROM ONE SHOT 100S TIMER\n");
+    }
+
+    static void test_timer4(void) {
+        printf("CALLBACK FROM ONE SHOT 200S TIMER\n");
+    }
+
+    static void test_timer5(void) {
+        printf("CALLBACK FROM ONE SHOT 300S TIMER\n");
+    }
+
     uint32_t timer1, timer2, timer3, timer4, timer5;
     timer1 = register_timer(100000, PERIODIC, &test_timer, NULL);
     timer2 = register_timer(200000, PERIODIC, &test_timer2, NULL);
     timer5 = register_timer(300000000, ONE_SHOT, &test_timer5, NULL);
     timer4 = register_timer(200000000, ONE_SHOT, &test_timer4, NULL);
     timer3 = register_timer(100000000, ONE_SHOT, &test_timer3, NULL);
+#endif
 }
 
 void test_m2(void)
