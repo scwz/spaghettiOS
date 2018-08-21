@@ -73,8 +73,6 @@ static cspace_t cspace;
 /* serial port */
 static struct serial *serial_port;
 
-//static uint32_t timer1, timer2, timer3, timer4, timer5;
-
 /* the one process we start */
 static struct {
     ut_t *tcb_ut;
@@ -534,25 +532,6 @@ void init_muslc(void)
     muslcsys_install_syscall(__NR_madvise, sys_madvise);
 }
 
-void test_timer(void) {
-    printf("CALLBACK FROM PERIODIC 100MS TIMER\n");
-}
-
-void test_timer2(void) {
-    printf("CALLBACK FROM PERIODIC 200MS TIMER\n");
-}
-
-void test_timer3(void) {
-    printf("CALLBACK FROM ONE SHOT 100S TIMER\n");
-}
-
-void test_timer4(void) {
-    printf("CALLBACK FROM ONE SHOT 200S TIMER\n");
-}
-
-void test_timer5(void) {
-    printf("CALLBACK FROM ONE SHOT 300S TIMER\n");
-}
 
 NORETURN void *main_continued(UNUSED void *arg)
 {
@@ -581,21 +560,13 @@ NORETURN void *main_continued(UNUSED void *arg)
     printf("Starting timers\n");
     start_timer(&cspace, badge_irq_ntfn(ntfn, IRQ_BADGE_TIMER), timer_vaddr);
 
-    //timer1 = register_timer(100000, PERIODIC, &test_timer, NULL);
-    //timer2 = register_timer(200000, PERIODIC, &test_timer2, NULL);
-    //timer5 = register_timer(300000000, ONE_SHOT, &test_timer5, NULL);
-    //timer4 = register_timer(200000000, ONE_SHOT, &test_timer4, NULL);
-    //timer3 = register_timer(100000000, ONE_SHOT, &test_timer3, NULL);
     
-    /* milestone 2 initial tests */
     frame_table_init(&cspace);
     page_table_init(&cspace);
-    /*
-    m2_1();
-    m2_2();
-    m2_3();
-    */
-    //pt_test();
+
+    //test_m1();
+    //test_m2();
+    test_m3();
 
     /* Start the user application */
     printf("Start first process\n");

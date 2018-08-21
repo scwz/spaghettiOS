@@ -12,7 +12,6 @@
 #pragma once
 
 void run_tests(cspace_t *cspace);
-void m2_1(void);
-void m2_2(void);
-void m2_3(void);
-void pt_test(void);
+void test_m1(void);
+void test_m2(void);
+void test_m3(void);

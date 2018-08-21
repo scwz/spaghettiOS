@@ -144,7 +144,9 @@ void run_tests(cspace_t *cspace)
     ZF_LOGI("DMA test passed!");
 }
 
-void m2_1(void) {
+static void 
+m2_1(void) 
+{
 	/* Allocate 10 pages and make sure you can touch them all */
 	for (int i = 0; i < 10; i++) {
 		/* Allocate a page */
@@ -161,7 +163,9 @@ void m2_1(void) {
     printf("Milestone 2 test 1 passed!\n");
 }
 
-void m2_2(void) {
+static void 
+m2_2(void) 
+{
 	/* Test that you never run out of memory if you always free frames. */
     seL4_Word page;
 	for (int i = 0; i < 10000; i++) {
@@ -184,7 +188,9 @@ void m2_2(void) {
     printf("Milestone 2 test 2 passed!\n");
 }
 
-void m2_3(void) {
+static void 
+m2_3(void) 
+{
 	/* Test that you eventually run out of memory gracefully,
 	   and doesn't crash */
     //int i = 0;
@@ -232,7 +238,7 @@ do_pt_test(char *buf)
     }
 }
 
-void
+static void
 pt_test( void )
 {
     /* need a decent sized stack */
@@ -249,4 +255,46 @@ pt_test( void )
     assert(buf2);
     do_pt_test(buf2);
     free(buf2);
+}
+
+static void test_timer(void) {
+    printf("CALLBACK FROM PERIODIC 100MS TIMER\n");
+}
+
+static void test_timer2(void) {
+    printf("CALLBACK FROM PERIODIC 200MS TIMER\n");
+}
+
+static void test_timer3(void) {
+    printf("CALLBACK FROM ONE SHOT 100S TIMER\n");
+}
+
+static void test_timer4(void) {
+    printf("CALLBACK FROM ONE SHOT 200S TIMER\n");
+}
+
+static void test_timer5(void) {
+    printf("CALLBACK FROM ONE SHOT 300S TIMER\n");
+}
+
+void test_m1(void)
+{
+    uint32_t timer1, timer2, timer3, timer4, timer5;
+    timer1 = register_timer(100000, PERIODIC, &test_timer, NULL);
+    timer2 = register_timer(200000, PERIODIC, &test_timer2, NULL);
+    timer5 = register_timer(300000000, ONE_SHOT, &test_timer5, NULL);
+    timer4 = register_timer(200000000, ONE_SHOT, &test_timer4, NULL);
+    timer3 = register_timer(100000000, ONE_SHOT, &test_timer3, NULL);
+}
+
+void test_m2(void)
+{
+    m2_1();
+    m2_2();
+    m2_3();
+}
+
+void test_m3(void)
+{
+    pt_test();
 }
