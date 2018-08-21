@@ -14,4 +14,3 @@
 void run_tests(cspace_t *cspace);
 void test_m1(void);
 void test_m2(void);
-void test_m3(void);

@@ -153,6 +153,7 @@ NORETURN void syscall_loop(seL4_CPtr ep)
 {
 
     while (1) {
+        printf("aahiuahciuahev\n");
         seL4_Word badge = 0;
         /* Block on ep, waiting for an IPC sent over ep, or
          * a notification from our bound notification object */
@@ -160,6 +161,7 @@ NORETURN void syscall_loop(seL4_CPtr ep)
         /* Awake! We got a message - check the label and badge to
          * see what the message is about */
         seL4_Word label = seL4_MessageInfo_get_label(message);
+        printf("label %ld\n", label);
 
         if (badge & IRQ_EP_BADGE) {
             /* It's a notification from our bound notification
@@ -566,7 +568,6 @@ NORETURN void *main_continued(UNUSED void *arg)
 
     //test_m1();
     //test_m2();
-    test_m3();
 
     /* Start the user application */
     printf("Start first process\n");
