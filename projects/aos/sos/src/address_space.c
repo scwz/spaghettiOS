@@ -5,7 +5,7 @@ struct addrspace *as_create(void) {
     if(as == NULL){
         return NULL;
     }
-    as->regions->next = NULL;
+    as->regions = NULL;
     return as;
 }
 

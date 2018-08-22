@@ -2,8 +2,7 @@
 #include "vmem_layout.h"
 #include "frametable.h"
 #include "mapping.h"
-
-#define MAX_PROCESSES 1
+#include "proc.h"
 
 static struct pgd* page_table;
 static struct seL4_page_objects_frame ** seL4_pages;
@@ -113,8 +112,5 @@ void save_seL4_info(uint8_t pid, ut_t * ut, seL4_CPtr slot){
 }
 
 void vm_fault(seL4_Word faultaddress) {
-    /*seL4_Word vaddr;
-    seL4_Word page_num = frame_alloc(&vaddr);
-    sos_map_frame(cspace, page_num, faultaddress);*/
-    printf("faultaddress %lx\n", faultaddress);
+    printf("vm fault at %lx!\n", faultaddress);
 }

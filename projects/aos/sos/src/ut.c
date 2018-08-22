@@ -16,6 +16,9 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#include <aos/sel4_zf_logif.h>
+#include <aos/debug.h>
+
 #define SIZE_BITS_TO_INDEX(x) (x - seL4_EndpointBits)
 
 /* this global variable tracks our ut table */
@@ -229,5 +232,35 @@ ut_t *ut_alloc_4k_device(uintptr_t paddr)
         ZF_LOGE("No ut for paddr %p", (void *) paddr);
         return NULL;
     }
+    return ut;
+}
+
+/* helper to allocate a ut + cslot, and retype the ut into the cslot */
+ut_t *alloc_retype(cspace_t *cspace, seL4_CPtr *cptr, seL4_Word type, size_t size_bits)
+{
+    /* Allocate the object */
+    ut_t *ut = ut_alloc(size_bits, cspace);
+    if (ut == NULL) {
+        ZF_LOGE("No memory for object of size %zu", size_bits);
+        return NULL;
+    }
+
+    /* allocate a slot to retype the memory for object into */
+    *cptr = cspace_alloc_slot(cspace);
+    if (*cptr == seL4_CapNull) {
+        ut_free(ut, size_bits);
+        ZF_LOGE("Failed to allocate slot");
+        return NULL;
+    }
+
+    /* now do the retype */
+    seL4_Error err = cspace_untyped_retype(cspace, ut->cap, *cptr, type, size_bits);
+    ZF_LOGE_IFERR(err, "Failed retype untyped");
+    if (err != seL4_NoError) {
+        ut_free(ut, size_bits);
+        cspace_free_slot(cspace, *cptr);
+        return NULL;
+    }
+
     return ut;
 }

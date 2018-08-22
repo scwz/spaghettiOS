@@ -51,7 +51,7 @@ MakeCPIO(archive.o "${apps}")
 add_executable(sos EXCLUDE_FROM_ALL crt/sel4_crt0.S src/bootstrap.c src/dma.c src/elf.c src/main.c
                src/mapping.c src/network.c src/frametable.c src/ut.c src/tests.c src/sys/backtrace.c 
                src/sys/exit.c src/sys/morecore.c src/sys/stdio.c src/sys/thread.c src/sys/time.c
-               src/drivers/uart.c archive.o src/sos.lds src/pagetable.c src/address_space.c)
+               src/drivers/uart.c archive.o src/sos.lds src/pagetable.c src/address_space.c src/proc.c)
 target_include_directories(sos PRIVATE "include")
 target_link_libraries(sos Configuration muslc sel4 elf cpio serial clock sel4cspace aos utils picotcp
                       picotcp_bsd nfs ethernet)

@@ -152,3 +152,5 @@ void ut_free(ut_t *ut, size_t size_bits);
 ut_t *ut_alloc_4k_device(uintptr_t paddr);
 
 ut_t *paddr_to_ut(seL4_Word paddr);
+
+ut_t *alloc_retype(cspace_t *cspace, seL4_CPtr *cptr, seL4_Word type, size_t size_bits);
