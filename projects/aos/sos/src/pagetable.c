@@ -123,5 +123,5 @@ void vm_fault(seL4_Word faultaddress) {
     struct addrspace *as = curproc->as;
 
     struct region *reg = as_seek_region(as, faultaddress);
-    sos_map_frame(PAGE_ALIGN_4K(faultaddress), );
+//    sos_map_frame(PAGE_ALIGN_4K(faultaddress), );
 }
