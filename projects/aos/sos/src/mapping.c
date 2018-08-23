@@ -187,7 +187,7 @@ int sos_map_frame(cspace_t *cspace, seL4_CPtr frame_cap, seL4_CPtr vspace, seL4_
             err = seL4_ARM_Page_Map(frame_cap, vspace, vaddr, rights, attr);
         }
     }
-    page_table_insert(vaddr, page);
+    //page_table_insert(vaddr, page);
     return err;
 }
 

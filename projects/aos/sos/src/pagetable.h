@@ -41,18 +41,24 @@ struct seL4_page_objects{
 
 struct seL4_page_objects_frame{
     uint64_t size;
-    seL4_Word page;
     seL4_Word nextframe;
     struct seL4_page_objects page_objects[253];
 };
 
+struct page_table{
+    struct pgd* pgd;
+    struct seL4_page_objects_frame* seL4_pages;
+};
 
-void page_table_init(cspace_t *cs);
 
-void save_seL4_info(uint8_t pid, ut_t * ut, seL4_CPtr slot);
+struct page_table* page_table_init();
 
-int page_table_insert(seL4_Word vaddr, seL4_Word page_num);
+void save_seL4_info(struct page_table* page_table, ut_t * ut, seL4_CPtr slot);
 
-int page_table_remove(seL4_Word vaddr);
+int page_table_insert(struct page_table * page_table, seL4_Word vaddr, seL4_Word page_num);
+
+int page_table_remove(struct page_table * page_table, seL4_Word vaddr);
+
+void page_table_destroy(struct page_table * page_table);
 
 void vm_fault(seL4_Word faultaddress);

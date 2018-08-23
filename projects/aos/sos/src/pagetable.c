@@ -4,10 +4,6 @@
 #include "mapping.h"
 #include "proc.h"
 
-static struct pgd* page_table;
-static struct seL4_page_objects_frame ** seL4_pages;
-static cspace_t* cspace;
-
 static struct pt_index {
     uint8_t offset;
     uint8_t l4;
@@ -27,70 +23,80 @@ static struct pt_index get_pt_index(seL4_Word vaddr){
 }
 
 
-void page_table_init(cspace_t *cs) {
-    cspace = cs;
+struct page_table * page_table_init() {
+    struct page_table * page_table;
     assert(sizeof(struct pgd) == PAGE_SIZE_4K);
     seL4_Word page = frame_alloc(&page_table);
-    printf("sizeof page_table: %lx\n", sizeof(struct pgd));
-    seL4_pages = malloc(sizeof(struct seL4_page_objects_frame *)*MAX_PROCESSES);
-    //printf("page_table; %lx, %lx %lx %lx\n",page_table, page_table->pud, page_table->pud[512].pd, page_table->pud[0].pd[0].pt);
+    page = frame_alloc(&page_table->pgd);
+    return page_table;
 }
 
 
-int page_table_insert(seL4_Word vaddr, seL4_Word page_num) {
+int page_table_insert(struct page_table * page_table, seL4_Word vaddr, seL4_Word page_num) {
+    struct pgd * pgd = &page_table->pgd;
     struct pt_index ind = get_pt_index(vaddr);
     seL4_Word page = 0;
-    struct pud* pud = page_table->pud[ind.l1];
+    struct pud* pud = pgd->pud[ind.l1];
     if(pud  == NULL){
         page = frame_alloc(&pud);
         if(pud == NULL){
             return -1;
         }
-        page_table->pud[ind.l1] = pud;
-        page_table_insert(pud, page);
+        pgd->pud[ind.l1] = pud;
     }
-    struct pd* pd = page_table->pud[ind.l1]->pd[ind.l2];
+    struct pd* pd = pgd->pud[ind.l1]->pd[ind.l2];
     if(pd  == NULL){
         page = frame_alloc(&pd);
         if(pd == NULL){
             return -1;
         }
-        page_table->pud[ind.l1]->pd[ind.l2] = pd;
-        page_table_insert(pd, page);
+        pgd->pud[ind.l1]->pd[ind.l2] = pd;
     }
-    struct pt* pt = page_table->pud[ind.l1]->pd[ind.l2]->pt[ind.l3];
+    struct pt* pt = pgd->pud[ind.l1]->pd[ind.l2]->pt[ind.l3];
     if(pt  == NULL){
         page = frame_alloc(&pt);
         if(pt == NULL){
             return -1;
         }
-        page_table->pud[ind.l1]->pd[ind.l2]->pt[ind.l3] = pt;
-        page_table_insert(pt, page);
+        pgd->pud[ind.l1]->pd[ind.l2]->pt[ind.l3] = pt;
     }
     pt->page[ind.l4] = page_num;
     return 0;
 }
 
-int page_table_remove(seL4_Word vaddr) {
+int page_table_remove(struct page_table* page_table, seL4_Word vaddr) {
     //atm dont free page table
-
+    struct pgd * pgd = &page_table->pgd;
+    struct pt_index ind = get_pt_index(vaddr);
+    struct pud* pud = pgd->pud[ind.l1];
+    if(pud  == NULL){
+        return -1;
+    }
+    struct pd* pd = pgd->pud[ind.l1]->pd[ind.l2];
+    if(pd  == NULL){
+        return -1;
+    }
+    struct pt* pt = pgd->pud[ind.l1]->pd[ind.l2]->pt[ind.l3];
+    if(pt  == NULL){
+        return -1;
+    }
+    pt->page[ind.l4] = NULL;
     return 0;
 }
 
-void save_seL4_info(uint8_t pid, ut_t * ut, seL4_CPtr slot){
+void save_seL4_info(struct page_table* page_table, ut_t * ut, seL4_CPtr slot){
     struct seL4_page_objects_frame* frame;
-    if(seL4_pages[pid] == NULL){
-        seL4_Word page = frame_alloc(&(seL4_pages[pid]));
-        if(seL4_pages[pid] == NULL){
+    if(page_table->seL4_pages == NULL){
+        seL4_Word page = frame_alloc(&(page_table->seL4_pages));
+        if(page_table->seL4_pages == NULL){
             ZF_LOGE("frame alloc fail");
         }  else {
-            seL4_pages[pid]->size = 0;
-            seL4_pages[pid]->nextframe = NULL;
-            page_table_insert(seL4_pages[pid], page);
-            frame = seL4_pages[pid];
+            page_table->seL4_pages->size = 0;
+            page_table->seL4_pages->nextframe = NULL;
+            frame = page_table->seL4_pages;
         }
     } else {
-        frame = seL4_pages[pid];
+        frame = page_table->seL4_pages;
         while (frame->nextframe != NULL){
             frame = frame->nextframe;
         }
@@ -102,7 +108,6 @@ void save_seL4_info(uint8_t pid, ut_t * ut, seL4_CPtr slot){
                 frame = frame->nextframe;
                 frame->size = 0;
                 frame->nextframe = NULL;
-                page_table_insert(frame, page);
             }
         }
     }

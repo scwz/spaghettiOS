@@ -25,7 +25,7 @@ static size_t frame_table_size;
 static size_t frame_table_pages;
 static cspace_t *cspace;
 
-static seL4_Word vaddr_to_page_num(seL4_Word vaddr){
+seL4_Word vaddr_to_page_num(seL4_Word vaddr){
     return ((vaddr - base_vaddr) / PAGE_SIZE_4K); 
 }
 

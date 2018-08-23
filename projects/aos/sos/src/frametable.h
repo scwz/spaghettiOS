@@ -19,6 +19,8 @@ struct frame_table_entry {
     seL4_Word next_free_page;
 };
 
+seL4_Word vaddr_to_page_num(seL4_Word vaddr);
+
 void frame_table_init(cspace_t *cs);
 
 seL4_Word frame_alloc(seL4_Word *vaddr);
