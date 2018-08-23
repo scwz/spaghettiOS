@@ -1,3 +1,4 @@
+#include "address_space.h"
 #include "pagetable.h"
 #include "vmem_layout.h"
 #include "frametable.h"
@@ -15,10 +16,10 @@ static struct pt_index {
 static struct pt_index get_pt_index(seL4_Word vaddr){
     struct pt_index ret;
     ret.offset = 0xFFF & vaddr;
-    ret.l4 = (0x1FF) & (vaddr >> 12);
-    ret.l3 = (0x1FF) & (vaddr >> 12 + 9);
-    ret.l2 = (0x1FF) & (vaddr >> 12 + 9*2);
-    ret.l1 = (0x1FF) & (vaddr >> 12 + 9*3);
+    ret.l4 = (0x1FF) & (vaddr >> PAGE_BITS_4K);
+    ret.l3 = (0x1FF) & (vaddr >> (PAGE_BITS_4K + 9));
+    ret.l2 = (0x1FF) & (vaddr >> (PAGE_BITS_4K + 9*2));
+    ret.l1 = (0x1FF) & (vaddr >> (PAGE_BITS_4K + 9*3));
     return ret;
 }
 
@@ -118,4 +119,9 @@ void save_seL4_info(struct page_table* page_table, ut_t * ut, seL4_CPtr slot){
 
 void vm_fault(seL4_Word faultaddress) {
     printf("vm fault at %lx!\n", faultaddress);
+
+    struct addrspace *as = curproc->as;
+
+    struct region *reg = as_seek_region(as, faultaddress);
+    sos_map_frame(PAGE_ALIGN_4K(faultaddress), );
 }

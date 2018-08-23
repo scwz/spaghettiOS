@@ -35,6 +35,17 @@ static bool valid_new_region(struct addrspace *as, struct region* new_region){
     return true;
 }
 
+struct region *as_seek_region(struct addrspace *as, seL4_Word vaddr) {
+    struct region *curr = as->regions;
+
+    while (curr != NULL) {
+        if (vaddr >= curr->vbase && vaddr <= curr->vbase + curr->size) {
+            return curr;
+        }
+    }
+    return NULL;
+}
+
 int as_define_region(struct addrspace *as, seL4_Word vbase, size_t size, int accmode) {
     struct region* new_region = malloc(sizeof(struct region));
     new_region->vbase = vbase;
