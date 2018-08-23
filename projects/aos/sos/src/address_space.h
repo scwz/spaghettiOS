@@ -11,6 +11,8 @@
 #include <aos/sel4_zf_logif.h>
 #include <aos/debug.h>
 
+#include "pagetable.h"
+
 #define MODE_STACK       1
 #define MODE_HEAP        2
 
@@ -23,11 +25,14 @@ struct region {
 
 struct addrspace {
     struct region *regions;
+    struct pgd *pt;
 };
 
 struct addrspace *as_create(void);
 
 void as_destroy(struct addrspace *as);
+
+struct region *as_seek_region(struct addrspace *as, seL4_Word vaddr);
 
 int as_define_region(struct addrspace *as, seL4_Word vbase, size_t size, int accmode);
 
