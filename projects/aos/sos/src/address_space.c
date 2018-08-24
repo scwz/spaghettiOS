@@ -1,4 +1,7 @@
+
 #include "address_space.h"
+#include "pagetable.h"
+#include "vmem_layout.h"
 
 struct addrspace *as_create(void) {
     struct addrspace * as = malloc(sizeof(struct addrspace));
@@ -6,6 +9,7 @@ struct addrspace *as_create(void) {
         return NULL;
     }
     as->regions = NULL;
+    as->pt = page_table_init();
     return as;
 }
 
@@ -46,7 +50,7 @@ struct region *as_seek_region(struct addrspace *as, seL4_Word vaddr) {
     return NULL;
 }
 
-int as_define_region(struct addrspace *as, seL4_Word vbase, size_t size, int accmode) {
+int as_define_region(struct addrspace *as, seL4_Word vbase, size_t size, perm_t accmode) {
     struct region* new_region = malloc(sizeof(struct region));
     new_region->vbase = vbase;
     new_region->size = size;
@@ -64,13 +68,16 @@ int as_define_region(struct addrspace *as, seL4_Word vbase, size_t size, int acc
     return 0;
 }
 
-int as_define_stack(struct addrspace *as) {
+int as_define_stack(struct addrspace *as, seL4_Word *stack_ptr) {
     //stub accmode and size
-    as_define_region(as, 0, 0xFFFFFFFF, MODE_STACK);
-    return 0;
+    *stack_ptr = PROCESS_STACK_TOP;
+    return as_define_region(as, 
+                            PROCESS_STACK_TOP - PAGE_SIZE_4K * STACK_PAGES, 
+                            PAGE_SIZE_4K * STACK_PAGES, 
+                            READ & WRITE);
 }
 
 int as_define_heap(struct addrspace *as) {
-    as_define_region(as, 0xFFFFFFFF, 0xFFFFFFFF, MODE_HEAP);
+    as_define_region(as, 0xFFFFFFFF, 0xFFFFFFFF, READ & WRITE);
     return 0;
 }

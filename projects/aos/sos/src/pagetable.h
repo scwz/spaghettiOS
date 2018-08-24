@@ -51,7 +51,7 @@ struct page_table{
 };
 
 
-struct page_table* page_table_init();
+struct page_table* page_table_init(void);
 
 void save_seL4_info(struct page_table* page_table, ut_t * ut, seL4_CPtr slot);
 

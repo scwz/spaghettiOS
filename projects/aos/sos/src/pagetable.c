@@ -24,7 +24,7 @@ static struct pt_index get_pt_index(seL4_Word vaddr){
 }
 
 
-struct page_table * page_table_init() {
+struct page_table * page_table_init(void) {
     struct page_table * page_table;
     assert(sizeof(struct pgd) == PAGE_SIZE_4K);
     seL4_Word page = frame_alloc(&page_table);

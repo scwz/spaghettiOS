@@ -214,7 +214,8 @@ bool start_first_process(cspace_t *cspace, char* app_name, seL4_CPtr ep)
     }
 
     /* set up the stack */
-    seL4_Word sp = init_process_stack(cspace, seL4_CapInitThreadVSpace, elf_base);
+    seL4_Word sptr= init_process_stack(cspace, seL4_CapInitThreadVSpace, elf_base);
+    seL4_Word sp;
 
     /* load the elf image from the cpio file */
     err = elf_load(cspace, seL4_CapInitThreadVSpace, curproc->vspace, elf_base);
@@ -223,6 +224,9 @@ bool start_first_process(cspace_t *cspace, char* app_name, seL4_CPtr ep)
         return false;
     }
 
+    // setup/create region for stack
+    //as_define_stack(curproc->as, &sp);
+
     /* Map in the IPC buffer for the thread */
     err = map_frame(cspace, curproc->ipc_buffer, curproc->vspace, PROCESS_IPC_BUFFER,
                     seL4_AllRights, seL4_ARM_Default_VMAttributes);
@@ -230,11 +234,13 @@ bool start_first_process(cspace_t *cspace, char* app_name, seL4_CPtr ep)
         ZF_LOGE("Unable to map IPC buffer for user app");
         return false;
     }
+    // setup region for ipc buffer
+    //as_define_region(curproc->as, PROCESS_IPC_BUFFER, PAGE_SIZE_4K, READ & WRITE);
 
     /* Start the new process */
     seL4_UserContext context = {
         .pc = elf_getEntryPoint(elf_base),
-        .sp = sp,
+        .sp = sptr,
     };
     printf("Starting %s at %p\n", app_name, (void *) context.pc);
     err = seL4_TCB_WriteRegisters(curproc->tcb, 1, 0, 2, &context);

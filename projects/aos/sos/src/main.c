@@ -281,9 +281,7 @@ NORETURN void *main_continued(UNUSED void *arg)
     printf("Starting timers\n");
     start_timer(&cspace, badge_irq_ntfn(ntfn, IRQ_BADGE_TIMER), timer_vaddr);
 
-    
     frame_table_init(&cspace);
-    page_table_init(&cspace);
 
     //test_m1();
     //test_m2();
