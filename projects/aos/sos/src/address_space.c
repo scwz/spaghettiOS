@@ -44,9 +44,11 @@ struct region *as_seek_region(struct addrspace *as, seL4_Word vaddr) {
     struct region *curr = as->regions;
 
     while (curr != NULL) {
+        printf("%lx\n", curr->vbase);
         if (vaddr >= curr->vbase && vaddr <= curr->vbase + curr->size) {
             return curr;
         }
+        curr = curr->next;
     }
     return NULL;
 }
