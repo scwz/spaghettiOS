@@ -35,6 +35,7 @@ static bool valid_new_region(struct addrspace *as, struct region* new_region){
            new_region->vbase + new_region->size <= curr_region->vbase + curr_region->size){
             return false;
         }
+        curr_region = curr_region->next;
     }
     return true;
 }
