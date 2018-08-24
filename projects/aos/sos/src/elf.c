@@ -21,6 +21,9 @@
 #include "ut.h"
 #include "mapping.h"
 #include "elfload.h"
+#include "frametable.h"
+#include "proc.h"
+#include "address_space.h"
 
 /*
  * Convert ELF permissions into seL4 permissions.
@@ -81,9 +84,11 @@ static int load_segment_into_vspace(cspace_t *cspace, seL4_CPtr loader, seL4_CPt
     unsigned int pos = 0;
     seL4_Error err = seL4_NoError;
     while (pos < segment_size) {
+        #if 0
         uintptr_t loadee_vaddr = (ROUND_DOWN(dst, PAGE_SIZE_4K));
         uintptr_t loader_vaddr = ROUND_DOWN(SOS_ELF_VMEM + dst, PAGE_SIZE_4K);
 
+        
         /* create slot for the frame to load the data into */
         seL4_CPtr loadee_frame = cspace_alloc_slot(cspace);
         if (loadee_frame == seL4_CapNull) {
@@ -149,7 +154,17 @@ static int load_segment_into_vspace(cspace_t *cspace, seL4_CPtr loader, seL4_CPt
                 return -1;
             }
         }
+        #endif 
 
+        uintptr_t loadee_vaddr = (ROUND_DOWN(dst, PAGE_SIZE_4K));
+
+        seL4_Word loader_vaddr;
+        seL4_Word loader_page = frame_alloc(&loader_vaddr);
+        struct frame_table_entry* loader_frame_info = get_frame(loader_page);
+        
+        sos_map_frame(&curproc->cspace, curproc->as->pt, loader_frame_info->cap, curproc->vspace, 
+                    PAGE_ALIGN_4K(loadee), seL4_AllRights, 
+                    seL4_ARM_Default_VMAttributes, loader_page);
         /* finally copy the data */
         size_t nbytes = PAGE_SIZE_4K - (dst % PAGE_SIZE_4K);
         if (pos < file_size) {
@@ -202,6 +217,8 @@ int elf_load(cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr loadee_vspace,
             ZF_LOGE("Elf loading failed!");
             return -1;
         }
+
+        as_define_region(curproc->as, loadee_vspace, segment_size, 0xF);
     }
 
     return 0;
