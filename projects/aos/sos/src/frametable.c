@@ -113,6 +113,13 @@ void frame_table_init(cspace_t *cs) {
     
 }
 
+struct frame_table_entry * get_frame(seL4_Word page_num){
+    if(page_num > frame_table_size){
+        ZF_LOGE("Page does not exist");
+        return seL4_Fault_NullFault;
+    }
+    return &frame_table[page_num];
+}
 
 seL4_Word frame_alloc(seL4_Word *vaddr) {
     uintptr_t paddr;

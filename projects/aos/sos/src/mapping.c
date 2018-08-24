@@ -144,8 +144,8 @@ seL4_Error map_frame(cspace_t *cspace, seL4_CPtr frame_cap, seL4_CPtr vspace, se
     return map_frame_impl(cspace, frame_cap, vspace, vaddr, rights, attr, NULL, NULL);
 }
 
-int sos_map_frame(cspace_t *cspace, seL4_CPtr frame_cap, seL4_CPtr vspace, seL4_Word vaddr,
-                     seL4_CapRights_t rights, seL4_ARM_VMAttributes attr, uint8_t pid,seL4_Word page)
+int sos_map_frame(cspace_t *cspace, struct page_table* page_table, seL4_CPtr frame_cap, seL4_CPtr vspace, seL4_Word vaddr,
+                    seL4_CapRights_t rights, seL4_ARM_VMAttributes attr, seL4_Word page)
 {
     /* Attempt the mapping */
     seL4_Error err = seL4_ARM_Page_Map(frame_cap, vspace, vaddr, rights, attr);
@@ -181,13 +181,13 @@ int sos_map_frame(cspace_t *cspace, seL4_CPtr frame_cap, seL4_CPtr vspace, seL4_
             err = retype_map_pud(cspace, vspace, vaddr, ut->cap, slot);
             break;
         }
-        save_seL4_info(pid, ut, slot);
+        save_seL4_info(page_table, ut, slot);
         if (!err) {
             /* Try the mapping again */
             err = seL4_ARM_Page_Map(frame_cap, vspace, vaddr, rights, attr);
         }
     }
-    //page_table_insert(vaddr, page);
+    page_table_insert(page_table, vaddr, page);
     return err;
 }
 

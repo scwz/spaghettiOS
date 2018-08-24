@@ -121,7 +121,11 @@ void vm_fault(seL4_Word faultaddress) {
     printf("vm fault at %lx!\n", faultaddress);
 
     struct addrspace *as = curproc->as;
-
     struct region *reg = as_seek_region(as, faultaddress);
-//    sos_map_frame(PAGE_ALIGN_4K(faultaddress), );
+    seL4_Word vaddr;
+    seL4_Word page = frame_alloc(&vaddr);
+    struct frame_table_entry * frame_info = get_frame(page);
+    sos_map_frame(&curproc->cspace, as->pt, frame_info->cap, curproc->vspace, 
+                    PAGE_ALIGN_4K(faultaddress), seL4_AllRights, 
+                    seL4_ARM_Default_VMAttributes, page);
 }
