@@ -63,7 +63,7 @@ int as_define_region(struct addrspace *as, seL4_Word vbase, size_t size, perm_t 
         return -1;
     }
     //add to head
-    new_region->next = as->regions->next;
+    new_region->next = as->regions;
     as->regions = new_region;
     return 0;
 }
@@ -74,10 +74,10 @@ int as_define_stack(struct addrspace *as, seL4_Word *stack_ptr) {
     return as_define_region(as, 
                             PROCESS_STACK_TOP - PAGE_SIZE_4K * STACK_PAGES, 
                             PAGE_SIZE_4K * STACK_PAGES, 
-                            READ & WRITE);
+                            READ | WRITE);
 }
 
 int as_define_heap(struct addrspace *as) {
-    as_define_region(as, 0xFFFFFFFF, 0xFFFFFFFF, READ & WRITE);
+    as_define_region(as, 0xFFFFFFFF, 0xFFFFFFFF, READ | WRITE);
     return 0;
 }
