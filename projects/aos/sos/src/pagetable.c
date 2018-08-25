@@ -118,19 +118,23 @@ void save_seL4_info(struct page_table* page_table, ut_t * ut, seL4_CPtr slot){
 }
 
 void vm_fault(cspace_t *cspace, seL4_Word faultaddress) {
-    //printf("vm fault at %lx!\n", faultaddress);
+    printf("vm fault at %lx!\n", faultaddress);
 
     struct addrspace *as = curproc->as;
     seL4_CPtr reply = cspace_alloc_slot(cspace);
     seL4_CPtr err = cspace_save_reply_cap(cspace, reply);
     struct region *reg = as_seek_region(as, faultaddress);
+    
     seL4_Word vaddr;
     seL4_Word page = frame_alloc(&vaddr);
     struct frame_table_entry * frame_info = get_frame(page);
-    sos_map_frame(&curproc->cspace, as->pt, frame_info->cap, curproc->vspace, 
+    seL4_CPtr slot = cspace_alloc_slot(&curproc->cspace);
+    err = cspace_copy(&curproc->cspace, slot, cspace, frame_info->cap, seL4_AllRights);
+    printf("cptr1: %lx, cptr2: %lx  \n", slot, frame_info->cap);
+    err = map_frame(&curproc->cspace, slot, curproc->vspace, 
                     PAGE_ALIGN_4K(faultaddress), seL4_AllRights, 
-                    seL4_ARM_Default_VMAttributes, page);
-
+                    seL4_ARM_Default_VMAttributes);
+    ZF_LOGE_IFERR(err, "why");
     seL4_MessageInfo_t reply_msg = seL4_MessageInfo_new(0, 0, 0, 1);
     seL4_SetMR(0, 0);
     seL4_Send(reply, reply_msg);

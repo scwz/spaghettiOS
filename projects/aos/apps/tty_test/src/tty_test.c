@@ -41,6 +41,8 @@ do_pt_test(int *buf)
     /* set */
     for (int i = 0; i < NPAGES; i++) {
 	    buf[i * PAGE_SIZE_4K] = i;
+        sos_write(i, sizeof(i));
+        sos_write('\n', 1);
     }
 
     /* check */
@@ -54,7 +56,7 @@ pt_test( void )
 {
     /* need a decent sized stack */
     int buf1[NPAGES * PAGE_SIZE_4K], *buf2 = NULL;
-
+    sos_write((void*) (int*) buf1, 8);
     /* check the stack is above phys mem */
     assert((void *) buf1 > (void *) TEST_ADDRESS);
 
@@ -95,7 +97,7 @@ int main(void)
     
     /* initialise communication */
     ttyout_init();
-
+    sos_write("hello \n", 8);
     test_m3();
 
     do {
