@@ -36,7 +36,7 @@
 
 /* called from pt_test */
 static void
-do_pt_test(char *buf)
+do_pt_test(int *buf)
 {
     /* set */
     for (int i = 0; i < NPAGES; i++) {
@@ -53,7 +53,7 @@ static void
 pt_test( void )
 {
     /* need a decent sized stack */
-    char buf1[NPAGES * PAGE_SIZE_4K], *buf2 = NULL;
+    int buf1[NPAGES * PAGE_SIZE_4K], *buf2 = NULL;
 
     /* check the stack is above phys mem */
     assert((void *) buf1 > (void *) TEST_ADDRESS);

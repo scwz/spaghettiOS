@@ -61,4 +61,4 @@ int page_table_remove(struct page_table * page_table, seL4_Word vaddr);
 
 void page_table_destroy(struct page_table * page_table);
 
-void vm_fault(seL4_Word faultaddress);
+void vm_fault(cspace_t *cspace, seL4_Word faultaddress);

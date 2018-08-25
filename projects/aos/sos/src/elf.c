@@ -84,7 +84,6 @@ static int load_segment_into_vspace(cspace_t *cspace, seL4_CPtr loader, seL4_CPt
     unsigned int pos = 0;
     seL4_Error err = seL4_NoError;
     while (pos < segment_size) {
-        #if 0
         uintptr_t loadee_vaddr = (ROUND_DOWN(dst, PAGE_SIZE_4K));
         uintptr_t loader_vaddr = ROUND_DOWN(SOS_ELF_VMEM + dst, PAGE_SIZE_4K);
 
@@ -154,8 +153,8 @@ static int load_segment_into_vspace(cspace_t *cspace, seL4_CPtr loader, seL4_CPt
                 return -1;
             }
         }
-        #endif 
 
+        #if 0
         uintptr_t loadee_vaddr = (ROUND_DOWN(dst, PAGE_SIZE_4K));
 
         seL4_Word loader_vaddr;
@@ -166,6 +165,7 @@ static int load_segment_into_vspace(cspace_t *cspace, seL4_CPtr loader, seL4_CPt
                     PAGE_ALIGN_4K(loadee), seL4_AllRights, 
                     seL4_ARM_Default_VMAttributes, loader_page);
         /* finally copy the data */
+        #endif 
         size_t nbytes = PAGE_SIZE_4K - (dst % PAGE_SIZE_4K);
         if (pos < file_size) {
             memcpy((void *) (loader_vaddr + (dst % PAGE_SIZE_4K)), src, MIN(nbytes, file_size - pos));

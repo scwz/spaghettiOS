@@ -159,7 +159,7 @@ NORETURN void syscall_loop(seL4_CPtr ep)
             }
         } else if (label == seL4_Fault_VMFault) {
             seL4_Word faultaddress = seL4_GetMR(1);
-            vm_fault(faultaddress);
+            vm_fault(&cspace, faultaddress);
         } else if (label == seL4_Fault_NullFault) {
             /* It's not a fault or an interrupt, it must be an IPC
              * message from tty_test! */
