@@ -124,6 +124,9 @@ void vm_fault(cspace_t *cspace, seL4_Word faultaddress) {
     seL4_CPtr reply = cspace_alloc_slot(cspace);
     seL4_CPtr err = cspace_save_reply_cap(cspace, reply);
     struct region *reg = as_seek_region(as, faultaddress);
+    if (reg == NULL) {
+        return;
+    }
     
     seL4_Word vaddr;
     seL4_Word page = frame_alloc(&vaddr);
