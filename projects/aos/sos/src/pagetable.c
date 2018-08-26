@@ -129,7 +129,7 @@ void vm_fault(cspace_t *cspace, seL4_Word faultaddress) {
         struct frame_table_entry * frame_info = get_frame(page);
         seL4_CPtr slot = cspace_alloc_slot(cspace);
         err = cspace_copy(cspace, slot, cspace, frame_info->cap, seL4_AllRights);
-        printf("cptr1: %lx, cptr2: %lx  \n", slot, frame_info->cap);
+        //printf("cptr1: %lx, cptr2: %lx  \n", slot, frame_info->cap);
         err = sos_map_frame(cspace, as->pt,  slot,  curproc->vspace, 
                         PAGE_ALIGN_4K(faultaddress), seL4_AllRights, 
                         seL4_ARM_Default_VMAttributes, page);
