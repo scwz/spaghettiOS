@@ -84,7 +84,7 @@ static int load_segment_into_vspace(cspace_t *cspace, seL4_CPtr loader, seL4_CPt
     unsigned int pos = 0;
     seL4_Error err = seL4_NoError;
     while (pos < segment_size) {
-        #if 1
+        #if 0
         uintptr_t loadee_vaddr = (ROUND_DOWN(dst, PAGE_SIZE_4K));
         uintptr_t loader_vaddr = ROUND_DOWN(SOS_ELF_VMEM + dst, PAGE_SIZE_4K);
 

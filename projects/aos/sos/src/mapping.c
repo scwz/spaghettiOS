@@ -152,7 +152,7 @@ int sos_map_frame(cspace_t *cspace, struct page_table* page_table, seL4_CPtr fra
     for (size_t i = 0; i < MAPPING_SLOTS && err == seL4_FailedLookup; i++) {
         /* save this so nothing else trashes the message register value */
         seL4_Word failed = seL4_MappingFailedLookupLevel();
-        printf("!!!page failed lookup\n\n\n\n");
+        //printf("!!!page failed lookup\n\n\n\n");
         /* Assume the error was because we are missing a paging structure */
         ut_t *ut = ut_alloc_4k_untyped(NULL);
         
