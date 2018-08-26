@@ -72,7 +72,6 @@ int as_define_region(struct addrspace *as, seL4_Word vbase, size_t size, perm_t 
 
 int as_define_stack(struct addrspace *as, seL4_Word *stack_ptr) {
     //stub accmode and size
-    *stack_ptr = PROCESS_STACK_TOP;
     return as_define_region(as, 
                             PROCESS_STACK_TOP - PAGE_SIZE_4K * STACK_PAGES, 
                             PAGE_SIZE_4K * STACK_PAGES, 

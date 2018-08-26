@@ -13,7 +13,7 @@
 
 #include "pagetable.h"
 
-#define STACK_PAGES 100
+#define STACK_PAGES 256
 
 typedef enum {
     READ  = 1,

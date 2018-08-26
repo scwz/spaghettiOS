@@ -53,10 +53,10 @@ static void
 pt_test( void )
 {
     /* need a decent sized stack */
-    int buf1[2], *buf2 = NULL;
+    int buf1[50], *buf2 = NULL;
     /* check the stack is above phys mem */
     //assert((void *) buf1 > (void *) TEST_ADDRESS);
-
+    //printf("next part \n");
     /* stack test */
     do_pt_test(buf1);
 
