@@ -84,10 +84,10 @@ static int load_segment_into_vspace(cspace_t *cspace, seL4_CPtr loader, seL4_CPt
     unsigned int pos = 0;
     seL4_Error err = seL4_NoError;
     while (pos < segment_size) {
+        #if 1
         uintptr_t loadee_vaddr = (ROUND_DOWN(dst, PAGE_SIZE_4K));
         uintptr_t loader_vaddr = ROUND_DOWN(SOS_ELF_VMEM + dst, PAGE_SIZE_4K);
 
-        
         /* create slot for the frame to load the data into */
         seL4_CPtr loadee_frame = cspace_alloc_slot(cspace);
         if (loadee_frame == seL4_CapNull) {
@@ -154,18 +154,75 @@ static int load_segment_into_vspace(cspace_t *cspace, seL4_CPtr loader, seL4_CPt
             }
         }
 
-        #if 0
-        uintptr_t loadee_vaddr = (ROUND_DOWN(dst, PAGE_SIZE_4K));
+        #else
 
-        seL4_Word loader_vaddr;
-        seL4_Word loader_page = frame_alloc(&loader_vaddr);
-        struct frame_table_entry* loader_frame_info = get_frame(loader_page);
+        seL4_Word loadee_vaddr = (ROUND_DOWN(dst, PAGE_SIZE_4K));
+        seL4_Word loader_vaddr = ROUND_DOWN(SOS_ELF_VMEM + dst, PAGE_SIZE_4K);
         
-        sos_map_frame(&curproc->cspace, curproc->as->pt, loader_frame_info->cap, curproc->vspace, 
-                    PAGE_ALIGN_4K(loadee), seL4_AllRights, 
-                    seL4_ARM_Default_VMAttributes, loader_page);
-        /* finally copy the data */
+        //loadee
+        seL4_Word temp_vaddr;
+        seL4_Word loadee_page = frame_alloc(&temp_vaddr);
+        struct frame_table_entry* loadee_frame_info = get_frame(loadee_page);
+        
+        seL4_CPtr loadee_slot = cspace_alloc_slot(cspace);
+        if(loadee_slot == seL4_CapNull){
+            ZF_LOGE("failed to alloc slot");
+            return -1;
+        }
+        
+        err = cspace_copy(cspace, loadee_slot, cspace, loadee_frame_info->cap, seL4_AllRights);
+        if(err){
+            ZF_LOGE("failed to copy frame");
+            cspace_free_slot(cspace, loadee_slot);
+            return err;
+        }
+
+        err = sos_map_frame(cspace, curproc->as->pt,  loadee_slot,  loadee, 
+                        loadee_vaddr, permissions, 
+                        seL4_ARM_Default_VMAttributes, loadee_page);
+        if(err && err != seL4_DeleteFirst){
+            ZF_LOGE("failed to map frame");
+            cspace_delete(cspace, loadee_slot);
+            cspace_free_slot(cspace, loadee_slot);
+            frame_free(loadee_page);
+            return err;
+        } else if (err == seL4_DeleteFirst){
+            //TODO: do not map if different permissions
+            ZF_LOGE("failed to map frame");
+            cspace_delete(cspace, loadee_slot);
+            cspace_free_slot(cspace, loadee_slot);
+            frame_free(loadee_page);
+        }
+
+        //loader
+        seL4_CPtr loader_slot = cspace_alloc_slot(cspace);
+        if(loader_slot == seL4_CapNull){
+            ZF_LOGE("failed to alloc slot");
+            return -1;
+        }
+
+        err = cspace_copy(cspace, loader_slot, cspace, loadee_slot, seL4_AllRights);
+        if(err){
+            ZF_LOGE("failed to copy frame");
+            cspace_delete(cspace, loadee_slot);
+            cspace_free_slot(cspace, loadee_slot);
+            cspace_free_slot(cspace, loader_slot);
+            return err;
+        }
+        err = map_frame(cspace, loader_slot, loader, 
+                        loader_vaddr, seL4_AllRights, 
+                        seL4_ARM_Default_VMAttributes);
+        if(err){
+            ZF_LOGE("failed to map frame");
+            cspace_delete(cspace, loadee_slot);
+            cspace_delete(cspace, loader_slot);
+            cspace_free_slot(cspace, loadee_slot);
+            cspace_free_slot(cspace, loader_slot);
+            return err;
+        }
         #endif 
+        /* finally copy the data */
+        
         size_t nbytes = PAGE_SIZE_4K - (dst % PAGE_SIZE_4K);
         if (pos < file_size) {
             memcpy((void *) (loader_vaddr + (dst % PAGE_SIZE_4K)), src, MIN(nbytes, file_size - pos));

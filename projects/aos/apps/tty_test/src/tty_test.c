@@ -39,10 +39,11 @@ static void
 do_pt_test(int *buf)
 {
     /* set */
+    printf("next part \n");
     for (int i = 0; i < NPAGES * PAGE_SIZE_4K/sizeof(int); i++) {
 	    buf[i]  = i;
     }
-
+    
     /* check */
     for (int i = 0; i < NPAGES * PAGE_SIZE_4K/sizeof(int); i++) {
 	    assert(buf[i] == i);
