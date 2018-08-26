@@ -52,11 +52,13 @@
 #define IRQ_BADGE_NETWORK_TICK BIT(1)
 #define IRQ_BADGE_TIMER        BIT(2)
 
-/*
- * A dummy starting syscall
- */
-#define SOS_SYSCALL0 0
-#define SOS_SYS_WRITE 1
+#define SOS_SYS_WRITE      1
+#define SOS_SYS_READ       2
+#define SOS_SYS_OPEN       3
+#define SOS_SYS_CLOSE      4
+#define SOS_SYS_BRK        5
+#define SOS_SYS_USLEEP     6
+#define SOS_SYS_TIME_STAMP 7
 
 /* The linker will link this symbol to the start address  *
  * of an archive of attached applications.                */
@@ -89,20 +91,10 @@ void handle_syscall(UNUSED seL4_Word badge, UNUSED int num_args)
     seL4_Error err = cspace_save_reply_cap(&cspace, reply);
     ZF_LOGF_IFERR(err, "Failed to save reply");
 
+    seL4_MessageInfo_t reply_msg;
+
     /* Process system call */
     switch (syscall_number) {
-    case SOS_SYSCALL0:
-        ZF_LOGV("syscall: thread example made syscall 0!\n");
-        /* construct a reply message of length 1 */
-        seL4_MessageInfo_t reply_msg = seL4_MessageInfo_new(0, 0, 0, 1);
-        /* Set the first (and only) word in the message to 0 */
-        seL4_SetMR(0, 0);
-        /* Send the reply to the saved reply capability. */
-        seL4_Send(reply, reply_msg);
-        /* Free the slot we allocated for the reply - it is now empty, as the reply
-         * capability was consumed by the send. */
-        cspace_free_slot(&cspace, reply);
-        break;
     case SOS_SYS_WRITE:
         ZF_LOGV("syscall: thread called sys_write (1)\n");
 
@@ -123,6 +115,24 @@ void handle_syscall(UNUSED seL4_Word badge, UNUSED int num_args)
         seL4_Send(reply, reply_msg);
 
         cspace_free_slot(&cspace, reply);
+        break;
+    case SOS_SYS_READ:
+        ZF_LOGV("syscall: thread called sys_read (2)\n");
+        break;
+    case SOS_SYS_OPEN:
+        ZF_LOGV("syscall: thread called sys_open (3)\n");
+        break;
+    case SOS_SYS_CLOSE:
+        ZF_LOGV("syscall: thread called sys_close (4)\n");
+        break;
+    case SOS_SYS_BRK:
+        ZF_LOGV("syscall: thread called sys_brk (5)\n");
+        break;
+    case SOS_SYS_USLEEP:
+        ZF_LOGV("syscall: thread called sys_usleep (6)\n");
+        break;
+    case SOS_SYS_TIME_STAMP:
+        ZF_LOGV("syscall: thread called sys_time_stamp (7)\n");
         break;
     default:
         ZF_LOGE("Unknown syscall %lu\n", syscall_number);
@@ -159,7 +169,7 @@ NORETURN void syscall_loop(seL4_CPtr ep)
             }
         } else if (label == seL4_Fault_VMFault) {
             seL4_Word faultaddress = seL4_GetMR(1);
-            printf("%lx, %lx, %lx\n", seL4_GetMR(1), seL4_GetMR(2), seL4_GetMR(3));
+            //printf("%lx, %lx, %lx\n", seL4_GetMR(1), seL4_GetMR(2), seL4_GetMR(3));
             vm_fault(&cspace, faultaddress);
         } else if (label == seL4_Fault_NullFault) {
             /* It's not a fault or an interrupt, it must be an IPC
