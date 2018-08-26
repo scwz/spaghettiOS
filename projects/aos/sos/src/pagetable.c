@@ -62,6 +62,7 @@ int page_table_insert(struct page_table * page_table, seL4_Word vaddr, seL4_Word
         pgd->pud[ind.l1]->pd[ind.l2]->pt[ind.l3] = pt;
     }
     pt->page[ind.l4] = page_num;
+    printf("PAGETABLE, ADDR: %lx, l1: %lx l2: %lx l3:%lx l4:%lx, PAGENUM: %ld\n", vaddr, ind.l1, ind.l2, ind.l3, ind.l4, page_num);
     return 0;
 }
 
@@ -113,6 +114,7 @@ void save_seL4_info(struct page_table* page_table, ut_t * ut, seL4_CPtr slot){
         }
     }
     seL4_Word ind = frame->size++;
+    printf("frame addr: %lx, frame size: %ld\n", frame, frame->size);
     frame->page_objects[ind].ut = ut;
     frame->page_objects[ind].cap = slot;
 }
