@@ -119,7 +119,7 @@ void save_seL4_info(struct page_table* page_table, ut_t * ut, seL4_CPtr slot){
     frame->page_objects[ind].cap = slot;
 }
 void vm_fault(cspace_t *cspace, seL4_Word faultaddress) {
-//    printf("vm fault at %lx!\n", faultaddress);
+    printf("vm fault at %lx!\n", faultaddress);
     struct addrspace *as = curproc->as;
     seL4_CPtr reply = cspace_alloc_slot(cspace);
     seL4_CPtr err = cspace_save_reply_cap(cspace, reply);
@@ -136,7 +136,7 @@ void vm_fault(cspace_t *cspace, seL4_Word faultaddress) {
         //printf("cptr1: %lx, cptr2: %lx  \n", slot, frame_info->cap);
         err = sos_map_frame(cspace, as->pt,  slot,  curproc->vspace, 
                         PAGE_ALIGN_4K(faultaddress), seL4_AllRights, 
-                        seL4_ARM_Default_VMAttributes, page);
+                        seL4_ARM_Default_VMAttributes, page, false);
         ZF_LOGE_IFERR(err, "failed to map frame");
 
         seL4_SetMR(0, 0);

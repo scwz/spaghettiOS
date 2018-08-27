@@ -334,7 +334,11 @@ void *malloc(size_t n)
 
 	if (adjust_size(&n) < 0) return 0;
 
+<<<<<<< HEAD
 #if 0
+=======
+	/*
+>>>>>>> ff337bc9beab917f729112c69d4c02c2645bf376
 	if (n > MMAP_THRESHOLD) {
 		size_t len = n + OVERHEAD + PAGE_SIZE - 1 & -PAGE_SIZE;
 		char *base = __mmap(0, len, PROT_READ|PROT_WRITE,
@@ -344,8 +348,12 @@ void *malloc(size_t n)
 		c->csize = len - (SIZE_ALIGN - OVERHEAD);
 		c->psize = SIZE_ALIGN - OVERHEAD;
 		return CHUNK_TO_MEM(c);
+<<<<<<< HEAD
 	}
 #endif
+=======
+	}*/
+>>>>>>> ff337bc9beab917f729112c69d4c02c2645bf376
 
 	i = bin_index_up(n);
 	for (;;) {
