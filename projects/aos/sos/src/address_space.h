@@ -31,6 +31,7 @@ struct region {
 struct addrspace {
     struct region *regions;
     struct region *stack;
+    struct region *heap;
     struct page_table *pt;
 };
 

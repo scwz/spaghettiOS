@@ -226,6 +226,7 @@ bool start_first_process(cspace_t *cspace, char* app_name, seL4_CPtr ep)
 
     // setup/create region for stack
     as_define_stack(curproc->as);
+    as_define_heap(curproc->as);
 
     /* Map in the IPC buffer for the thread */
     err = map_frame(cspace, curproc->ipc_buffer, curproc->vspace, PROCESS_IPC_BUFFER,

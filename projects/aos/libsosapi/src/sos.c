@@ -118,3 +118,13 @@ int64_t sos_sys_time_stamp(void)
     assert(!"You need to implement this");
     return -1;
 }
+
+long sos_sys_brk(uintptr_t newbrk) {
+    seL4_MessageInfo_t tag = seL4_MessageInfo_new(0, 0, 0, 2);
+
+    seL4_SetMR(0, 5);
+    seL4_SetMR(1, newbrk);
+    seL4_Call(SOS_IPC_EP_CAP, tag);
+
+    return seL4_GetMR(1);
+}

@@ -17,6 +17,7 @@
 #include <sys/mman.h>
 #include <errno.h>
 #include <assert.h>
+#include <sos.h>
 
 /*
  * Statically allocated morecore area.
@@ -41,6 +42,7 @@ long sys_brk(va_list ap)
     uintptr_t ret;
     uintptr_t newbrk = va_arg(ap, uintptr_t);
 
+#if 0
     /*if the newbrk is 0, return the bottom of the heap*/
     if (!newbrk) {
         ret = morecore_base;
@@ -49,8 +51,10 @@ long sys_brk(va_list ap)
     } else {
         ret = 0;
     }
+#endif
 
-    return ret;
+
+    return sos_sys_brk(newbrk);
 }
 
 /* Large mallocs will result in muslc calling mmap, so we do a minimal implementation
