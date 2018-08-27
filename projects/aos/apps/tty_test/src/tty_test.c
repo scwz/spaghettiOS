@@ -31,7 +31,7 @@
 
 #include "ttyout.h"
 
-#define NPAGES 150
+#define NPAGES 270
 #define TEST_ADDRESS 0x8000000000
 
 /* called from pt_test */
@@ -39,14 +39,13 @@ static void
 do_pt_test(int *buf)
 {
     /* set */
-    printf("next part \n");
-    for (int i = 0; i < NPAGES * PAGE_SIZE_4K/sizeof(int); i++) {
-	    buf[i]  = i;
+    for (int i = 0; i < NPAGES; i++) {
+	    buf[i * PAGE_SIZE_4K]  = i;
     }
     
     /* check */
-    for (int i = 0; i < NPAGES * PAGE_SIZE_4K/sizeof(int); i++) {
-	    assert(buf[i] == i);
+    for (int i = 0; i < NPAGES; i++) {
+	    assert(buf[i * PAGE_SIZE_4K] == i);
     }
 }
 
@@ -54,18 +53,21 @@ static void
 pt_test( void )
 {
     /* need a decent sized stack */
-    int buf1[NPAGES * PAGE_SIZE_4K/sizeof(int)], *buf2 = NULL;
+    printf("testing decently sized stack....\n");
+    int buf1[NPAGES * PAGE_SIZE_4K], *buf2 = NULL;
     /* check the stack is above phys mem */
     assert((void *) buf1 > (void *) TEST_ADDRESS);
-    printf("next part \n");
     /* stack test */
     do_pt_test(buf1);
+    printf("passed stack test!\n");
 
+    printf("testing malloc works...\n");
     /* heap test */
     //buf2 = malloc(NPAGES * PAGE_SIZE_4K);
     //assert(buf2);
     //do_pt_test(buf2);
     //free(buf2);
+    printf("passed malloc test!\n");
 }
 
 void test_m3(void)
@@ -95,7 +97,7 @@ int main(void)
     
     /* initialise communication */
     ttyout_init();
-    sos_write("hello \n", 8);
+
     test_m3();
 
     do {

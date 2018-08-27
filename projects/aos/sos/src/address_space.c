@@ -28,11 +28,11 @@ static bool valid_new_region(struct addrspace *as, struct region* new_region){
     struct region* curr_region = as->regions;
     while(curr_region != NULL){
         if(new_region->vbase >= curr_region->vbase && 
-           new_region->vbase <= curr_region->vbase + curr_region->size){
+           new_region->vbase <= curr_region->vtop){
             return false;
         }
-        if(new_region->vbase + new_region->size >= curr_region->vbase && 
-           new_region->vbase + new_region->size <= curr_region->vbase + curr_region->size){
+        if(new_region->vtop >= curr_region->vbase && 
+           new_region->vtop <= curr_region->vtop){
             return false;
         }
         curr_region = curr_region->next;
@@ -44,7 +44,7 @@ struct region *as_seek_region(struct addrspace *as, seL4_Word vaddr) {
     struct region *curr = as->regions;
 
     while (curr != NULL) {
-        if (vaddr >= curr->vbase && vaddr <= curr->vbase + curr->size) {
+        if (vaddr >= curr->vbase && vaddr <= curr->vtop) {
             return curr;
         }
         curr = curr->next;
@@ -55,7 +55,7 @@ struct region *as_seek_region(struct addrspace *as, seL4_Word vaddr) {
 int as_define_region(struct addrspace *as, seL4_Word vbase, size_t size, perm_t accmode) {
     struct region* new_region = malloc(sizeof(struct region));
     new_region->vbase = vbase;
-    new_region->size = size;
+    new_region->vtop = vbase + size;
     new_region->accmode = accmode;
     
     if(new_region == NULL){
@@ -70,12 +70,14 @@ int as_define_region(struct addrspace *as, seL4_Word vbase, size_t size, perm_t 
     return 0;
 }
 
-int as_define_stack(struct addrspace *as, seL4_Word *stack_ptr) {
+int as_define_stack(struct addrspace *as) {
     //stub accmode and size
-    return as_define_region(as, 
+    int result = as_define_region(as, 
                             PROCESS_STACK_TOP - PAGE_SIZE_4K * STACK_PAGES, 
                             PAGE_SIZE_4K * STACK_PAGES, 
                             READ | WRITE);
+    as->stack = as->regions;
+    return result;
 }
 
 int as_define_heap(struct addrspace *as) {

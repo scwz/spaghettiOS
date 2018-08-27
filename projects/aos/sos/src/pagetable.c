@@ -114,7 +114,7 @@ void save_seL4_info(struct page_table* page_table, ut_t * ut, seL4_CPtr slot){
         }
     }
     seL4_Word ind = frame->size++;
-    printf("frame addr: %lx, frame size: %ld\n", frame, frame->size);
+    //printf("frame addr: %lx, frame size: %ld\n", frame, frame->size);
     frame->page_objects[ind].ut = ut;
     frame->page_objects[ind].cap = slot;
 }
@@ -126,6 +126,7 @@ void vm_fault(cspace_t *cspace, seL4_Word faultaddress) {
     seL4_CPtr err = cspace_save_reply_cap(cspace, reply);
     struct region *reg = as_seek_region(as, faultaddress);
     if (reg != NULL) {
+        //as->stack->vbase = PAGE_ALIGN_4K(faultaddress);
         seL4_Word vaddr;
         seL4_Word page = frame_alloc(&vaddr);
         struct frame_table_entry * frame_info = get_frame(page);

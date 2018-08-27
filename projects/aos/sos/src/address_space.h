@@ -13,7 +13,7 @@
 
 #include "pagetable.h"
 
-#define STACK_PAGES 256
+#define STACK_PAGES 4000
 
 typedef enum {
     READ  = 1,
@@ -23,13 +23,14 @@ typedef enum {
 
 struct region {
     seL4_Word vbase;
-    size_t size;
+    seL4_Word vtop;
     int accmode;
     struct region *next;
 };
 
 struct addrspace {
     struct region *regions;
+    struct region *stack;
     struct page_table *pt;
 };
 
@@ -41,6 +42,6 @@ struct region *as_seek_region(struct addrspace *as, seL4_Word vaddr);
 
 int as_define_region(struct addrspace *as, seL4_Word vbase, size_t size, perm_t accmode);
 
-int as_define_stack(struct addrspace *as, seL4_Word *stack_ptr);
+int as_define_stack(struct addrspace *as);
 
 int as_define_heap(struct addrspace *as);
