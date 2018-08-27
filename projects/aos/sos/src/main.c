@@ -131,7 +131,7 @@ void handle_syscall(UNUSED seL4_Word badge, UNUSED int num_args)
         seL4_Word newbrk = seL4_GetMR(1);
 
         seL4_Word hbase = curproc->as->heap->vbase;
-        if (newbrk >= PROCESS_STACK_TOP + PAGE_SIZE_4K) {
+        if (newbrk >= PROCESS_HEAP_BASE) {
             hbase = newbrk;
         }
         reply_msg = seL4_MessageInfo_new(0, 0, 0, 2);

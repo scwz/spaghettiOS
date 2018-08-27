@@ -36,7 +36,6 @@ static uintptr_t morecore_top = (uintptr_t) &morecore_area[MORECORE_AREA_BYTE_SI
    returns 0 if failure, returns newbrk if success.
 */
 
-#define STACK_TOP (0x9000000000 + 4096)
 long sys_brk(va_list ap)
 {
 
