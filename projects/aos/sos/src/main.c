@@ -171,6 +171,14 @@ NORETURN void syscall_loop(seL4_CPtr ep)
             seL4_Word faultaddress = seL4_GetMR(1);
             //printf("%lx, %lx, %lx\n", seL4_GetMR(1), seL4_GetMR(2), seL4_GetMR(3));
             vm_fault(&cspace, faultaddress);
+
+            seL4_Word err = seL4_GetMR(0);
+            if (err) {
+                debug_print_fault(message, TTY_NAME);
+                debug_dump_registers(curproc->tcb);
+
+                ZF_LOGF("vm fault failed!");
+            }
         } else if (label == seL4_Fault_NullFault) {
             /* It's not a fault or an interrupt, it must be an IPC
              * message from tty_test! */
