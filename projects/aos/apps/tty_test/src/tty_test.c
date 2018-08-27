@@ -63,10 +63,10 @@ pt_test( void )
 
     printf("testing malloc works...\n");
     /* heap test */
-    //buf2 = malloc(NPAGES * PAGE_SIZE_4K);
-    //assert(buf2);
-    //do_pt_test(buf2);
-    //free(buf2);
+    buf2 = malloc(NPAGES * PAGE_SIZE_4K);
+    assert(buf2);
+    do_pt_test(buf2);
+    free(buf2);
     printf("passed malloc test!\n");
 }
 

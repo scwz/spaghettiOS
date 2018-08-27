@@ -81,6 +81,6 @@ int as_define_stack(struct addrspace *as) {
 }
 
 int as_define_heap(struct addrspace *as) {
-    as_define_region(as, 0xFFFFFFFF, 0xFFFFFFFF, READ | WRITE);
+    as_define_region(as, PROCESS_STACK_TOP + PAGE_SIZE_4K, PROCESS_MAX - PROCESS_STACK_TOP - PAGE_SIZE_4K, READ | WRITE);
     return 0;
 }
