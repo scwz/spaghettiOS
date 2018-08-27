@@ -80,7 +80,6 @@ static int load_segment_into_vspace(cspace_t *cspace, seL4_CPtr loader, seL4_CPt
 {
     assert(file_size <= segment_size);
 
-    as_define_region(curproc->as, dst, segment_size, READ | WRITE | EXEC);
     /* We work a page at a time in the destination vspace. */
     unsigned int pos = 0;
     seL4_Error err = seL4_NoError;
@@ -276,7 +275,7 @@ int elf_load(cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr loadee_vspace,
             return -1;
         }
 
-        as_define_region(curproc->as, loadee_vspace, segment_size, 0xF);
+        as_define_region(curproc->as, vaddr, segment_size, READ | WRITE | EXEC);
     }
 
     return 0;
