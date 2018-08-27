@@ -179,7 +179,7 @@ static int load_segment_into_vspace(cspace_t *cspace, seL4_CPtr loader, seL4_CPt
 
         err = sos_map_frame(cspace, curproc->as->pt,  loadee_slot,  loadee, 
                         loadee_vaddr, permissions, 
-                        seL4_ARM_Default_VMAttributes, loadee_page);
+                        seL4_ARM_Default_VMAttributes, loadee_page, true);
         if(err && err != seL4_DeleteFirst){
             ZF_LOGE("failed to map frame");
             cspace_delete(cspace, loadee_slot);
@@ -209,9 +209,9 @@ static int load_segment_into_vspace(cspace_t *cspace, seL4_CPtr loader, seL4_CPt
             cspace_free_slot(cspace, loader_slot);
             return err;
         }
-        err = map_frame(cspace, loader_slot, loader, 
+        err = sos_map_frame(cspace, curproc->as->pt, loader_slot, loader, 
                         loader_vaddr, seL4_AllRights, 
-                        seL4_ARM_Default_VMAttributes);
+                        seL4_ARM_Default_VMAttributes, 0 , false);
         if(err){
             ZF_LOGE("failed to map frame");
             cspace_delete(cspace, loadee_slot);

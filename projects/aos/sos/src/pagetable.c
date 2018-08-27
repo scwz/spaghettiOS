@@ -136,7 +136,7 @@ void vm_fault(cspace_t *cspace, seL4_Word faultaddress) {
         //printf("cptr1: %lx, cptr2: %lx  \n", slot, frame_info->cap);
         err = sos_map_frame(cspace, as->pt,  slot,  curproc->vspace, 
                         PAGE_ALIGN_4K(faultaddress), seL4_AllRights, 
-                        seL4_ARM_Default_VMAttributes, page);
+                        seL4_ARM_Default_VMAttributes, page, false);
         ZF_LOGE_IFERR(err, "failed to map frame");
 
         seL4_SetMR(0, 0);
