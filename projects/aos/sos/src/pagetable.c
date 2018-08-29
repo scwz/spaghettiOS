@@ -27,8 +27,8 @@ static struct pt_index get_pt_index(seL4_Word vaddr){
 struct page_table * page_table_init(void) {
     struct page_table * page_table;
     assert(sizeof(struct pgd) == PAGE_SIZE_4K);
-    seL4_Word page = frame_alloc(&page_table);
-    page = frame_alloc(&page_table->pgd);
+    frame_alloc(&page_table);
+    frame_alloc(&page_table->pgd);
     return page_table;
 }
 
@@ -36,26 +36,26 @@ struct page_table * page_table_init(void) {
 int page_table_insert(struct page_table * page_table, seL4_Word vaddr, seL4_Word page_num) {
     struct pgd * pgd = &page_table->pgd;
     struct pt_index ind = get_pt_index(vaddr);
-    seL4_Word page = 0;
     struct pud* pud = pgd->pud[ind.l1];
-    if(pud  == NULL){
-        page = frame_alloc(&pud);
+
+    if(pud == NULL){
+        frame_alloc(&pud);
         if(pud == NULL){
             return -1;
         }
         pgd->pud[ind.l1] = pud;
     }
     struct pd* pd = pgd->pud[ind.l1]->pd[ind.l2];
-    if(pd  == NULL){
-        page = frame_alloc(&pd);
+    if(pd == NULL){
+        frame_alloc(&pd);
         if(pd == NULL){
             return -1;
         }
         pgd->pud[ind.l1]->pd[ind.l2] = pd;
     }
     struct pt* pt = pgd->pud[ind.l1]->pd[ind.l2]->pt[ind.l3];
-    if(pt  == NULL){
-        page = frame_alloc(&pt);
+    if(pt == NULL){
+        frame_alloc(&pt);
         if(pt == NULL){
             return -1;
         }
@@ -89,7 +89,7 @@ int page_table_remove(struct page_table* page_table, seL4_Word vaddr) {
 void save_seL4_info(struct page_table* page_table, ut_t * ut, seL4_CPtr slot){
     struct seL4_page_objects_frame* frame;
     if(page_table->seL4_pages == NULL){
-        seL4_Word page = frame_alloc(&(page_table->seL4_pages));
+        frame_alloc(&(page_table->seL4_pages));
         if(page_table->seL4_pages == NULL){
             ZF_LOGE("frame alloc fail");
         }  else {
@@ -103,7 +103,7 @@ void save_seL4_info(struct page_table* page_table, ut_t * ut, seL4_CPtr slot){
             frame = frame->nextframe;
         }
         if(frame->size == 253){
-            seL4_Word page = frame_alloc(&(frame->nextframe));
+            frame_alloc(&(frame->nextframe));
             if(frame->nextframe == NULL){
                 ZF_LOGE("frame alloc fail");
             }  else {

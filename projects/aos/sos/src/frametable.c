@@ -18,7 +18,6 @@
 static struct frame_table_entry *frame_table = NULL;
 static seL4_Word top_paddr;
 static seL4_Word bot_paddr;
-static seL4_Word vaddr_index;
 static seL4_Word base_vaddr;
 static seL4_Word next_free_page;
 static size_t frame_table_size;
@@ -132,7 +131,7 @@ seL4_Word frame_alloc(seL4_Word *vaddr) {
     if (ut == NULL) {
         return (seL4_Word) NULL;
     }
-    memset(*vaddr, 0, PAGE_SIZE_4K);
+    memset((void *) *vaddr, 0, PAGE_SIZE_4K);
     frame_table[page].cap = cap;
     frame_table[page].ut = ut;
     next_free_page = frame_table[page].next_free_page;

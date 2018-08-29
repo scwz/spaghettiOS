@@ -20,6 +20,7 @@
 #include <aos/sel4_zf_logif.h>
 #include <aos/debug.h>
 
+#include <sos.h>
 #include <clock/clock.h>
 #include <cpio/cpio.h>
 #include <elf/elf.h>
@@ -51,14 +52,6 @@
 #define IRQ_BADGE_NETWORK_IRQ  BIT(0)
 #define IRQ_BADGE_NETWORK_TICK BIT(1)
 #define IRQ_BADGE_TIMER        BIT(2)
-
-#define SOS_SYS_WRITE      1
-#define SOS_SYS_READ       2
-#define SOS_SYS_OPEN       3
-#define SOS_SYS_CLOSE      4
-#define SOS_SYS_BRK        5
-#define SOS_SYS_USLEEP     6
-#define SOS_SYS_TIME_STAMP 7
 
 /* The linker will link this symbol to the start address  *
  * of an archive of attached applications.                */
