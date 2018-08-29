@@ -1,5 +1,8 @@
 #pragma once
 
+#include <stdint.h>
+#include <stdlib.h>
+
 struct open_file {
     struct vnode *vn;
     uint64_t offset;

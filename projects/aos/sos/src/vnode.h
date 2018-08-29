@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdint.h>
+#include <stdlib.h>
 #include "uio.h"
 
 struct vnode {
@@ -21,7 +23,7 @@ struct vnode_ops {
     int (*vop_write)(struct vnode *file, struct uio *uio);
     int (*vop_stat)(struct vnode *object, int statbuf); // statbuf is a placeholder for struct stat *statbuf
 
-    int (*vop_creat)(struct vnode *dir, const char *name, bool excl, mode_t mode, struct vnode **result);
+    int (*vop_creat)(struct vnode *dir, const char *name, int excl, int mode, struct vnode **result);
 
     int (*vop_lookup)(struct vnode *dir, char *pathname, struct vnode **result);
     int (*vop_lookparent)(struct vnode *dir, char *pathname, struct vnode **result, char *buf, size_t len);

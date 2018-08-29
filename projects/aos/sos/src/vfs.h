@@ -1,5 +1,7 @@
 #pragma once
 
+#include "vnode.h"
+
 int vfs_lookup(char *path, struct vnode **result);
 int vfs_lookparent(char *path, struct vnode **result, char *buf, size_t buflen);
 
