@@ -78,6 +78,21 @@ size_t sos_write(void *vData, size_t count)
 size_t sos_read(void *vData, size_t count)
 {
     //implement this to use your syscall
-    return 0;
+    seL4_MessageInfo_t tag;
+    size_t total_bytes = 0;
+    size_t buf_len = 10 * sizeof(seL4_Word);
+    size_t npackets = ((count - 1) / buf_len) + 1;
+    int index = 0;
+    char msg[count];
+
+    tag = seL4_MessageInfo_new(0, 0, 0, 2);
+    seL4_SetMR(0, 2);
+    seL4_SetMR(1, count);
+    seL4_Call(SYSCALL_ENDPOINT_SLOT, tag);
+
+    total_bytes = seL4_GetMR(0);
+    printf("%ld bytes received\n", total_bytes);
+
+    return total_bytes;
 }
 

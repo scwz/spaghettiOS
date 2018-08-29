@@ -72,6 +72,10 @@ static cspace_t cspace;
 /* serial port */
 static struct serial *serial_port;
 
+static void handler(struct serial *serial, char c) {
+    printf("%c\n", c);
+}
+
 void handle_syscall(UNUSED seL4_Word badge, UNUSED int num_args)
 {
 
@@ -118,6 +122,14 @@ void handle_syscall(UNUSED seL4_Word badge, UNUSED int num_args)
         break;
     case SOS_SYS_READ:
         ZF_LOGV("syscall: thread called sys_read (2)\n");
+        size_t count = seL4_GetMR(1);
+        serial_register_handler(serial_port, handler);
+
+        reply_msg = seL4_MessageInfo_new(0, 0, 0, 1);
+        seL4_SetMR(0, count);
+        seL4_Send(reply, reply_msg);
+
+        cspace_free_slot(&cspace, reply);
         break;
     case SOS_SYS_OPEN:
         ZF_LOGV("syscall: thread called sys_open (3)\n");
