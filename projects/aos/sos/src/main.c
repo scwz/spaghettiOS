@@ -69,6 +69,19 @@ static void handler(struct serial *serial, char c) {
     printf("%c\n", c);
 }
 
+/* usleep handler*/
+static void usleep_handler(uint32_t id, void* reply_cptr){
+    seL4_MessageInfo_t reply_msg;
+    seL4_CPtr reply = *((seL4_CPtr*) reply_cptr);
+    free(reply_cptr);
+    
+    printf("handler called cptr: %ld\n", reply);
+    seL4_SetMR(0, 0);
+    reply_msg = seL4_MessageInfo_new(0, 0, 0, 1);
+    seL4_Send(reply, reply_msg);
+    cspace_free_slot(&cspace, reply);
+}
+
 void handle_syscall(UNUSED seL4_Word badge, UNUSED int num_args)
 {
 
@@ -148,12 +161,29 @@ void handle_syscall(UNUSED seL4_Word badge, UNUSED int num_args)
         break;
     case SOS_SYS_USLEEP:
         ZF_LOGV("syscall: thread called sys_usleep (6)\n");
+        
+        int msec = seL4_GetMR(1);
+
+        seL4_CPtr* reply_cap = malloc(sizeof(seL4_CPtr));
+        *reply_cap = reply;
+
+        int timer = register_timer(msec, ONE_SHOT, &usleep_handler, reply_cap);
+        printf("timer %ld, %d, %ld", timer, msec, *reply_cap);
+        if(!timer){
+            ZF_LOGE("Timer failed to initialize %lu\n", syscall_number);
+            reply_msg = seL4_MessageInfo_new(0, 0, 0, 1);
+            seL4_SetMR(0, -1); //error
+            seL4_Send(reply, reply_msg);
+            cspace_free_slot(&cspace, reply);
+        }
+        
         break;
     case SOS_SYS_TIME_STAMP:
         ZF_LOGV("syscall: thread called sys_time_stamp (7)\n");
         break;
     default:
         ZF_LOGE("Unknown syscall %lu\n", syscall_number);
+        cspace_free_slot(&cspace, reply);
         /* don't reply to an unknown syscall */
     }
 }

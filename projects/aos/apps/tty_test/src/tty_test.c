@@ -28,6 +28,7 @@
 #include <sel4/sel4.h>
 #include <syscalls.h>
 #include <utils/page.h>
+#include <sos.h>
 
 #include "ttyout.h"
 
@@ -98,12 +99,13 @@ int main(void)
     /* initialise communication */
     ttyout_init();
     char msg[10];
-
+    //sos_sys_usleep(10000000);
     test_m3();
 
     do {
         sos_read(msg, 10);
         sos_write(msg, 10);
+        
 #if 0
         printf("HELLO\tI\tAM\tTTY_TEST!\n");
         char *msg = "############### Testing tty_test!!! ##################\n";

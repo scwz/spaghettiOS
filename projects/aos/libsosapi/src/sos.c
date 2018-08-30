@@ -110,7 +110,15 @@ pid_t sos_process_wait(pid_t pid)
 
 void sos_sys_usleep(int msec)
 {
-    assert(!"You need to implement this");
+    if(msec < 0){
+        return;
+    }
+    seL4_MessageInfo_t tag;
+    seL4_SetMR(0, SOS_SYS_USLEEP);
+    seL4_SetMR(1, msec);
+    tag = seL4_MessageInfo_new(0, 0, 0, 2);
+    seL4_Call(SOS_IPC_EP_CAP, tag);
+    //printf("end sleep\n");
 }
 
 int64_t sos_sys_time_stamp(void)
