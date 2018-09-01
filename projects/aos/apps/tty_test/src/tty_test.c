@@ -98,13 +98,17 @@ int main(void)
     
     /* initialise communication */
     ttyout_init();
-    char msg[10];
+    //char msg[10];
     //sos_sys_usleep(10000000);
-    test_m3();
+    //test_m3();
 
     do {
-        sos_read(msg, 10);
-        sos_write(msg, 10);
+        int fd = sos_sys_open("console", 0xF);
+        printf("%d\n", fd);
+        
+        sos_sys_write(fd, "hello\n", 8);
+        //sos_read(msg, 10);
+        //sos_write(msg, 10);
         
 #if 0
         printf("HELLO\tI\tAM\tTTY_TEST!\n");

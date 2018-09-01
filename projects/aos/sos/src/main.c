@@ -42,6 +42,7 @@
 #include "address_space.h"
 #include "ringbuffer.h"
 #include "shared_buf.h"
+#include "vfs.h"
 
 #include <aos/vsyscall.h>
 
@@ -122,25 +123,22 @@ void handle_syscall(void)
         ZF_LOGV("syscall: thread called sys_write (1)\n");
 
         // get data from message registers
-        seL4_Word msg_len = seL4_GetMR(1);
-        void *data = seL4_GetIPCBuffer()->msg + 2;
-        char *msg = data;
-        msg[msg_len] = '\0';
-
-        printf("syscall: thread called sys_write (1) %s\n", msg);
-
-        size_t sent = serial_send(serial_port, msg, msg_len);
-        printf("sent %ld bytes\n", sent);
-
+        printf("fd: %d\n", seL4_GetMR(1));
+        size_t nbyte = seL4_GetMR(2);
+        struct vnode * vn = curproc->fd[seL4_GetMR(1)];
+        printf("syscall: thread called sys_write (1) %s\n", seL4_GetIPCBuffer()->msg + 3); 
+        struct uio * u = malloc(sizeof(struct uio));
+        uio_init(u, WRITE, nbyte);
+        size_t bytes_written = VOP_WRITE(vn, u);
+        seL4_SetMR(0, bytes_written);
         /* send back the number of bytes transmitted */
         reply_msg = seL4_MessageInfo_new(0, 0, 0, 1);
-        seL4_SetMR(0, sent);
         seL4_Send(reply, reply_msg);
-
         cspace_free_slot(&cspace, reply);
         break;
     case SOS_SYS_READ:
         ZF_LOGV("syscall: thread called sys_read (2)\n");
+        /*char* msg;
         size_t count = seL4_GetMR(1);
         curr = get_running();
         yield(NULL);
@@ -157,10 +155,31 @@ void handle_syscall(void)
         seL4_SetMR(0, count);
         seL4_Send(reply, reply_msg);
 
-        cspace_free_slot(&cspace, reply);
+        cspace_free_slot(&cspace, reply);*/
         break;
     case SOS_SYS_OPEN:
         ZF_LOGV("syscall: thread called sys_open (3)\n");
+        fmode_t mode = seL4_GetMR(1);
+        struct vnode *res;
+        vfs_lookup(seL4_GetIPCBuffer()->msg + 2, &res); 
+        bool full = true;
+        for(unsigned int i = 0; i < sizeof(curproc->fd) / 8; i ++){
+            if(curproc->fd[i] == NULL){
+                curproc->fd[i] = res;
+                seL4_SetMR(0, 0);
+                seL4_SetMR(1, i);
+                full = false;
+                printf("i: %d\n", i);
+                break;
+            }
+        } 
+        if(full){
+            seL4_SetMR(0, 1);
+        }
+        reply_msg = seL4_MessageInfo_new(0, 0, 0, 2);
+        printf("i : %d\n", seL4_GetMR(1));
+        seL4_Send(reply, reply_msg);
+        cspace_free_slot(&cspace, reply);
         break;
     case SOS_SYS_CLOSE:
         ZF_LOGV("syscall: thread called sys_close (4)\n");
@@ -373,19 +392,20 @@ NORETURN void *main_continued(UNUSED void *arg)
                  badge_irq_ntfn(ntfn, IRQ_BADGE_NETWORK_TICK),
                  timer_vaddr);
 
-    printf("Serial init\n");
+    /*printf("Serial init\n");
     serial_port = serial_init();
     serial_register_handler(serial_port, handler);
     stream_buf sb;
     bufferInit(sb, 1024, char);
     sb_ptr = &sb;
-
+    */
 
     printf("Starting timers\n");
     start_timer(&cspace, badge_irq_ntfn(ntfn, IRQ_BADGE_TIMER), timer_vaddr);
 
     frame_table_init(&cspace);
     shared_buf_init();
+    vfs_bootstrap();
     //test_m1();
     //test_m2();
 

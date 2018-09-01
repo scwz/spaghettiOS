@@ -230,6 +230,10 @@ bool start_first_process(cspace_t *cspace, char* app_name, seL4_CPtr ep)
 
     as_define_region(curproc->as, PROCESS_SHARED_BUF_TOP - PAGE_SIZE_4K * SHARED_BUF_PAGES, PAGE_SIZE_4K * SHARED_BUF_PAGES, READ | WRITE);
 
+    for(int i = 0; i < sizeof(curproc->fd); i++){
+        curproc->fd[i] = NULL;
+    }
+
     /* Map in the IPC buffer for the thread */
     err = map_frame(cspace, curproc->ipc_buffer, curproc->vspace, PROCESS_IPC_BUFFER,
                     seL4_AllRights, seL4_ARM_Default_VMAttributes);

@@ -17,10 +17,19 @@
 
 #include <sel4/sel4.h>
 
+
 int sos_sys_open(const char *path, fmode_t mode)
 {
-    assert(!"You need to implement this");
-    return 0;
+    seL4_MessageInfo_t tag;
+    seL4_SetMR(0, SOS_SYS_OPEN);
+    seL4_SetMR(1, mode);
+    strcpy(seL4_GetIPCBuffer()->msg + 2, path);
+    tag = seL4_MessageInfo_new(0, 0, 0, strlen(path) + 2);
+    seL4_Call(SOS_IPC_EP_CAP, tag);
+    if(seL4_GetMR(0)){
+        return -1;
+    }
+    return seL4_GetMR(1);
 }
 
 int sos_sys_close(int file)  {
@@ -37,31 +46,13 @@ int sos_sys_read(int file, char *buf, size_t nbyte)
 int sos_sys_write(int file, const char *buf, size_t nbyte)
 {
     seL4_MessageInfo_t tag;
-    size_t total_bytes = 0;
-    size_t buf_len = 10 * sizeof(seL4_Word);
-    size_t npackets = ((nbyte - 1) / buf_len) + 1;
-
-    for (size_t i = 0; i < npackets; i++) {
-        tag = seL4_MessageInfo_new(0, 0, 0, 2 + buf_len);
-
-        // truncate junk data
-        if (i == npackets - 1) {
-            buf_len = nbyte - (i * buf_len);
-        }
-
-        // send syscall, message length, and message in message registers
-        seL4_SetMR(0, SOS_SYS_WRITE);
-        seL4_SetMR(1, buf_len);
-        memcpy(seL4_GetIPCBuffer()->msg + 2,
-                buf + (i * 10 * sizeof(seL4_Word)), 
-                buf_len);
-
-        seL4_Call(SOS_IPC_EP_CAP, tag);
-
-        total_bytes += seL4_GetMR(0);
-    }
-
-    return total_bytes;
+    seL4_SetMR(0, SOS_SYS_WRITE);
+    seL4_SetMR(1, file);
+    seL4_SetMR(2, nbyte);
+    //user_copyin(buf, nbyte);
+    tag = seL4_MessageInfo_new(0, 0, 0, 3);
+    seL4_Call(SOS_IPC_EP_CAP, tag);
+    return seL4_GetMR(1);
 }
 
 int sos_getdirent(int pos, char *name, size_t nbyte)

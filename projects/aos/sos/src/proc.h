@@ -12,6 +12,7 @@
 #include <aos/debug.h>
 
 #include "ut.h"
+#include "vnode.h"
 
 #define TTY_NAME             "tty_test"
 #define TTY_PRIORITY         (0)
@@ -38,6 +39,8 @@ struct proc {
 
     ut_t *stack_ut;
     seL4_CPtr stack;
+    
+    struct vnode * fd[8];
 };
 
 struct proc procs[MAX_PROCESSES];

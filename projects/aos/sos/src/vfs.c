@@ -15,7 +15,7 @@ static struct device_entry * device_list;
 static struct vnode * find_device(char * name){
 	struct device_entry * curr = device_list;
 	for(; curr != NULL; curr = curr->next){
-		if(strcmp(name, curr->name)){
+		if(!strcmp(name, curr->name)){
 			return curr->vn;
 		}
 	}
@@ -23,6 +23,7 @@ static struct vnode * find_device(char * name){
 }
 
 int vfs_lookup(char *path, struct vnode **retval) {
+	printf("LOOKUP %s\n", path);
     struct vnode *startvn;
 	int result;
 
