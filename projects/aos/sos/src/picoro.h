@@ -40,4 +40,6 @@ void *resume(coro c, void *arg);
  */
 void *yield(void *arg);
 
+coro get_running(void);
+
 #endif /* PICORO_H */

@@ -72,3 +72,5 @@ int timer_interrupt(void);
  * Returns CLOCK_R_OK iff successful.
  */
 int stop_timer(void);
+
+timestamp_t get_time(void);

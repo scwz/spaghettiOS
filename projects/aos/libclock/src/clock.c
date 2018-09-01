@@ -114,3 +114,7 @@ int stop_timer(void)
 
     return CLOCK_R_OK;
 }
+
+timestamp_t get_time(void) {
+    return pq->time;
+}

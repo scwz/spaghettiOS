@@ -50,7 +50,7 @@ int sos_sys_write(int file, const char *buf, size_t nbyte)
         }
 
         // send syscall, message length, and message in message registers
-        seL4_SetMR(0, 1);
+        seL4_SetMR(0, SOS_SYS_WRITE);
         seL4_SetMR(1, buf_len);
         memcpy(seL4_GetIPCBuffer()->msg + 2,
                 buf + (i * 10 * sizeof(seL4_Word)), 
@@ -123,14 +123,19 @@ void sos_sys_usleep(int msec)
 
 int64_t sos_sys_time_stamp(void)
 {
-    assert(!"You need to implement this");
-    return -1;
+    int64_t time;
+    seL4_MessageInfo_t tag = seL4_MessageInfo_new(0, 0, 0, 1);
+
+    seL4_SetMR(0, SOS_SYS_TIME_STAMP); 
+    seL4_Call(SOS_IPC_EP_CAP, tag);
+
+    return seL4_GetMR(0);
 }
 
 long sos_sys_brk(uintptr_t newbrk) {
     seL4_MessageInfo_t tag = seL4_MessageInfo_new(0, 0, 0, 2);
 
-    seL4_SetMR(0, 5);
+    seL4_SetMR(0, SOS_SYS_BRK);
     seL4_SetMR(1, newbrk);
     seL4_Call(SOS_IPC_EP_CAP, tag);
 

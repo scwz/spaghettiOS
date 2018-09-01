@@ -30,6 +30,10 @@ static struct coro {
 	jmp_buf state;
 } first, *running = &first, *idle;
 
+coro get_running(void) {
+    return running;
+}
+
 /*
  * A coroutine can be passed to resume() if
  * it is not on the running or idle lists.
