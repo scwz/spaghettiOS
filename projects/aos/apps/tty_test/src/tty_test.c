@@ -104,7 +104,7 @@ int main(void)
 
     do {
         int fd = sos_sys_open("console", 0xF);
-        printf("%d\n", fd);
+        //printf("%d\n", fd);
         
         sos_sys_write(fd, "hello\n", 8);
         //sos_read(msg, 10);

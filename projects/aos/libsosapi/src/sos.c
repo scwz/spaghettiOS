@@ -18,6 +18,10 @@
 #include <sel4/sel4.h>
 
 
+
+//#define PROCESS_SHARED_BUF_TOP  (0xD0000000)
+
+
 int sos_sys_open(const char *path, fmode_t mode)
 {
     seL4_MessageInfo_t tag;
@@ -39,8 +43,7 @@ int sos_sys_close(int file)  {
 
 int sos_sys_read(int file, char *buf, size_t nbyte)
 {
-    assert(!"You need to implement this");
-    return -1;
+    return 0;
 }
 
 int sos_sys_write(int file, const char *buf, size_t nbyte)
@@ -49,7 +52,6 @@ int sos_sys_write(int file, const char *buf, size_t nbyte)
     seL4_SetMR(0, SOS_SYS_WRITE);
     seL4_SetMR(1, file);
     seL4_SetMR(2, nbyte);
-    //user_copyin(buf, nbyte);
     tag = seL4_MessageInfo_new(0, 0, 0, 3);
     seL4_Call(SOS_IPC_EP_CAP, tag);
     return seL4_GetMR(1);
