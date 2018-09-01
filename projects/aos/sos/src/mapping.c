@@ -13,9 +13,9 @@
 #include <sel4/sel4_arch/mapping.h>
 
 #include "mapping.h"
-#include "ut.h"
-#include "vmem_layout.h"
-#include "pagetable.h"
+#include "ut/ut.h"
+#include "vm/vmem_layout.h"
+#include "vm/pagetable.h"
 
 /**
  * Retypes and maps a page table into the root servers page global directory

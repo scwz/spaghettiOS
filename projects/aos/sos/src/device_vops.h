@@ -1,4 +1,4 @@
-#include "vnode.h"
+#include "vfs/vnode.h"
 #include "uio.h"
 
 struct device{

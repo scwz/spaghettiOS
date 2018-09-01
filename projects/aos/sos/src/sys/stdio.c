@@ -35,7 +35,7 @@
 #include <pico_bsd_sockets.h>
 
 #include "../drivers/uart.h"
-#include "../syscalls.h"
+#include "../syscall/syscalls.h"
 
 #define STDOUT_FD 1
 #define STDERR_FD 2

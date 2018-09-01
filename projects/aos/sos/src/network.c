@@ -41,10 +41,10 @@
 
 #include <nfsc/libnfs.h>
 
-#include "vmem_layout.h"
+#include "vm/vmem_layout.h"
 #include "dma.h"
 #include "mapping.h"
-#include "ut.h"
+#include "ut/ut.h"
 
 
 #ifndef SOS_NFS_DIR

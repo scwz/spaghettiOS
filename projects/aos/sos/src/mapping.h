@@ -14,7 +14,7 @@
 #include <stdbool.h>
 #include <sel4/sel4.h>
 #include <cspace/cspace.h>
-#include "pagetable.h"
+#include "vm/pagetable.h"
 
 /**
  * Maps a page.

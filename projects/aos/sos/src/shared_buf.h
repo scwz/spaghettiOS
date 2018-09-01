@@ -9,7 +9,7 @@
 #include <cspace/cspace.h>
 #include <aos/sel4_zf_logif.h>
 #include <aos/debug.h>
-#include "frametable.h"
+#include "vm/frametable.h"
 
 void * shared_buf;
 

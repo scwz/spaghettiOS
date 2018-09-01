@@ -17,13 +17,13 @@
 #include <assert.h>
 #include <cspace/cspace.h>
 
-#include "vmem_layout.h"
-#include "ut.h"
+#include "vm/vmem_layout.h"
+#include "ut/ut.h"
 #include "mapping.h"
 #include "elfload.h"
-#include "frametable.h"
-#include "proc.h"
-#include "address_space.h"
+#include "vm/frametable.h"
+#include "proc/proc.h"
+#include "vm/address_space.h"
 
 /*
  * Convert ELF permissions into seL4 permissions.

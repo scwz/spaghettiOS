@@ -22,9 +22,9 @@
 
 #include "mapping.h"
 #include "bootstrap.h"
-#include "ut.h"
+#include "ut/ut.h"
 #include "dma.h"
-#include "vmem_layout.h"
+#include "vm/vmem_layout.h"
 
 /* top level cspace node size, for the root cnode, in bits, where size = 2^bits */
 #define INITIAL_TASK_CNODE_SIZE_BITS 18u

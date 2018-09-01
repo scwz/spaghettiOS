@@ -23,8 +23,8 @@
 #include <cspace/cspace.h>
 #include "dma.h"
 #include "mapping.h"
-#include "ut.h"
-#include "vmem_layout.h"
+#include "ut/ut.h"
+#include "vm/vmem_layout.h"
 
 #define DMA_ALIGN_BITS  7 /* 128 */
 #define DMA_ALIGN(a)    ROUND_UP((a), DMA_ALIGN_BITS)

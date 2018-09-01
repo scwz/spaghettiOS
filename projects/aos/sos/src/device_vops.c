@@ -1,5 +1,5 @@
-#include "vfs.h"
-#include "vnode.h"
+#include "vfs/vfs.h"
+#include "vfs/vnode.h"
 
 static int dev_eachopen(struct vnode *v, int flags)
 {
