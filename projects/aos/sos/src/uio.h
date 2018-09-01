@@ -7,18 +7,11 @@ enum uio_rw {
     UIO_READ,
     UIO_WRITE
 };
-
-struct iovec {
-    void *iov_base;
-    size_t iov_len;
-};
+//kernel only uio in a shared buf
 
 struct uio {
-    struct iovec     *uio_iov;
-    unsigned          uio_iovcnt;
-    uint64_t          uio_offset;
-    size_t            uio_resid;
     enum uio_rw       uio_rw;
-    struct addrpsace *uio_space; 
 };
 
+size_t uiomove(void *ptr, size_t n, struct uio *uio);
+void uio_init(struct uio * u, enum uio_rw rw);

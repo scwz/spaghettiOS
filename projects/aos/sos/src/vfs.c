@@ -84,10 +84,6 @@ void vfs_close(struct vnode *vn) {
     VOP_DECREF(vn);
 }
 
-void open_console(){
-	
-}
-
 
 void vfs_bootstrap(void) {
 	device_list = malloc(sizeof(struct device_entry));
