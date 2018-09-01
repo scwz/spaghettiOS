@@ -26,6 +26,7 @@
 #include <elf/elf.h>
 #include <serial/serial.h>
 
+#include "picoro.h"
 #include "proc.h"
 #include "bootstrap.h"
 #include "network.h"
@@ -39,6 +40,7 @@
 #include "frametable.h"
 #include "pagetable.h"
 #include "address_space.h"
+#include "ringbuffer.h"
 #include "shared_buf.h"
 
 #include <aos/vsyscall.h>
@@ -65,9 +67,18 @@ static cspace_t cspace;
 
 /* serial port */
 static struct serial *serial_port;
+ringBuffer_typedef(char, stream_buf);
+stream_buf *sb_ptr;
+void handle_syscall(void);
+coro curr;
 
 static void handler(struct serial *serial, char c) {
-    printf("%c\n", c);
+    //printf("%c\n", c);
+    bufferWrite(sb_ptr, c);
+
+    if (c == '\n') {
+        resume(curr, NULL);
+    }
 }
 
 /* usleep handler*/
@@ -83,7 +94,8 @@ static void usleep_handler(uint32_t id, void* reply_cptr){
     cspace_free_slot(&cspace, reply);
 }
 
-void handle_syscall(UNUSED seL4_Word badge, UNUSED int num_args)
+//void handle_syscall(UNUSED seL4_Word badge, UNUSED int num_args)
+void handle_syscall(void)
 {
 
     /* allocate a slot for the reply cap */
@@ -130,8 +142,12 @@ void handle_syscall(UNUSED seL4_Word badge, UNUSED int num_args)
     case SOS_SYS_READ:
         ZF_LOGV("syscall: thread called sys_read (2)\n");
         size_t count = seL4_GetMR(1);
-        serial_register_handler(serial_port, handler);
+        curr = get_running();
+        yield(NULL);
 
+        char c;
+        bufferRead(sb_ptr, c);
+        printf("READ %c\n", c);
         reply_msg = seL4_MessageInfo_new(0, 0, 0, 1);
         seL4_SetMR(0, count);
         seL4_Send(reply, reply_msg);
@@ -181,6 +197,14 @@ void handle_syscall(UNUSED seL4_Word badge, UNUSED int num_args)
         break;
     case SOS_SYS_TIME_STAMP:
         ZF_LOGV("syscall: thread called sys_time_stamp (7)\n");
+
+        int64_t time = get_time();
+
+        reply_msg = seL4_MessageInfo_new(0, 0, 0, 1);
+        seL4_SetMR(0, time);
+        seL4_Send(reply, reply_msg);
+
+        cspace_free_slot(&cspace, reply);
         break;
     default:
         ZF_LOGE("Unknown syscall %lu\n", syscall_number);
@@ -231,7 +255,8 @@ NORETURN void syscall_loop(seL4_CPtr ep)
         } else if (label == seL4_Fault_NullFault) {
             /* It's not a fault or an interrupt, it must be an IPC
              * message from tty_test! */
-            handle_syscall(badge, seL4_MessageInfo_get_length(message) - 1);
+            //handle_syscall(badge, seL4_MessageInfo_get_length(message) - 1);
+            resume(coroutine((void *(*)(void *))handle_syscall), NULL);
 
         } else {
             /* some kind of fault */
@@ -345,6 +370,11 @@ NORETURN void *main_continued(UNUSED void *arg)
 
     printf("Serial init\n");
     serial_port = serial_init();
+    serial_register_handler(serial_port, handler);
+    stream_buf sb;
+    bufferInit(sb, 1024, char);
+    sb_ptr = &sb;
+
 
     printf("Starting timers\n");
     start_timer(&cspace, badge_irq_ntfn(ntfn, IRQ_BADGE_TIMER), timer_vaddr);
