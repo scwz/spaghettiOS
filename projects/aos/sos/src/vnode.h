@@ -5,7 +5,7 @@
 #include "uio.h"
 
 struct vnode {
-    size_t vn_refcnt;
+    int vn_refcount;
     void *vn_data;
     const struct vnode_ops *vn_ops;
 };
@@ -29,6 +29,12 @@ struct vnode_ops {
     int (*vop_lookparent)(struct vnode *dir, char *pathname, struct vnode **result, char *buf, size_t len);
 };
 
+void vnode_incref(struct vnode *);
+void vnode_decref(struct vnode *);
+
+#define VOP_INCREF(vn) 			vnode_incref(vn)
+#define VOP_DECREF(vn) 			vnode_decref(vn)
+
 #define __VOP(vn, sym) (vnode_check(vn, #sym), (vn)->vn_ops->vop_##sym)
 
 #define VOP_EACHOPEN(vn, flags)             (__VOP(vn, eachopen)(vn, flags))
@@ -42,7 +48,7 @@ struct vnode_ops {
 #define VOP_CREAT(vn,nm,excl,mode,res)      (__VOP(vn, creat)(vn,nm,excl,mode,res)) 
 
 #define VOP_LOOKUP(vn, name, res)           (__VOP(vn, lookup)(vn, name, res))
-#define VOP_LOOKPARENT(vn,name,res,bf,ln)   (__VOP(vn, lookparent)(vn,nm,res,bf,ln))
+#define VOP_LOOKPARENT(vn,name,res,bf,ln)   (__VOP(vn, lookparent)(vn,name,res,bf,ln))
 
 void vnode_check(struct vnode *, const char *op);
 int vnode_init(struct vnode *, const struct vnode_ops *ops, void *fsdata);

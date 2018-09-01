@@ -41,6 +41,7 @@
 #include "pagetable.h"
 #include "address_space.h"
 #include "ringbuffer.h"
+#include "shared_buf.h"
 
 #include <aos/vsyscall.h>
 
@@ -379,7 +380,7 @@ NORETURN void *main_continued(UNUSED void *arg)
     start_timer(&cspace, badge_irq_ntfn(ntfn, IRQ_BADGE_TIMER), timer_vaddr);
 
     frame_table_init(&cspace);
-
+    shared_buf_init();
     //test_m1();
     //test_m2();
 
