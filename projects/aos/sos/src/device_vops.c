@@ -56,14 +56,14 @@ static const struct vnode_ops dev_vnode_ops = {
     .vop_getdirentry = dev_getdirent,
 
 	.vop_write = dev_write,
-	
+	.vop_reclaim = NULL,
 	.vop_stat = dev_stat,
 	.vop_lookup = dev_lookup,
 	.vop_lookparent = dev_lookparent,
 };
 
 struct vnode *
-dev_create_vnode()
+dev_create_vnode(void * data)
 {
 	int result;
 	struct vnode *v;
@@ -73,7 +73,7 @@ dev_create_vnode()
 		return NULL;
 	}
 
-	result = vnode_init(v, &dev_vnode_ops,  NULL);
+	result = vnode_init(v, &dev_vnode_ops, data);
 	if (result != 0) {
 		ZF_LOGV("While creating vnode for device: vnode_init: %s\n",
 		      strerror(result));
