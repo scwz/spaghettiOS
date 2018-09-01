@@ -5,7 +5,7 @@
 #include "uio.h"
 
 struct vnode {
-    size_t vn_refcnt;
+    int vn_refcount;
     void *vn_data;
     const struct vnode_ops *vn_ops;
 };

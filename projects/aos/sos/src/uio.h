@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include "shared_buf.h"
 
 enum uio_rw {
     UIO_READ,
@@ -20,3 +21,4 @@ struct uio {
     enum uio_rw       uio_rw;
     struct addrpsace *uio_space; 
 };
+
