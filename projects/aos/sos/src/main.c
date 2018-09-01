@@ -144,10 +144,15 @@ void handle_syscall(void)
         size_t count = seL4_GetMR(1);
         curr = get_running();
         yield(NULL);
+        int i = 0;
 
-        char c;
-        bufferRead(sb_ptr, c);
-        printf("READ %c\n", c);
+        while (!isBufferEmpty(sb_ptr)) {
+            char c;
+            bufferRead(sb_ptr, c);
+            msg[i++] = c;
+        }
+        msg[count] = '\0';
+        printf("READ %s\n", msg);
         reply_msg = seL4_MessageInfo_new(0, 0, 0, 1);
         seL4_SetMR(0, count);
         seL4_Send(reply, reply_msg);
