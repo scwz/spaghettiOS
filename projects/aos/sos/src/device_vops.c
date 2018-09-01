@@ -47,6 +47,9 @@ static int dev_lookparent(){
     return 0;
 }
 
+static int dev_reclaim(){
+    return 0;
+}
 static const struct vnode_ops dev_vnode_ops = {
 	.vop_magic = VOP_MAGIC,
 
@@ -56,7 +59,7 @@ static const struct vnode_ops dev_vnode_ops = {
     .vop_getdirentry = dev_getdirent,
 
 	.vop_write = dev_write,
-	.vop_reclaim = NULL,
+	.vop_reclaim = dev_reclaim,
 	.vop_stat = dev_stat,
 	.vop_lookup = dev_lookup,
 	.vop_lookparent = dev_lookparent,

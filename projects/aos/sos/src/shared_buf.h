@@ -11,6 +11,7 @@
 #include <aos/debug.h>
 #include "frametable.h"
 
+void * shared_buf;
 
 void shared_buf_init();
 

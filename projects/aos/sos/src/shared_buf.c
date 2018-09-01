@@ -1,7 +1,7 @@
 #include "shared_buf.h"
 #include "vmem_layout.h"
 
-void * shared_buf;
+
 
 void shared_buf_init(){
     seL4_Word first_frame;

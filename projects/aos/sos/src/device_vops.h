@@ -6,7 +6,7 @@ struct device{
     int (*open)(int flags);
     int (*write)( struct uio *uio);
     int (*read)( struct uio *uio);
-    int (*close)( struct uio *uio);
+    int (*close)();
 };
 
 
