@@ -15,7 +15,7 @@
 #include "ut.h"
 #include "vnode.h"
 
-#define TTY_NAME             "sosh"
+#define TTY_NAME             "tty_test"
 #define TTY_PRIORITY         (0)
 #define TTY_EP_BADGE         (101)
 
