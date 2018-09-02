@@ -104,7 +104,7 @@ int main(void)
 
     do {
         int fd = open("console", 0xF);
-        printf("%d\n", fd);
+        //printf("print this please %d\n", fd);
         
         sos_sys_write(fd, "hello\n", 8);
         char c;
