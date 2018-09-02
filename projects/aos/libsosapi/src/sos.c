@@ -70,19 +70,19 @@ int sos_sys_read(int file, char *buf, size_t nbyte)
     tag = seL4_MessageInfo_new(0, 0, 0, 3);
     seL4_Call(SOS_IPC_EP_CAP, tag);
     user_copyout(buf, nbyte);
-    return seL4_GetMR(1);
+    return seL4_GetMR(0);
 }
 
 int sos_sys_write(int file, const char *buf, size_t nbyte)
 {
     seL4_MessageInfo_t tag;
     seL4_SetMR(0, SOS_SYS_WRITE);
+    nbyte = user_copyin(buf, nbyte);
     seL4_SetMR(1, file);
     seL4_SetMR(2, nbyte);
-    user_copyin(buf, nbyte);
     tag = seL4_MessageInfo_new(0, 0, 0, 3);
     seL4_Call(SOS_IPC_EP_CAP, tag);
-    return seL4_GetMR(1);
+    return seL4_GetMR(0);
 }
 
 int sos_getdirent(int pos, char *name, size_t nbyte)

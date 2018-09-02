@@ -11,9 +11,9 @@ int syscall_write(void) {
     
     size_t nbyte = seL4_GetMR(2);
     int fd = seL4_GetMR(1);
-    printf("write called %d\n", fd);
-    if(fd < 3 && fd > 0){
-        fd = 3;
+    printf("write %d %d\n", fd, nbyte);
+    if(fd < 4){ //send stdin etc. to console (make sure to open console)
+        fd = 4;
     }
     struct vnode * vn = curproc->fdt->openfiles[fd]; 
     struct uio * u = malloc(sizeof(struct uio));
@@ -26,7 +26,11 @@ int syscall_write(void) {
 
 int syscall_read(void) {
     size_t nbyte = seL4_GetMR(2);
-    struct vnode *vn = curproc->fdt->openfiles[seL4_GetMR(1)]; 
+    int fd = seL4_GetMR(1);
+    if(fd < 4){ //send stdin etc. to console (make sure to open console)
+        fd = 4;
+    }
+    struct vnode *vn = curproc->fdt->openfiles[fd]; 
     assert(vn);
     struct uio *u = malloc(sizeof(struct uio));
     uio_init(u, UIO_READ, nbyte);
@@ -37,12 +41,13 @@ int syscall_read(void) {
 }
 
 int syscall_open(void) {
+    
     fmode_t mode = seL4_GetMR(1);
     struct vnode *res;
     vfs_lookup(seL4_GetIPCBuffer()->msg + 2, &res); 
     VOP_EACHOPEN(res, 0xF);
     bool full = true;
-    for(unsigned int i = 3; i < 8; i ++){
+    for(unsigned int i = 4; i < 8; i ++){
         if(curproc->fdt->openfiles[i] == NULL){
             curproc->fdt->openfiles[i] = res;
             seL4_SetMR(0, 0);

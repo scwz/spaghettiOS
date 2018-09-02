@@ -113,7 +113,7 @@ static int console_read(struct uio *u){
 
 static int console_write(struct uio * u){
 	serial_send(serial_port, shared_buf, u->len);
-	return 0;
+	return u->len;
 }
 
 
