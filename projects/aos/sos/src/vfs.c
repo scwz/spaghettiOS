@@ -92,13 +92,12 @@ void vfs_close(struct vnode *vn) {
 
 
 struct serial * serial_port;
-char *holdc;
 ringBuffer_typedef(char, stream_buf);
 stream_buf *sb_ptr;
+coro curr;
 
-void thishandler(struct serial *serial, char c) {
-	bufferWrite(sb_ptr, c);
-
+void thishandler(struct serial * serial, char c) {
+	bufferWrite(sb_ptr, c)
     if (c == '\n') {
        	resume(curr, NULL);
 	}
@@ -114,13 +113,16 @@ static int console_close(){
 }
 
 static int console_read(struct uio *u){
+	curr = get_running();
+    yield(NULL);
 	char msg[u->len];
 	int i = 0;
-	while (!isBufferEmpty(sb_ptr) || i > u->len) {
+	while (!isBufferEmpty(sb_ptr) && i < u->len) {
 		char c;
 		bufferRead(sb_ptr, c);
 		msg[i++] = c;
 	}
+	printf("msg: %s\n", msg);
 	sos_copyout(msg, i);
 	return i;
 }
@@ -145,6 +147,9 @@ void vfs_bootstrap(void) {
 	serial_port = serial_init();
 	
 	stream_buf sb;
-    bufferInit(sb, 1024, char);
-	sb_ptr = &sb;
+	sb_ptr = malloc(sizeof(stream_buf));
+	bufferInit(sb, 1024, char);
+	memcpy(sb_ptr, &sb, sizeof(stream_buf));
+    
+	printf("buf add: %lx\n", sb_ptr );
 }

@@ -47,13 +47,12 @@ static size_t sos_debug_print(const void *vData, size_t count)
 size_t sos_write(void *vData, size_t count)
 {
     // use the content of tty test for this
-    return sos_debug_print(vData, count);
+    return sos_sys_write(0, vData, count);
 }
 
 size_t sos_read(void *vData, size_t count)
 {
-    // use the content of tty test
-    return 0;
+    return sos_sys_write(1, vData, count);
 }
 
 static void prstat(const char *name)

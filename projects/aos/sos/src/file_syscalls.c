@@ -33,8 +33,6 @@ int syscall_read(void) {
     }
     struct vnode *vn = curproc->fdt->openfiles[fd]; 
     assert(vn);
-    curr = get_running();
-    yield(NULL);
     struct uio *u = malloc(sizeof(struct uio));
     uio_init(u, UIO_READ, nbyte);
     size_t bytes_read = VOP_READ(vn, u);

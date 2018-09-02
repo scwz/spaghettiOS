@@ -11,7 +11,7 @@
 
 typedef struct coro *coro;
 
-coro curr;
+
 
 /*
  * Create a coroutine that will run fun(). The coroutine starts off suspended.
