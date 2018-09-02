@@ -92,14 +92,14 @@ void vfs_close(struct vnode *vn) {
 
 
 struct serial * serial_port;
-
-static void handler(struct serial *serial, char c) {
-	sos_copyin(&c, 1);
-	return 0;
+char holdc;
+void thishandler(struct serial *serial, char c) {
+	printf("%c", c);
+	holdc = c;
 }
 
 static int console_open(int flags){
-	serial_register_handler(serial_port, handler);
+	serial_register_handler(serial_port, thishandler);
 	return 0;
 }
 
@@ -107,8 +107,8 @@ static int console_close(){
 	return 0;
 }
 
-static int console_read(){
-	return 0;
+static int console_read(struct uio *u){
+	sos_copyout(&holdc, 1);
 }
 
 static int console_write(struct uio * u){

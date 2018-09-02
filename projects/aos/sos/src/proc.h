@@ -40,7 +40,7 @@ struct proc {
     ut_t *stack_ut;
     seL4_CPtr stack;
     
-    struct vnode * fd[8];
+    struct vnode ** fd;
 };
 
 struct proc procs[MAX_PROCESSES];

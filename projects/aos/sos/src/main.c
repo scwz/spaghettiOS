@@ -67,6 +67,7 @@ extern void (__register_frame)(void *);
 static cspace_t cspace;
 
 /* serial port */
+/*
 static struct serial *serial_port;
 ringBuffer_typedef(char, stream_buf);
 stream_buf *sb_ptr;
@@ -80,7 +81,7 @@ static void handler(struct serial *serial, char c) {
     if (c == '\n') {
         resume(curr, NULL);
     }
-}
+}*/
 
 /* usleep handler*/
 static void usleep_handler(uint32_t id, void* reply_cptr){
@@ -121,15 +122,13 @@ void handle_syscall(void)
     switch (syscall_number) {
     case SOS_SYS_WRITE:
         ZF_LOGV("syscall: thread called sys_write (1)\n");
-
         // get data from message registers
-        printf("fd: %d\n", seL4_GetMR(1));
         size_t nbyte = seL4_GetMR(2);
-        struct vnode * vn = curproc->fd[seL4_GetMR(1)];
-        printf("syscall: thread called sys_write (1) %s\n", seL4_GetIPCBuffer()->msg + 3); 
+        struct vnode * vn = curproc->fd[seL4_GetMR(1)]; 
         struct uio * u = malloc(sizeof(struct uio));
         uio_init(u, WRITE, nbyte);
         size_t bytes_written = VOP_WRITE(vn, u);
+        free(u);
         seL4_SetMR(0, bytes_written);
         /* send back the number of bytes transmitted */
         reply_msg = seL4_MessageInfo_new(0, 0, 0, 1);
@@ -138,8 +137,18 @@ void handle_syscall(void)
         break;
     case SOS_SYS_READ:
         ZF_LOGV("syscall: thread called sys_read (2)\n");
-
-        
+        // get data from message registers
+        nbyte = seL4_GetMR(2);
+        vn = curproc->fd[seL4_GetMR(1)]; 
+        u = malloc(sizeof(struct uio));
+        uio_init(u, READ, nbyte);
+        size_t bytes_read = VOP_READ(vn, u);
+        free(u);
+        seL4_SetMR(0, bytes_read);
+        /* send back the number of bytes transmitted */
+        reply_msg = seL4_MessageInfo_new(0, 0, 0, 1);
+        seL4_Send(reply, reply_msg);
+        cspace_free_slot(&cspace, reply);
         break;
     case SOS_SYS_OPEN:
         ZF_LOGV("syscall: thread called sys_open (3)\n");
@@ -223,7 +232,6 @@ void handle_syscall(void)
 
 NORETURN void syscall_loop(seL4_CPtr ep)
 {
-
     while (1) {
         seL4_Word badge = 0;
         /* Block on ep, waiting for an IPC sent over ep, or
@@ -388,7 +396,7 @@ NORETURN void *main_continued(UNUSED void *arg)
     start_timer(&cspace, badge_irq_ntfn(ntfn, IRQ_BADGE_TIMER), timer_vaddr);
 
     frame_table_init(&cspace);
-    shared_buf_init();
+    shared_buf_init(&cspace);
     vfs_bootstrap();
     //test_m1();
     //test_m2();
@@ -397,7 +405,6 @@ NORETURN void *main_continued(UNUSED void *arg)
     printf("Start first process\n");
     bool success = start_first_process(&cspace, TTY_NAME, ipc_ep);
     ZF_LOGF_IF(!success, "Failed to start first process");
-
     printf("\nSOS entering syscall loop\n");
     syscall_loop(ipc_ep);
 }

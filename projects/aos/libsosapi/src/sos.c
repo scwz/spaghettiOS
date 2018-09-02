@@ -19,7 +19,27 @@
 
 
 
-//#define PROCESS_SHARED_BUF_TOP  (0xD0000000)
+#define SHARE_BUF             (0xD0000000)
+#define SHARE_BUF_SIZE        256
+
+
+static void check_len(size_t * len){
+    if(*len > 4096 * SHARE_BUF_SIZE){
+        *len = 4096 * SHARE_BUF_SIZE;
+    }
+}
+
+static size_t user_copyin(void* user_vaddr, size_t len){
+    check_len(&len);
+    memcpy(SHARE_BUF - 4096 * SHARE_BUF_SIZE, user_vaddr, len);
+    return len;
+}
+static size_t user_copyout(void* user_vaddr, size_t len){
+    check_len(&len);
+    memcpy(user_vaddr, SHARE_BUF - 4096 * SHARE_BUF_SIZE, len);
+    return len;
+}
+
 
 
 int sos_sys_open(const char *path, fmode_t mode)
@@ -42,8 +62,15 @@ int sos_sys_close(int file)  {
 }
 
 int sos_sys_read(int file, char *buf, size_t nbyte)
-{
-    return 0;
+{   
+    seL4_MessageInfo_t tag;
+    seL4_SetMR(0, SOS_SYS_READ);
+    seL4_SetMR(1, file);
+    seL4_SetMR(2, nbyte);
+    tag = seL4_MessageInfo_new(0, 0, 0, 3);
+    seL4_Call(SOS_IPC_EP_CAP, tag);
+    user_copyout(buf, nbyte);
+    return seL4_GetMR(1);
 }
 
 int sos_sys_write(int file, const char *buf, size_t nbyte)
@@ -52,6 +79,7 @@ int sos_sys_write(int file, const char *buf, size_t nbyte)
     seL4_SetMR(0, SOS_SYS_WRITE);
     seL4_SetMR(1, file);
     seL4_SetMR(2, nbyte);
+    user_copyin(buf, nbyte);
     tag = seL4_MessageInfo_new(0, 0, 0, 3);
     seL4_Call(SOS_IPC_EP_CAP, tag);
     return seL4_GetMR(1);
