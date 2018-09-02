@@ -2,6 +2,8 @@
 #include "vnode.h"
 #include <string.h>
 #include "device_vops.h"
+#include "ringbuffer.h"
+#include "picoro.h"
 #include <serial/serial.h>
 
 static struct device_entry{
@@ -89,13 +91,17 @@ void vfs_close(struct vnode *vn) {
 
 
 
-
-
 struct serial * serial_port;
-char holdc;
+char *holdc;
+ringBuffer_typedef(char, stream_buf);
+stream_buf *sb_ptr;
+
 void thishandler(struct serial *serial, char c) {
-	printf("%c", c);
-	holdc = c;
+	bufferWrite(sb_ptr, c);
+
+    if (c == '\n') {
+       	resume(curr, NULL);
+	}
 }
 
 static int console_open(int flags){
@@ -108,7 +114,15 @@ static int console_close(){
 }
 
 static int console_read(struct uio *u){
-	sos_copyout(&holdc, 1);
+	char msg[u->len];
+	int i = 0;
+	while (!isBufferEmpty(sb_ptr) || i > u->len) {
+		char c;
+		bufferRead(sb_ptr, c);
+		msg[i++] = c;
+	}
+	sos_copyout(msg, i);
+	return i;
 }
 
 static int console_write(struct uio * u){
@@ -129,4 +143,8 @@ void vfs_bootstrap(void) {
 	dev->read = console_read;
 	device_list->vn = dev_create_vnode(dev);
 	serial_port = serial_init();
+	
+	stream_buf sb;
+    bufferInit(sb, 1024, char);
+	sb_ptr = &sb;
 }
