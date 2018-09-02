@@ -43,6 +43,9 @@
 #include "ringbuffer.h"
 #include "shared_buf.h"
 #include "vfs.h"
+#include "file_syscalls.h"
+#include "vm_syscalls.h"
+#include "time_syscalls.h"
 
 #include <aos/vsyscall.h>
 
@@ -83,18 +86,16 @@ static void handler(struct serial *serial, char c) {
     }
 }*/
 
-/* usleep handler*/
-static void usleep_handler(uint32_t id, void* reply_cptr){
-    seL4_MessageInfo_t reply_msg;
-    seL4_CPtr reply = *((seL4_CPtr*) reply_cptr);
-    free(reply_cptr);
-    
-    printf("handler called cptr: %ld\n", reply);
-    seL4_SetMR(0, 0);
-    reply_msg = seL4_MessageInfo_new(0, 0, 0, 1);
-    seL4_Send(reply, reply_msg);
-    cspace_free_slot(&cspace, reply);
-}
+static int (*syscall_table[])(void) = {
+    NULL,
+    syscall_write,
+    syscall_read,
+    syscall_open,
+    syscall_close,
+    syscall_brk,
+    syscall_usleep,
+    syscall_time_stamp,
+};
 
 //void handle_syscall(UNUSED seL4_Word badge, UNUSED int num_args)
 void handle_syscall(void)
@@ -116,8 +117,17 @@ void handle_syscall(void)
     seL4_Error err = cspace_save_reply_cap(&cspace, reply);
     ZF_LOGF_IFERR(err, "Failed to save reply");
 
-    seL4_MessageInfo_t reply_msg;
+    if (syscall_number > 0 && syscall_number < 8) {
+        int nwords = syscall_table[syscall_number]();
+        seL4_MessageInfo_t reply_msg = seL4_MessageInfo_new(0, 0, 0, nwords);
+        seL4_Send(reply, reply_msg);
+    }
+    else {
+        ZF_LOGE("Unknown syscall %lu\n", syscall_number);
+    }
 
+    cspace_free_slot(&cspace, reply);
+#if 0
     /* Process system call */
     switch (syscall_number) {
     case SOS_SYS_WRITE:
@@ -233,6 +243,7 @@ void handle_syscall(void)
         cspace_free_slot(&cspace, reply);
         /* don't reply to an unknown syscall */
     }
+#endif
 }
 
 NORETURN void syscall_loop(seL4_CPtr ep)
