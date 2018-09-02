@@ -122,8 +122,9 @@ static int console_read(struct uio *u){
 		bufferRead(sb_ptr, c);
 		msg[i++] = c;
 	}
+	msg[i++] = '\0'; 
 	printf("msg: %s\n", msg);
-	sos_copyout(msg, i);
+	sos_copyin(msg, i);
 	return i;
 }
 

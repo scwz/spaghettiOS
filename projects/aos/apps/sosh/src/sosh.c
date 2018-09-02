@@ -344,6 +344,7 @@ int main(void)
             /* Make sure to flush so anything is visible while waiting for user input */
             fflush(stdout);
             r = read(in, bp, BUF_SIZ - 1 + buf - bp);
+            
             if (r < 0) {
                 printf("Console read failed!\n");
                 done = 1;
@@ -417,7 +418,7 @@ int main(void)
         if (argc == 0) {
             continue;
         }
-
+        
         found = 0;
 
         for (i = 0; i < sizeof(commands) / sizeof(struct command); i++) {

@@ -69,8 +69,9 @@ int sos_sys_read(int file, char *buf, size_t nbyte)
     seL4_SetMR(2, nbyte);
     tag = seL4_MessageInfo_new(0, 0, 0, 3);
     seL4_Call(SOS_IPC_EP_CAP, tag);
-    user_copyout(buf, nbyte);
-    return seL4_GetMR(0);
+    size_t bytes_read = seL4_GetMR(0);
+    user_copyout(buf, bytes_read);
+    return bytes_read;
 }
 
 int sos_sys_write(int file, const char *buf, size_t nbyte)

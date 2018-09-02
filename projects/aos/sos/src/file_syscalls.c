@@ -36,6 +36,7 @@ int syscall_read(void) {
     struct uio *u = malloc(sizeof(struct uio));
     uio_init(u, UIO_READ, nbyte);
     size_t bytes_read = VOP_READ(vn, u);
+    printf("bytes_read %s, %d\n", shared_buf, bytes_read);
     free(u);
     seL4_SetMR(0, bytes_read);
     return 1;
