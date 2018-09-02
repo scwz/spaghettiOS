@@ -128,7 +128,7 @@ void handle_syscall(void)
         if(fd < 3 && fd > 0){
             fd = 3;
         }
-        struct vnode * vn = curproc->fd[fd]; 
+        struct vnode * vn = curproc->fdt->openfiles[fd]; 
         struct uio * u = malloc(sizeof(struct uio));
         uio_init(u, WRITE, nbyte);
         size_t bytes_written = VOP_WRITE(vn, u);
@@ -143,7 +143,7 @@ void handle_syscall(void)
         ZF_LOGV("syscall: thread called sys_read (2)\n");
         // get data from message registers
         nbyte = seL4_GetMR(2);
-        vn = curproc->fd[seL4_GetMR(1)]; 
+        vn = curproc->fdt->openfiles[seL4_GetMR(1)]; 
         assert(vn);
         u = malloc(sizeof(struct uio));
         uio_init(u, READ, nbyte);
@@ -162,8 +162,8 @@ void handle_syscall(void)
         vfs_lookup(seL4_GetIPCBuffer()->msg + 2, &res); 
         bool full = true;
         for(unsigned int i = 3; i < 8; i ++){
-            if(curproc->fd[i] == NULL){
-                curproc->fd[i] = res;
+            if(curproc->fdt->openfiles[i] == NULL){
+                curproc->fdt->openfiles[i] = res;
                 seL4_SetMR(0, 0);
                 seL4_SetMR(1, i);
                 full = false;

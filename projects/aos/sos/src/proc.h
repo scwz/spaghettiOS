@@ -11,6 +11,7 @@
 #include <aos/sel4_zf_logif.h>
 #include <aos/debug.h>
 
+#include "filetable.h"
 #include "ut.h"
 #include "vnode.h"
 
@@ -40,7 +41,7 @@ struct proc {
     ut_t *stack_ut;
     seL4_CPtr stack;
     
-    struct vnode ** fd;
+    struct filetable *fdt;
 };
 
 struct proc procs[MAX_PROCESSES];

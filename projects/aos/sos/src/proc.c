@@ -2,6 +2,7 @@
 
 #include <aos/debug.h>
 
+#include "filetable.h"
 #include "mapping.h"
 #include "elfload.h"
 #include "ut.h"
@@ -131,6 +132,7 @@ static uintptr_t init_process_stack(cspace_t *cspace, seL4_CPtr local_vspace, ch
 bool start_first_process(cspace_t *cspace, char* app_name, seL4_CPtr ep)
 {
     curproc->as = as_create();
+    curproc->fdt = fdt_create();
 
     /* Create a VSpace */
     curproc->vspace_ut = alloc_retype(cspace, &curproc->vspace, seL4_ARM_PageGlobalDirectoryObject,
@@ -224,11 +226,6 @@ bool start_first_process(cspace_t *cspace, char* app_name, seL4_CPtr ep)
         return false;
     }
     
-    curproc->fd = malloc(sizeof(struct vnode *) * 8);
-    for(int i = 0; i < sizeof(curproc->fd); i++){
-        curproc->fd[i] = NULL;
-    }
-
     // setup/create region for stack
     as_define_stack(curproc->as);
     as_define_heap(curproc->as);
