@@ -48,6 +48,7 @@ static int dev_reclaim(struct vnode *v){
 	struct device *d = v->vn_data;
     return d->close();
 }
+
 static const struct vnode_ops dev_vnode_ops = {
 	.vop_magic = VOP_MAGIC,
 
