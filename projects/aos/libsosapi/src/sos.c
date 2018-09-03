@@ -58,7 +58,7 @@ int sos_sys_close(int file)  {
     seL4_SetMR(1, file);
     seL4_Call(SOS_IPC_EP_CAP, tag);
 
-    return 0;
+    return seL4_GetMR(0);
 }
 
 int sos_sys_read(int file, char *buf, size_t nbyte)

@@ -67,5 +67,12 @@ int syscall_open(void) {
 }
 
 int syscall_close(void) {
-    return 0;
+    int fd = seL4_GetMR(1);
+    struct open_file *of = curproc->fdt->openfiles[fd];
+    VOP_RECLAIM(of->vn);
+    free(of);
+    curproc->fdt->openfiles[fd] = NULL;
+
+    seL4_SetMR(0, 0);
+    return 1;
 }

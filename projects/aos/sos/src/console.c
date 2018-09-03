@@ -22,9 +22,11 @@ static const vnode_ops console_vnode_ops = {
     .vop_write = console_write
 };
 */
+static int nbytes_read = 0;
 
 static void console_handler(struct serial *serial, char c) {
-	bufferWrite(sb_ptr, c)
+	bufferWrite(sb_ptr, c);
+    nbytes_read++;
     if (c == '\n') {
        	resume(curr, NULL);
 	}
@@ -41,7 +43,7 @@ int console_init(void) {
 
 	stream_buf sb;
 	sb_ptr = malloc(sizeof(stream_buf));
-	bufferInit(sb, 6144, char);
+	bufferInit(sb, 8192, char);
 	memcpy(sb_ptr, &sb, sizeof(stream_buf));
 
     return 0;
@@ -69,9 +71,10 @@ int console_read(struct uio *uio) {
 		bufferRead(sb_ptr, c);
 		msg[i++] = c;
 	}
-    printf("LEN %ld\n", i);
+    printf("LEN %ld\n", uio->len);
+    printf("HANDLED %d\n", nbytes_read);
 
-	msg[i++] = '\0'; 
+	msg[i] = '\0'; 
 	printf("msg: %s\n", msg);
 	sos_copyin(msg, i);
 	return i;

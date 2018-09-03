@@ -28,6 +28,7 @@
 #include "benchmark.h"
 
 #define SMALL_BUF_SZ 2
+//#define BUF_SZ 4096
 #define BUF_SZ    6144
 #define MAX_ARGS   32
 
@@ -310,7 +311,6 @@ int test_buffers(int console_fd) {
     int result = sos_sys_write(console_fd, test_str, strlen(test_str));
     assert(result == strlen(test_str));
 
-#if 0
     /* test reading to a small buffer */
     printf("Enter input of at least size %d\n", SMALL_BUF_SZ);
     result = sos_sys_read(console_fd, small_buf, SMALL_BUF_SZ);
@@ -340,7 +340,6 @@ int test_buffers(int console_fd) {
 
     result = sos_sys_write(console_fd, heap_buf, BUF_SZ);
     assert(result == BUF_SZ);
-#endif
 
     /* try sleeping */
     for (int i = 0; i < 5; i++) {
@@ -383,7 +382,7 @@ int main(void)
     new = 1;
 
     printf("\n[SOS Starting]\n");
-    //test_buffers(in);
+    test_buffers(in);
 
     while (!done) {
         if (new) {
