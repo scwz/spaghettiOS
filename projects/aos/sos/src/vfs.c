@@ -4,10 +4,11 @@
 #include "device_vops.h"
 #include "ringbuffer.h"
 #include "picoro.h"
+#include "console.h"
 #include <serial/serial.h>
 
-static struct device_entry{
-	char* name[20];
+struct device_entry{
+	char name[20];
 	struct vnode * vn;
 	struct device_entry * next;
 };
@@ -89,51 +90,6 @@ void vfs_close(struct vnode *vn) {
     VOP_DECREF(vn);
 }
 
-
-
-struct serial * serial_port;
-ringBuffer_typedef(char, stream_buf);
-stream_buf *sb_ptr;
-coro curr;
-
-void thishandler(struct serial * serial, char c) {
-	bufferWrite(sb_ptr, c)
-    if (c == '\n') {
-       	resume(curr, NULL);
-	}
-}
-
-static int console_open(int flags){
-	serial_register_handler(serial_port, thishandler);
-	return 0;
-}
-
-static int console_close(){
-	return 0;
-}
-
-static int console_read(struct uio *u){
-	curr = get_running();
-    yield(NULL);
-	char msg[u->len];
-	int i = 0;
-	while (!isBufferEmpty(sb_ptr) && i < u->len) {
-		char c;
-		bufferRead(sb_ptr, c);
-		msg[i++] = c;
-	}
-	msg[i++] = '\0'; 
-	printf("msg: %s\n", msg);
-	sos_copyin(msg, i);
-	return i;
-}
-
-static int console_write(struct uio * u){
-	serial_send(serial_port, shared_buf, u->len);
-	return u->len;
-}
-
-
 void vfs_bootstrap(void) {
 	device_list = malloc(sizeof(struct device_entry));
 	
@@ -145,12 +101,5 @@ void vfs_bootstrap(void) {
 	dev->write = console_write;
 	dev->read = console_read;
 	device_list->vn = dev_create_vnode(dev);
-	serial_port = serial_init();
-	
-	stream_buf sb;
-	sb_ptr = malloc(sizeof(stream_buf));
-	bufferInit(sb, 1024, char);
-	memcpy(sb_ptr, &sb, sizeof(stream_buf));
-    
-	printf("buf add: %lx\n", sb_ptr );
+    console_init();
 }

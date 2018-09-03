@@ -17,11 +17,8 @@
 
 #include <sel4/sel4.h>
 
-
-
 #define SHARE_BUF             (0xD0000000)
 #define SHARE_BUF_SIZE        256
-
 
 static void check_len(size_t * len){
     if(*len > 4096 * SHARE_BUF_SIZE){
@@ -40,8 +37,6 @@ static size_t user_copyout(void* user_vaddr, size_t len){
     return len;
 }
 
-
-
 int sos_sys_open(const char *path, fmode_t mode)
 {
     seL4_MessageInfo_t tag;
@@ -57,7 +52,6 @@ int sos_sys_open(const char *path, fmode_t mode)
 }
 
 int sos_sys_close(int file)  {
-    assert(!"You need to implement this");
     return -1;
 }
 
@@ -88,44 +82,37 @@ int sos_sys_write(int file, const char *buf, size_t nbyte)
 
 int sos_getdirent(int pos, char *name, size_t nbyte)
 {
-    assert(!"You need to implement this");
     return -1;
 }
 
 int sos_stat(const char *path, sos_stat_t *buf)
 {
-    assert(!"You need to implement this");
     return -1;
 }
 
 pid_t sos_process_create(const char *path)
 {
-    assert(!"You need to implement this");
     return -1;
 }
 
 int sos_process_delete(pid_t pid)
 {
-    assert(!"You need to implement this");
     return -1;
 }
 
 pid_t sos_my_id(void)
 {
-    assert(!"You need to implement this");
     return -1;
 
 }
 
 int sos_process_status(sos_process_t *processes, unsigned max)
 {
-    assert(!"You need to implement this");
     return -1;
 }
 
 pid_t sos_process_wait(pid_t pid)
 {
-    assert(!"You need to implement this");
     return -1;
 
 }
@@ -135,10 +122,9 @@ void sos_sys_usleep(int msec)
     if(msec < 0){
         return;
     }
-    seL4_MessageInfo_t tag;
+    seL4_MessageInfo_t tag = seL4_MessageInfo_new(0, 0, 0, 2);
     seL4_SetMR(0, SOS_SYS_USLEEP);
     seL4_SetMR(1, msec);
-    tag = seL4_MessageInfo_new(0, 0, 0, 2);
     seL4_Call(SOS_IPC_EP_CAP, tag);
     //printf("end sleep\n");
 }

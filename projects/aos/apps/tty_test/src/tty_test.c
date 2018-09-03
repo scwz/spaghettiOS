@@ -108,7 +108,7 @@ int main(void)
         
         sos_sys_write(fd, "hello\n", 8);
         char c;
-        sos_sys_read(fd, &c, 1);
+        //sos_sys_read(fd, &c, 1);
         sos_sys_usleep(100);
         
         while(1){

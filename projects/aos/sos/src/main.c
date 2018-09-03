@@ -69,23 +69,6 @@ extern void (__register_frame)(void *);
 /* root tasks cspace */
 static cspace_t cspace;
 
-/* serial port */
-/*
-static struct serial *serial_port;
-ringBuffer_typedef(char, stream_buf);
-stream_buf *sb_ptr;
-void handle_syscall(void);
-coro curr;
-
-static void handler(struct serial *serial, char c) {
-    //printf("%c\n", c);
-    bufferWrite(sb_ptr, c);
-
-    if (c == '\n') {
-        resume(curr, NULL);
-    }
-}*/
-
 static int (*syscall_table[])(void) = {
     NULL,
     syscall_write,

@@ -1,25 +1,23 @@
 
 #include <sel4/sel4.h>
 #include <stdint.h>
+#include <clock/clock.h>
 #include "time_syscalls.h"
+#include "picoro.h"
 
 /* usleep handler*/
-static void usleep_handler(uint32_t id, void* reply_cptr){
-#if 0
-    seL4_MessageInfo_t reply_msg;
-    seL4_CPtr reply = *((seL4_CPtr*) reply_cptr);
-    free(reply_cptr);
-    
-    printf("handler called cptr: %ld\n", reply);
+static void usleep_handler(uint32_t id, void *data){
+    resume((coro) data, NULL);
     seL4_SetMR(0, 0);
-    reply_msg = seL4_MessageInfo_new(0, 0, 0, 1);
-    seL4_Send(reply, reply_msg);
-    cspace_free_slot(&cspace, reply);
-#endif
 }
 
 int syscall_usleep(void) {
-    return 0;
+    int msec = seL4_GetMR(1);
+
+    // register timer uses microsecnds
+    int timer = register_timer(msec * 1000, ONE_SHOT, usleep_handler, get_running());
+    yield(NULL);
+    return 1;
 }
 
 int syscall_time_stamp(void) {
