@@ -41,7 +41,7 @@ int console_init(void) {
 
 	stream_buf sb;
 	sb_ptr = malloc(sizeof(stream_buf));
-	bufferInit(sb, 1024, char);
+	bufferInit(sb, 6144, char);
 	memcpy(sb_ptr, &sb, sizeof(stream_buf));
 
     return 0;
@@ -63,12 +63,13 @@ int console_read(struct uio *uio) {
     yield(NULL);
 
 	char msg[uio->len];
-	int i = 0;
+	unsigned int i = 0;
 	while (!isBufferEmpty(sb_ptr) && i < uio->len) {
 		char c;
 		bufferRead(sb_ptr, c);
 		msg[i++] = c;
 	}
+    printf("LEN %ld\n", i);
 
 	msg[i++] = '\0'; 
 	printf("msg: %s\n", msg);

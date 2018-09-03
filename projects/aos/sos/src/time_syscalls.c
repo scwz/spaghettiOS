@@ -5,8 +5,11 @@
 #include "time_syscalls.h"
 #include "picoro.h"
 
+volatile static int timer_fired;
+
 /* usleep handler*/
-static void usleep_handler(uint32_t id, void *data){
+static void usleep_handler(uint32_t id, void *data) {
+    timer_fired = 1;
     resume((coro) data, NULL);
     seL4_SetMR(0, 0);
 }
@@ -14,9 +17,16 @@ static void usleep_handler(uint32_t id, void *data){
 int syscall_usleep(void) {
     int msec = seL4_GetMR(1);
 
+    timer_fired = 0;
     // register timer uses microsecnds
-    int timer = register_timer(msec * 1000, ONE_SHOT, usleep_handler, get_running());
-    yield(NULL);
+    int timer = register_timer(msec * 1000, ONE_SHOT, usleep_handler, (void *)get_running());
+    if (!timer) {
+        seL4_SetMR(0, 1);
+        return 1;
+    }
+    if (!timer_fired) {
+        yield(NULL);
+    }
     return 1;
 }
 

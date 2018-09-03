@@ -27,7 +27,8 @@
 
 #include "benchmark.h"
 
-#define BUF_SIZ    6144
+#define SMALL_BUF_SZ 2
+#define BUF_SZ    6144
 #define MAX_ARGS   32
 
 static int in;
@@ -69,7 +70,7 @@ static void prstat(const char *name)
 static int cat(int argc, char **argv)
 {
     int fd;
-    char buf[BUF_SIZ];
+    char buf[BUF_SZ];
     int num_read, stdout_fd, num_written = 0;
 
 
@@ -85,7 +86,7 @@ static int cat(int argc, char **argv)
 
     assert(fd >= 0);
 
-    while ((num_read = read(fd, buf, BUF_SIZ)) > 0) {
+    while ((num_read = read(fd, buf, BUF_SZ)) > 0) {
         num_written = write(stdout_fd, buf, num_read);
     }
 
@@ -103,7 +104,7 @@ static int cp(int argc, char **argv)
 {
     int fd, fd_out;
     char *file1, *file2;
-    char buf[BUF_SIZ];
+    char buf[BUF_SZ];
     int num_read, num_written = 0;
 
     if (argc != 3) {
@@ -119,7 +120,7 @@ static int cp(int argc, char **argv)
 
     assert(fd >= 0);
 
-    while ((num_read = read(fd, buf, BUF_SIZ)) > 0) {
+    while ((num_read = read(fd, buf, BUF_SZ)) > 0) {
         num_written = write(fd_out, buf, num_read);
     }
 
@@ -198,7 +199,7 @@ static int exec(int argc, char **argv)
 static int dir(int argc, char **argv)
 {
     int i = 0, r;
-    char buf[BUF_SIZ];
+    char buf[BUF_SZ];
 
     if (argc > 2) {
         printf("usage: %s [file]\n", argv[0]);
@@ -216,7 +217,7 @@ static int dir(int argc, char **argv)
     }
 
     while (1) {
-        r = sos_getdirent(i, buf, BUF_SIZ);
+        r = sos_getdirent(i, buf, BUF_SZ);
         if (r < 0) {
             printf("dirent(%d) failed: %d\n", i, r);
             break;
@@ -301,6 +302,56 @@ static int benchmark(int argc, char *argv[])
         return -1;
     }
 }
+char test_str[] = "Basic test string for read/write\n";
+char small_buf[SMALL_BUF_SZ];
+
+int test_buffers(int console_fd) {
+    /* test a small string from the code segment */
+    int result = sos_sys_write(console_fd, test_str, strlen(test_str));
+    assert(result == strlen(test_str));
+
+#if 0
+    /* test reading to a small buffer */
+    printf("Enter input of at least size %d\n", SMALL_BUF_SZ);
+    result = sos_sys_read(console_fd, small_buf, SMALL_BUF_SZ);
+    /* make sure you type in at least SMALL_BUF_SZ */
+    assert(result == SMALL_BUF_SZ);
+
+    /* test reading into a large on-stack buffer */
+    char stack_buf[BUF_SZ];
+    /* for this test you'll need to paste a lot of data into
+       the console, without newlines */
+
+    printf("Enter input of at least size %d\n", BUF_SZ);
+    result = sos_sys_read(console_fd, stack_buf, BUF_SZ);
+    assert(result == BUF_SZ);
+
+    result = sos_sys_write(console_fd, stack_buf, BUF_SZ);
+    assert(result == BUF_SZ);
+
+    /* this call to malloc should trigger an brk */
+    char *heap_buf = malloc(BUF_SZ);
+    assert(heap_buf != NULL);
+
+    /* for this test you'll need to paste a lot of data into
+       the console, without newlines */
+    result = sos_sys_read(console_fd, heap_buf, BUF_SZ);
+    assert(result == BUF_SZ);
+
+    result = sos_sys_write(console_fd, heap_buf, BUF_SZ);
+    assert(result == BUF_SZ);
+#endif
+
+    /* try sleeping */
+    for (int i = 0; i < 5; i++) {
+        time_t prev_seconds = time(NULL);
+        char *argv[] = {"0", "1"};
+        second_sleep(2, argv);
+        time_t next_seconds = time(NULL);
+        assert(next_seconds > prev_seconds);
+        printf("Tick\n");
+    }
+}
 
 struct command {
     char *name;
@@ -319,7 +370,7 @@ int main(void)
     /* set up the c library. printf will not work before this is called */
     sosapi_init_syscall_table();
 
-    char buf[BUF_SIZ];
+    char buf[BUF_SZ];
     char *argv[MAX_ARGS];
     int i, r, done, found, new, argc;
     char *bp, *p;
@@ -332,6 +383,7 @@ int main(void)
     new = 1;
 
     printf("\n[SOS Starting]\n");
+    //test_buffers(in);
 
     while (!done) {
         if (new) {
@@ -343,7 +395,7 @@ int main(void)
         while (!found && !done) {
             /* Make sure to flush so anything is visible while waiting for user input */
             fflush(stdout);
-            r = read(in, bp, BUF_SIZ - 1 + buf - bp);
+            r = read(in, bp, BUF_SZ - 1 + buf - bp);
             
             if (r < 0) {
                 printf("Console read failed!\n");
