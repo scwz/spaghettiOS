@@ -312,7 +312,6 @@ int test_buffers(int console_fd) {
     assert(result == strlen(test_str));
 
     /* test reading to a small buffer */
-    printf("Enter input of at least size %d\n", SMALL_BUF_SZ);
     result = sos_sys_read(console_fd, small_buf, SMALL_BUF_SZ);
     /* make sure you type in at least SMALL_BUF_SZ */
     assert(result == SMALL_BUF_SZ);
@@ -322,7 +321,6 @@ int test_buffers(int console_fd) {
     /* for this test you'll need to paste a lot of data into
        the console, without newlines */
 
-    printf("Enter input of at least size %d\n", BUF_SZ);
     result = sos_sys_read(console_fd, stack_buf, BUF_SZ);
     assert(result == BUF_SZ);
 
