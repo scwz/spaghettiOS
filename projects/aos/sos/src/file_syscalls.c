@@ -9,7 +9,7 @@
 #include "picoro.h"
 
 int syscall_write(void) {
-    
+
     size_t nbyte = seL4_GetMR(2);
     int fd = seL4_GetMR(1);
     printf("write %d %d\n", fd, nbyte);
@@ -43,7 +43,7 @@ int syscall_read(void) {
 }
 
 int syscall_open(void) {
-    
+
     fmode_t mode = seL4_GetMR(1);
     struct vnode *res;
     vfs_lookup(seL4_GetIPCBuffer()->msg + 2, &res); 
