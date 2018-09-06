@@ -12,8 +12,8 @@
 #include <aos/debug.h>
 
 #include "../ut/ut.h"
-#include "filetable.h"
-#include "vnode.h"
+#include "../syscall/filetable.h"
+#include "../vfs/vnode.h"
 
 #define TTY_NAME             "sosh"
 #define TTY_PRIORITY         (0)

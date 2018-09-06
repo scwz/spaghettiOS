@@ -1,8 +1,8 @@
 #include "shared_buf.h"
 #include "vm/vmem_layout.h"
 #include "mapping.h"
-#include "proc.h"
-#include "address_space.h"
+#include "proc/proc.h"
+#include "vm/address_space.h"
 
 cspace_t * cs;
 

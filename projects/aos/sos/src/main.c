@@ -42,10 +42,10 @@
 #include "vm/address_space.h"
 #include "ringbuffer.h"
 #include "shared_buf.h"
-#include "vfs.h"
-#include "file_syscalls.h"
-#include "vm_syscalls.h"
-#include "time_syscalls.h"
+#include "vfs/vfs.h"
+#include "syscall/file_syscalls.h"
+#include "syscall/vm_syscalls.h"
+#include "syscall/time_syscalls.h"
 
 #include <aos/vsyscall.h>
 

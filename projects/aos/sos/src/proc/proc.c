@@ -6,7 +6,7 @@
 #include "../elfload.h"
 #include "../ut/ut.h"
 #include "../vm/address_space.h"
-#include "filetable.h"
+#include "../syscall/filetable.h"
 #include "proc.h"
 #include "../vm/vmem_layout.h"
 
