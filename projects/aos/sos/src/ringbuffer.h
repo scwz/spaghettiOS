@@ -103,4 +103,5 @@
     ELEM = BUF->elems[BUF->start]; \
     BUF->start = nextStartIndex(BUF);
 
+#define bufferSize(BUF) (BUF->size)
 #endif

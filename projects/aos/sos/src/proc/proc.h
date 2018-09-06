@@ -12,8 +12,10 @@
 #include <aos/debug.h>
 
 #include "../ut/ut.h"
+#include "filetable.h"
+#include "vnode.h"
 
-#define TTY_NAME             "tty_test"
+#define TTY_NAME             "sosh"
 #define TTY_PRIORITY         (0)
 #define TTY_EP_BADGE         (101)
 
@@ -38,6 +40,8 @@ struct proc {
 
     ut_t *stack_ut;
     seL4_CPtr stack;
+    
+    struct filetable *fdt;
 };
 
 struct proc procs[MAX_PROCESSES];

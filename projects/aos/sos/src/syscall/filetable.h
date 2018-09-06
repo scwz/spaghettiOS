@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <sos.h>
 
 struct open_file {
     struct vnode *vn;
@@ -10,5 +11,9 @@ struct open_file {
     size_t refcnt;
 };
 
-struct open_file **fdt_create(void);
+struct filetable {
+    struct open_file *openfiles[PROCESS_MAX_FILES];
+};
+
+struct filetable *fdt_create(void);
 void fdt_destroy(void);

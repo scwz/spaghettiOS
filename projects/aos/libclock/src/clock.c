@@ -26,6 +26,7 @@ static volatile struct {
 static seL4_CPtr timer_irq_handler;
 static int timer_initialised = 0;
 static struct pqueue *pq = NULL;
+static uint64_t start_tick = 0;
 static uint64_t last_tick = 0;
 
 /* taken from projects/aos/sos/src/network.c */
@@ -58,7 +59,8 @@ int start_timer(cspace_t *cspace, seL4_CPtr ntfn, void *device_vaddr)
     timer->timer_mux |= TIMER_F_EN | TIMER_F_MODE | (TIMEBASE_1_US << TIMER_F_INPUT_CLK) ; 
     timer->timer_f |= TICK_10000_US;
 
-    last_tick = timestamp_ms(timestamp_get_freq());
+    start_tick = timestamp_ms(timestamp_get_freq());
+    last_tick = start_tick; 
     printf("TIMER STARTED: %lu ms\n", last_tick);
 
     return CLOCK_R_OK;

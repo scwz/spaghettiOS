@@ -2,10 +2,13 @@
 #include "vnode.h"
 #include <string.h>
 #include "../device_vops.h"
+#include "ringbuffer.h"
+#include "picoro.h"
+#include "console.h"
 #include <serial/serial.h>
 
-static struct device_entry{
-	char* name[20];
+struct device_entry{
+	char name[20];
 	struct vnode * vn;
 	struct device_entry * next;
 };
@@ -15,7 +18,7 @@ static struct device_entry * device_list;
 static struct vnode * find_device(char * name){
 	struct device_entry * curr = device_list;
 	for(; curr != NULL; curr = curr->next){
-		if(strcmp(name, curr->name)){
+		if(!strcmp(name, curr->name)){
 			return curr->vn;
 		}
 	}
@@ -23,6 +26,7 @@ static struct vnode * find_device(char * name){
 }
 
 int vfs_lookup(char *path, struct vnode **retval) {
+	printf("LOOKUP %s\n", path);
     struct vnode *startvn;
 	int result;
 
@@ -86,36 +90,6 @@ void vfs_close(struct vnode *vn) {
     VOP_DECREF(vn);
 }
 
-
-
-
-
-struct serial * serial_port;
-
-static void handler(struct serial *serial, char c) {
-	sos_copyin(&c, 1);
-	return 0;
-}
-
-static int console_open(int flags){
-	serial_register_handler(serial_port, handler);
-	return 0;
-}
-
-static int console_close(){
-	return 0;
-}
-
-static int console_read(){
-	return 0;
-}
-
-static int console_write(struct uio * u){
-	serial_send(serial_port, shared_buf, u->len);
-	return 0;
-}
-
-
 void vfs_bootstrap(void) {
 	device_list = malloc(sizeof(struct device_entry));
 	
@@ -127,5 +101,5 @@ void vfs_bootstrap(void) {
 	dev->write = console_write;
 	dev->read = console_read;
 	device_list->vn = dev_create_vnode(dev);
-	serial_port = serial_init();
+    console_init();
 }

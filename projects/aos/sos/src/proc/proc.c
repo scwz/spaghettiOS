@@ -6,6 +6,7 @@
 #include "../elfload.h"
 #include "../ut/ut.h"
 #include "../vm/address_space.h"
+#include "filetable.h"
 #include "proc.h"
 #include "../vm/vmem_layout.h"
 
@@ -131,6 +132,7 @@ static uintptr_t init_process_stack(cspace_t *cspace, seL4_CPtr local_vspace, ch
 bool start_first_process(cspace_t *cspace, char* app_name, seL4_CPtr ep)
 {
     curproc->as = as_create();
+    curproc->fdt = fdt_create();
 
     /* Create a VSpace */
     curproc->vspace_ut = alloc_retype(cspace, &curproc->vspace, seL4_ARM_PageGlobalDirectoryObject,
@@ -223,12 +225,14 @@ bool start_first_process(cspace_t *cspace, char* app_name, seL4_CPtr ep)
         ZF_LOGE("Failed to load elf image");
         return false;
     }
-
+    
     // setup/create region for stack
     as_define_stack(curproc->as);
     as_define_heap(curproc->as);
 
     as_define_region(curproc->as, PROCESS_SHARED_BUF_TOP - PAGE_SIZE_4K * SHARED_BUF_PAGES, PAGE_SIZE_4K * SHARED_BUF_PAGES, READ | WRITE);
+    //map buffer
+    sos_map_buf();
 
     /* Map in the IPC buffer for the thread */
     err = map_frame(cspace, curproc->ipc_buffer, curproc->vspace, PROCESS_IPC_BUFFER,
@@ -239,7 +243,7 @@ bool start_first_process(cspace_t *cspace, char* app_name, seL4_CPtr ep)
     }
     // setup region for ipc buffer
     as_define_region(curproc->as, PROCESS_IPC_BUFFER, PAGE_SIZE_4K, READ | WRITE);
-
+    
     /* Start the new process */
     seL4_UserContext context = {
         .pc = elf_getEntryPoint(elf_base),

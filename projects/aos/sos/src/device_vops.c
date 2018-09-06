@@ -1,12 +1,12 @@
 #include "vfs/vfs.h"
 #include "vfs/vnode.h"
+#include "device_vops.h"
 
 static int dev_eachopen(struct vnode *v, int flags)
 {
 	struct device *d = v->vn_data;
 
-    //add make handler stuff here?
-	return 0;
+    return d->open(flags);
 }
 
 static
@@ -16,9 +16,7 @@ dev_write(struct vnode *v, struct uio *uio)
 	struct device *d = v->vn_data;
 	int result;
 
-	//just write here
-
-	return 0;
+	return d->write(uio);
 }
 
 static
@@ -26,9 +24,8 @@ int
 dev_read(struct vnode *v, struct uio *uio)
 {
 	struct device *d = v->vn_data;
-	int result;
-    // do the read here
-	return 0;
+	
+	d->read(uio);
 }
 
 static int dev_getdirent(){
@@ -47,9 +44,11 @@ static int dev_lookparent(){
     return 0;
 }
 
-static int dev_reclaim(){
-    return 0;
+static int dev_reclaim(struct vnode *v){
+	struct device *d = v->vn_data;
+    return d->close();
 }
+
 static const struct vnode_ops dev_vnode_ops = {
 	.vop_magic = VOP_MAGIC,
 

@@ -53,7 +53,7 @@ add_executable(sos EXCLUDE_FROM_ALL crt/sel4_crt0.S src/bootstrap.c src/dma.c sr
                src/sys/exit.c src/sys/morecore.c src/sys/stdio.c src/sys/thread.c src/sys/time.c
                src/drivers/uart.c archive.o src/sos.lds src/vm/pagetable.c src/vm/address_space.c src/proc/proc.c
                src/picoro/picoro.c src/syscall/filetable.c src/vfs/vfs.c src/shared_buf.c src/vfs/vnode.c src/device_vops.c 
-               src/fs/libnfs_vops.c src/uio.c)
+               src/fs/libnfs_vops.c src/uio.c src/console.c src/time_syscalls.c src/vm_syscalls.c src/file_syscalls.c)
 target_include_directories(sos PRIVATE "include")
 target_link_libraries(sos Configuration muslc sel4 elf cpio serial clock sosapi sel4cspace aos utils picotcp
                       picotcp_bsd nfs ethernet)
