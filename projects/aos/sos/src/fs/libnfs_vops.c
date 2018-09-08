@@ -4,6 +4,7 @@
 #include <nfsc/libnfs.h>
 #include <string.h>
 
+
 struct vnode_nfs_data {
 	char * path;
 	struct vnode * next;
@@ -23,6 +24,7 @@ struct vnode * nfs_create_vnode();
 
 void nfs_dirent_cb(int status, struct nfs_context *nfs, void *data, void *private_data)
 {
+	printf("call\n\n");
 	struct nfs_data *d = private_data;
 	struct nfsdir *nfsdir = data;
 	struct nfsdirent *nfsdirent;
@@ -155,7 +157,7 @@ vnfs_read(struct vnode *v, struct uio *uio)
 static int vnfs_getdirent(struct vnode *dir, struct uio *u){
 	struct nfs_data * d = malloc(sizeof(struct nfs_data));
 	d->u = u;
-	int res = nfs_opendir_async(nfs, "", nfs_dirent_cb, d);
+	int res = nfs_opendir_async(nfs, "/", nfs_dirent_cb, d);
 	printf("hi %lx\n", res);
     return res;
 }
@@ -178,7 +180,7 @@ static int vnfs_lookup(struct vnode *dir, char *pathname, struct vnode **result)
 	struct nfs_data * d = malloc(sizeof(struct nfs_data));
 	d->path = pathname;
 	d->vn = curr;
-    return nfs_opendir_async(nfs, "", nfs_lookup_cb, d);
+    return nfs_opendir_async(nfs, ".", nfs_lookup_cb, d);
 }
 
 static int vnfs_lookparent(struct vnode *dir, char *pathname, struct vnode **result, char *buf, size_t len){
