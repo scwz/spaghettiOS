@@ -4,6 +4,11 @@
 #include <stdlib.h>
 #include "../uio.h"
 
+/* file modes */
+#define FM_EXEC  1
+#define FM_WRITE 2
+#define FM_READ  4
+
 struct vnode {
     int vn_refcount;
     void *vn_data;

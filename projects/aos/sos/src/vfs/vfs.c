@@ -4,7 +4,7 @@
 
 #include "vfs.h"
 #include "vnode.h"
-#include "../device_vops.h"
+#include "device_vops.h"
 #include "../dev/console.h"
 
 struct device_entry {
@@ -100,6 +100,9 @@ void vfs_bootstrap(void) {
     dev->open = console_open;
     dev->write = console_write;
     dev->read = console_read;
+    dev->data = malloc(sizeof(struct console));
+    struct console * c = dev->data;
+    c->reader = NULL;
     device_list->vn = dev_create_vnode(dev);
     console_init();
 }

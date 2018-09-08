@@ -1,12 +1,12 @@
-#include "vfs/vnode.h"
-#include "uio.h"
+#include "vnode.h"
+#include "../uio.h"
 
 struct device{
-    bool readable;
-    int (*open)(int flags);
+    void * data;
+    int (*open)(struct vnode * vn, int flags);
     int (*write)( struct uio *uio);
     int (*read)( struct uio *uio);
-    int (*close)();
+    int (*close)(struct vnode * vn);
 };
 
 

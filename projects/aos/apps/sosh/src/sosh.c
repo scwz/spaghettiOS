@@ -372,7 +372,7 @@ int main(void)
     int i, r, done, found, new, argc;
     char *bp, *p;
 
-    in = open("console", O_RDONLY);
+    in = open("console", FM_READ);
     assert(in >= 0);
 
     bp = buf;
@@ -380,7 +380,7 @@ int main(void)
     new = 1;
 
     printf("\n[SOS Starting]\n");
-    test_buffers(in);
+    //test_buffers(in);
 
     while (!done) {
         if (new) {

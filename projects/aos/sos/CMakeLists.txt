@@ -52,7 +52,7 @@ add_executable(sos EXCLUDE_FROM_ALL crt/sel4_crt0.S src/bootstrap.c src/dma.c sr
                src/mapping.c src/network.c src/vm/frametable.c src/ut/ut.c src/tests/tests.c src/sys/backtrace.c 
                src/sys/exit.c src/sys/morecore.c src/sys/stdio.c src/sys/thread.c src/sys/time.c
                src/drivers/uart.c archive.o src/sos.lds src/vm/pagetable.c src/vm/address_space.c src/proc/proc.c
-               src/picoro/picoro.c src/syscall/filetable.c src/vfs/vfs.c src/shared_buf.c src/vfs/vnode.c src/device_vops.c 
+               src/picoro/picoro.c src/syscall/filetable.c src/vfs/vfs.c src/shared_buf.c src/vfs/vnode.c src/vfs/device_vops.c 
                src/fs/libnfs_vops.c src/uio.c src/dev/console.c src/syscall/time_syscalls.c 
                src/syscall/vm_syscalls.c src/syscall/file_syscalls.c)
 target_include_directories(sos PRIVATE "include")

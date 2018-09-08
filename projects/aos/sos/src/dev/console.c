@@ -7,6 +7,8 @@
 #include "../ringbuffer.h"
 #include "../picoro/picoro.h"
 #include "../vfs/vnode.h"
+#include "../vfs/device_vops.h"
+#include "../proc/proc.h"
 
 static struct serial *serial;
 static coro curr;
@@ -53,14 +55,25 @@ int console_init(void) {
     return 0;
 }
 
-int console_open(int flags) {
-    // does nothing atm
-    (void) flags;
+int console_open(struct vnode * vn,int flags) {
+    struct device * d = vn->vn_data;
+    struct console * c = d->data;
+    printf("flags %x, c->reader = %d\n", flags, c->reader);
+    if(flags  & FM_READ){
+        if(c->reader != NULL){
+            return -1;
+        }
+        c->reader = curproc;
+    }
     return 0;
 }
 
-int console_close(void) {
-    // should never be closed
+int console_close(struct vnode * vn) {
+    struct device * d = vn->vn_data;
+    struct console * c = d->data;
+    if(c->reader == curproc){
+        c->reader = NULL;
+    }
     return 0;
 }
 

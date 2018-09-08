@@ -46,7 +46,10 @@ int syscall_open(void) {
     fmode_t mode = seL4_GetMR(1);
     struct vnode *res;
     vfs_lookup(seL4_GetIPCBuffer()->msg + 2, &res); 
-    VOP_EACHOPEN(res, 0xF);
+    if(VOP_EACHOPEN(res, mode)){
+        seL4_SetMR(0, 1);
+        return 1;
+    }
     bool full = true;
     for(unsigned int i = 4; i < 8; i ++){
         if(curproc->fdt->openfiles[i] == NULL){
