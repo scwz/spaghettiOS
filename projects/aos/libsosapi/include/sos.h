@@ -26,6 +26,8 @@
 #define SOS_SYS_BRK        5
 #define SOS_SYS_USLEEP     6
 #define SOS_SYS_TIME_STAMP 7
+#define SOS_SYS_GETDIRENT  8
+#define SOS_SYS_STAT       9
 
 /* Endpoint for talking to SOS */
 #define SOS_IPC_EP_CAP     (0x1)

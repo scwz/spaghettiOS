@@ -6,6 +6,7 @@
 #include "vnode.h"
 #include "device_vops.h"
 #include "../dev/console.h"
+#include "../fs/libnfs_vops.h"
 
 struct device_entry {
     char name[20];
@@ -14,6 +15,8 @@ struct device_entry {
 };
 
 static struct device_entry * device_list;
+
+static struct vnode * root;
 
 static struct vnode * find_device(char * name){
     struct device_entry * curr = device_list;
@@ -36,10 +39,14 @@ int vfs_lookup(char *path, struct vnode **retval) {
         return 0;
     }
 
+    startvn = root;
 
-    result = VOP_LOOKUP(startvn, path, retval);
-
-    VOP_DECREF(startvn);
+    if(path[0] != '\0'){
+        result = VOP_LOOKUP(startvn, path, retval);
+    } else {
+        *retval = startvn;
+    }
+    printf("vn : %lx \n", startvn);
     return result;
 }
 
@@ -81,8 +88,6 @@ int vfs_open(char *path, int openflags, int mode, struct vnode **ret) {
         return result;
     }
 
-    *ret = vn;
-
     return 0;
 }
 
@@ -93,8 +98,8 @@ void vfs_close(struct vnode *vn) {
 void vfs_bootstrap(void) {
     device_list = malloc(sizeof(struct device_entry));
 
-    strcpy(device_list->name, "console");
-    device_list->next = NULL;
+    strcpy(device_list[0].name, "console");
+    device_list[0].next = NULL;
     struct device* dev = malloc(sizeof(struct device));
     dev->close = console_close;
     dev->open = console_open;
@@ -103,6 +108,8 @@ void vfs_bootstrap(void) {
     dev->data = malloc(sizeof(struct console));
     struct console * c = dev->data;
     c->reader = NULL;
-    device_list->vn = dev_create_vnode(dev);
+    device_list[0].vn = dev_create_vnode(dev);
     console_init();
+    root = nfs_bootstrap();
+    printf("vn : %lx \n", root);
 }

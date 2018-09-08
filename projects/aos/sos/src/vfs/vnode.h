@@ -26,7 +26,7 @@ struct vnode_ops {
     int (*vop_read)(struct vnode *file, struct uio *uio);
     int (*vop_getdirentry)(struct vnode *dir, struct uio *uio);
     int (*vop_write)(struct vnode *file, struct uio *uio);
-    int (*vop_stat)(struct vnode *object, int statbuf); // statbuf is a placeholder for struct stat *statbuf
+    int (*vop_stat)(struct vnode *object, void * statbuf); // statbuf is a placeholder for struct stat *statbuf
 
     int (*vop_creat)(struct vnode *dir, const char *name, int excl, int mode, struct vnode **result);
 

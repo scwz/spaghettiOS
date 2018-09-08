@@ -85,3 +85,28 @@ int syscall_close(void) {
     seL4_SetMR(0, 0);
     return 1;
 }
+int syscall_getdirent(void){
+    int pos = seL4_GetMR(1);
+    size_t nbyte = seL4_GetMR(2);
+    char path[nbyte];
+    sos_copyout(path, nbyte);
+    struct  vnode * res;
+    if (vfs_lookup("", &res)){
+        seL4_SetMR(0, 0);
+        return 1;
+    }
+    struct uio *u = malloc(sizeof(struct uio));
+    uio_init(u, UIO_READ, pos);
+    if(VOP_GETDIRENTRY(res, u)){
+        seL4_SetMR(0, 0);
+        return 1;
+    }
+    seL4_SetMR(0, u->len);
+    return 1;
+}
+
+int syscall_stat(void){
+    seL4_SetMR(0, 0);
+    return 1;
+}
+

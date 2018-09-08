@@ -90,14 +90,27 @@ int sos_sys_write(int file, const char *buf, size_t nbyte)
 
 int sos_getdirent(int pos, char *name, size_t nbyte)
 {
-    assert(!"sos_getdirent not implemented!");
-    return -1;
+    assert(pos >= 0);
+    seL4_MessageInfo_t tag = seL4_MessageInfo_new(0, 0, 0, 3);
+    seL4_SetMR(0, SOS_SYS_GETDIRENT);
+    nbyte = user_copyin(name, nbyte);
+    seL4_SetMR(1, pos);
+    seL4_SetMR(2, nbyte);
+    seL4_Call(SOS_IPC_EP_CAP, tag);
+
+    return seL4_GetMR(0);
 }
 
 int sos_stat(const char *path, sos_stat_t *buf)
 {
-    assert(!"sos_stat not implemented!");
-    return -1;
+    seL4_MessageInfo_t tag = seL4_MessageInfo_new(0, 0, 0, 3);
+    seL4_SetMR(0, SOS_SYS_STAT);
+    size_t nbyte = user_copyin(path, strlen(path));
+    seL4_SetMR(1, buf);
+    seL4_SetMR(2, nbyte);
+    seL4_Call(SOS_IPC_EP_CAP, tag);
+
+    return seL4_GetMR(0);
 }
 
 pid_t sos_process_create(const char *path)

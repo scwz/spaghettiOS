@@ -78,6 +78,8 @@ static int (*syscall_table[])(void) = {
     syscall_brk,
     syscall_usleep,
     syscall_time_stamp,
+    syscall_getdirent,
+    syscall_stat
 };
 
 //void handle_syscall(UNUSED seL4_Word badge, UNUSED int num_args)
@@ -100,7 +102,7 @@ void handle_syscall(void)
     seL4_Error err = cspace_save_reply_cap(&cspace, reply);
     ZF_LOGF_IFERR(err, "Failed to save reply");
 
-    if (syscall_number > 0 && syscall_number < 8) {
+    if (syscall_number > 0 && syscall_number < 10) {
         int nwords = syscall_table[syscall_number]();
         seL4_MessageInfo_t reply_msg = seL4_MessageInfo_new(0, 0, 0, nwords);
         seL4_Send(reply, reply_msg);
