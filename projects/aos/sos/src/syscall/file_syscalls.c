@@ -6,6 +6,7 @@
 #include "../vfs/vfs.h"
 #include "../proc/proc.h"
 #include "file_syscalls.h"
+#include "../shared_buf.h"
 
 int syscall_write(void) {
 
@@ -44,8 +45,14 @@ int syscall_read(void) {
 int syscall_open(void) {
 
     fmode_t mode = seL4_GetMR(1);
+    size_t size = seL4_GetMR(2);
     struct vnode *res;
-    vfs_lookup(seL4_GetIPCBuffer()->msg + 2, &res); 
+    char path[size];
+    sos_copyout(path, size);
+    if(vfs_lookup(path, &res)){
+        seL4_SetMR(0, 1);
+        return 1;
+    } 
     if(VOP_EACHOPEN(res, mode)){
         seL4_SetMR(0, 1);
         return 1;

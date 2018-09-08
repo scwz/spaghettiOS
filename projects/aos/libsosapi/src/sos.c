@@ -39,10 +39,11 @@ static size_t user_copyout(void* user_vaddr, size_t len){
 
 int sos_sys_open(const char *path, fmode_t mode)
 {
-    seL4_MessageInfo_t tag = seL4_MessageInfo_new(0, 0, 0, strlen(path) + 2);
+    seL4_MessageInfo_t tag = seL4_MessageInfo_new(0, 0, 0, 3);
     seL4_SetMR(0, SOS_SYS_OPEN);
     seL4_SetMR(1, mode);
-    strcpy(seL4_GetIPCBuffer()->msg + 2, path);
+    seL4_SetMR(2, strlen(path));
+    user_copyin(path, strlen(path));
     seL4_Call(SOS_IPC_EP_CAP, tag);
 
     if(seL4_GetMR(0)){
