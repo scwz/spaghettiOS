@@ -32,13 +32,13 @@ int vfs_lookup(char *path, struct vnode **retval) {
     printf("LOOKUP %s\n", path);
     struct vnode *startvn;
     int result;
-
+    printf("stat path %s\n", path);
     startvn = find_device(path);
     if(startvn!= NULL){
         *retval = startvn;
         return 0;
     }
-
+    
     startvn = root;
 
     if(path[0] != '\0'){

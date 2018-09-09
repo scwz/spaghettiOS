@@ -97,19 +97,22 @@ int sos_getdirent(int pos, char *name, size_t nbyte)
     seL4_SetMR(1, pos);
     seL4_SetMR(2, nbyte);
     seL4_Call(SOS_IPC_EP_CAP, tag);
-
+    user_copyout(name, seL4_GetMR(0));
     return seL4_GetMR(0);
 }
 
 int sos_stat(const char *path, sos_stat_t *buf)
 {
-    seL4_MessageInfo_t tag = seL4_MessageInfo_new(0, 0, 0, 3);
+    seL4_MessageInfo_t tag = seL4_MessageInfo_new(0, 0, 0, 2);
     seL4_SetMR(0, SOS_SYS_STAT);
     size_t nbyte = user_copyin(path, strlen(path));
-    seL4_SetMR(1, buf);
-    seL4_SetMR(2, nbyte);
+    seL4_SetMR(1, nbyte);
     seL4_Call(SOS_IPC_EP_CAP, tag);
-
+    if(seL4_GetMR(0)){
+        return seL4_GetMR(0);
+    }
+    nbyte = seL4_GetMR(1);
+    user_copyout(buf, nbyte);
     return seL4_GetMR(0);
 }
 
