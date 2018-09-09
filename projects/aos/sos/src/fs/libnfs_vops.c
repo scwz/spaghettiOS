@@ -45,7 +45,6 @@ void nfs_dirent_cb(int status, struct nfs_context *nfs, void *data, void *privat
 			strcpy(d->path, nfsdirent->name);
 			printf("path: %s\n", d->path);
 			d->ret = 0;
-			nfs_closedir(nfs, nfsdir);
 			break;
 		}
 		i++;
@@ -193,11 +192,12 @@ static int vnfs_getdirent(struct vnode *dir, struct uio *u){
 	sos_copyin(d->path, pathlen);
 	free(d->path);
 	free(d);
-	printf("enddirent");
+	printf("enddirent\n");
 	return pathlen;
 }
 
 static int vnfs_stat(struct vnode *object, void * statbuf){
+	printf("RUNING STAT\n");
 	struct nfs_data * d = malloc(sizeof(struct nfs_data));
 	d->statbuf = statbuf;
     if(nfs_stat64_async(nfs, "", nfs_stat64_cb, d)){
