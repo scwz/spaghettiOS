@@ -2,10 +2,11 @@
 #include "shared_buf.h"
 
 //uio only works in kernel, use sharebuffer commands in userland
-void uio_init(struct uio * u, enum uio_rw rw, size_t len)
+void uio_init(struct uio * u, enum uio_rw rw, size_t len, size_t offset)
 {
 	u->uio_rw = rw;
     u->len = len;
+    u->offset = offset;
 }
 
 size_t

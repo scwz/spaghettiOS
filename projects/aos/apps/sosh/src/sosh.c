@@ -82,13 +82,13 @@ static int cat(int argc, char **argv)
 
     printf("<%s>\n", argv[1]);
 
-    fd = open(argv[1], O_RDONLY);
-    stdout_fd = open("console", O_WRONLY);
+    fd = open(argv[1], FM_READ);
+    stdout_fd = open("console", FM_WRITE);
 
     assert(fd >= 0);
 
     while ((num_read = read(fd, buf, BUF_SZ)) > 0) {
-        num_written = write(stdout_fd, buf, num_read);
+        num_written = sos_sys_write(stdout_fd, buf, num_read);
     }
 
     close(stdout_fd);

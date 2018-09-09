@@ -40,7 +40,7 @@ int vfs_lookup(char *path, struct vnode **retval) {
     } else {
         *retval = startvn;
     }
-    printf("vn : %lx \n", startvn);
+    printf("vn : %lx \n", *retval);
     return result;
 }
 

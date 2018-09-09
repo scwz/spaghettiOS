@@ -16,9 +16,9 @@ int syscall_write(void) {
     if(fd < 4){ //send stdin etc. to console (make sure to open console)
         fd = 4;
     }
-    struct vnode * vn = curproc->fdt->openfiles[fd]; 
+    struct vnode * vn = curproc->fdt->openfiles[fd]->vn; 
     struct uio * u = malloc(sizeof(struct uio));
-    uio_init(u, UIO_WRITE, nbyte);
+    uio_init(u, UIO_WRITE, nbyte, curproc->fdt->openfiles[fd]->offset);
     size_t bytes_written = VOP_WRITE(vn, u);
     free(u);
     seL4_SetMR(0, bytes_written);
@@ -31,12 +31,13 @@ int syscall_read(void) {
     if(fd < 4){ //send stdin etc. to console (make sure to open console)
         fd = 4;
     }
-    struct vnode *vn = curproc->fdt->openfiles[fd]; 
+    struct vnode *vn = curproc->fdt->openfiles[fd]->vn; 
     assert(vn);
     struct uio *u = malloc(sizeof(struct uio));
-    uio_init(u, UIO_READ, nbyte);
+    uio_init(u, UIO_READ, nbyte, curproc->fdt->openfiles[fd]->offset);
     size_t bytes_read = VOP_READ(vn, u);
     printf("bytes_read %s, %d\n", shared_buf, bytes_read);
+    curproc->fdt->openfiles[fd]->offset += bytes_read;
     free(u);
     seL4_SetMR(0, bytes_read);
     return 1;
@@ -53,6 +54,7 @@ int syscall_open(void) {
         seL4_SetMR(0, 1);
         return 1;
     } 
+    printf("OPENING\n");
     if(VOP_EACHOPEN(res, mode)){
         seL4_SetMR(0, 1);
         return 1;
@@ -60,7 +62,11 @@ int syscall_open(void) {
     bool full = true;
     for(unsigned int i = 4; i < 8; i ++){
         if(curproc->fdt->openfiles[i] == NULL){
-            curproc->fdt->openfiles[i] = res;
+            curproc->fdt->openfiles[i] = malloc(sizeof(struct open_file));
+            curproc->fdt->openfiles[i]->vn = res;
+            curproc->fdt->openfiles[i]->refcnt = 1;
+            curproc->fdt->openfiles[i]->offset = 0;
+            curproc->fdt->openfiles[i]->flags = mode;
             seL4_SetMR(0, 0);
             seL4_SetMR(1, i);
             full = false;
@@ -76,13 +82,17 @@ int syscall_open(void) {
 }
 
 int syscall_close(void) {
+    
     int fd = seL4_GetMR(1);
+    
     struct open_file *of = curproc->fdt->openfiles[fd];
+    printf("CLOSING %d, %x\n", fd, of);
     VOP_RECLAIM(of->vn);
     free(of);
     curproc->fdt->openfiles[fd] = NULL;
 
     seL4_SetMR(0, 0);
+    printf("CLOSING\n");
     return 1;
 }
 int syscall_getdirent(void){
@@ -96,7 +106,7 @@ int syscall_getdirent(void){
         return 1;
     }
     struct uio *u = malloc(sizeof(struct uio));
-    uio_init(u, UIO_READ, pos);
+    uio_init(u, UIO_READ, pos, 0);
     size_t bytes = VOP_GETDIRENTRY(res, u);
     printf("SHARED BUF: %s", shared_buf);
     seL4_SetMR(0, bytes);
