@@ -98,6 +98,7 @@ int syscall_getdirent(void){
     struct uio *u = malloc(sizeof(struct uio));
     uio_init(u, UIO_READ, pos);
     size_t bytes = VOP_GETDIRENTRY(res, u);
+    printf("SHARED BUF: %s", shared_buf);
     seL4_SetMR(0, bytes);
     free(u);
     return 1;

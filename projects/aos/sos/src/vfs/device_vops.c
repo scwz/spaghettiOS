@@ -1,6 +1,8 @@
 #include "../vfs/vfs.h"
 #include "../vfs/vnode.h"
 #include "device_vops.h"
+#include <sos.h>
+#include <time.h>
 
 static int dev_eachopen(struct vnode *v, int flags)
 {
@@ -32,7 +34,13 @@ static int dev_getdirent(){
     return 0;
 }
 
-static int dev_stat(){
+static int dev_stat(struct vnode * v, void * buf){
+	sos_stat_t *s = buf;
+	s->st_fmode = FM_READ | FM_WRITE;
+	s->st_atime = 0;
+	s->st_ctime = 0;
+	s->st_type = 2;
+	s->st_size = 0;
     return 0;
 }
 

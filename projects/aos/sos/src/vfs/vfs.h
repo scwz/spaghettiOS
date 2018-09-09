@@ -1,6 +1,12 @@
 #pragma once
 
 #include "vnode.h"
+struct device_entry {
+    char name[20];
+    struct vnode * vn;
+    struct device_entry * next;
+};
+
 
 int vfs_lookup(char *path, struct vnode **result);
 int vfs_lookparent(char *path, struct vnode **result, char *buf, size_t buflen);

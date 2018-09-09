@@ -8,12 +8,6 @@
 #include "../dev/console.h"
 #include "../fs/libnfs_vops.h"
 
-struct device_entry {
-    char name[20];
-    struct vnode * vn;
-    struct device_entry * next;
-};
-
 static struct device_entry * device_list;
 
 static struct vnode * root;
@@ -111,5 +105,7 @@ void vfs_bootstrap(void) {
     device_list[0].vn = dev_create_vnode(dev);
     console_init();
     root = nfs_bootstrap();
+    struct vnode_nfs_data * nfs_dat = root->vn_data;
+    nfs_dat->dev_list = device_list;
     printf("vn : %lx \n", root);
 }
