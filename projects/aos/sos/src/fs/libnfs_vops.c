@@ -3,14 +3,12 @@
 #include "../uio.h"
 #include <nfsc/libnfs.h>
 #include <string.h>
-
+#include "../network.h"
 
 struct vnode_nfs_data {
 	char * path;
 	struct vnode * next;
 };
-
-static struct nfs_context *nfs = NULL;
 
 struct nfs_data {
 	struct vnode * vn;
@@ -243,8 +241,7 @@ nfs_uncreate_vnode(struct vnode *vn)
 
 
 struct vnode * nfs_bootstrap(){
-	nfs = nfs_init_context();
-    ZF_LOGF_IF(nfs == NULL, "Failed to init NFS context");
+    assert(nfs);
 	struct vnode * v = nfs_create_vnode();
 	struct vnode_nfs_data * d = v->vn_data;
 	d->path = malloc(1);

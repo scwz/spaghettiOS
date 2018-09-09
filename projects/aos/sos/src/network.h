@@ -13,7 +13,9 @@
 
 #include <sel4/types.h>
 #include <cspace/cspace.h>
+#include <nfsc/libnfs.h>
 
+struct nfs_context *nfs;
 /**
  * Initialises the network stack
  *

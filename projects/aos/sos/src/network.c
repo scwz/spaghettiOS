@@ -62,7 +62,7 @@
 const uint8_t OUR_MAC[6] = {0x00,0x1e,0x06,0x36,0x05,0xe5};
 
 static struct pico_device pico_dev;
-static struct nfs_context *nfs = NULL;
+
 static seL4_CPtr irq_handler_network, irq_handler_tick;
 static void nfs_mount_cb(int status, struct nfs_context *nfs, void *data, void *private_data);
 
@@ -171,6 +171,7 @@ static seL4_CPtr init_irq(cspace_t *cspace, int irq_number, int edge_triggered,
 
 void network_init(cspace_t *cspace, seL4_CPtr ntfn_irq, seL4_CPtr ntfn_tick, void *timer_vaddr)
 {
+    nfs = NULL;
     int error;
     ZF_LOGI("\nInitialising network...\n\n");
 
