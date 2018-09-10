@@ -27,13 +27,16 @@ static const vnode_ops console_vnode_ops = {
 };
 */
 static int nbytes_read = 0;
+static int reading = 1;
 
 static void console_handler(struct serial *serial, char c) {
 	//bufferWrite(sb_ptr, c);
-    buffer[nbytes_read++] = c;
-    if (c == '\n') {
-       	resume(curr, NULL);
-	}
+    if (reading) {
+        buffer[nbytes_read++] = c;
+        if (c == '\n') {
+            resume(curr, NULL);
+        }
+    }
 }
 
 int console_init(void) {
@@ -78,6 +81,7 @@ int console_close(struct vnode * vn) {
 }
 
 int console_read(struct uio *uio) {
+    reading = 1;
 	curr = get_running();
     yield(NULL);
 
@@ -91,6 +95,7 @@ int console_read(struct uio *uio) {
         msg[i] = buffer[i];
         i++;
 	}
+    reading = 0;
     nbytes_read = 0;
     printf("LEN %ld\n", uio->len);
     printf("HANDLED %d\n", nbytes_read);
