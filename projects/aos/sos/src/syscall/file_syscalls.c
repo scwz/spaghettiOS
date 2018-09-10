@@ -7,22 +7,26 @@
 #include "../proc/proc.h"
 #include "file_syscalls.h"
 #include "../shared_buf.h"
+#include <sos.h>
 
 int syscall_write(void) {
     size_t nbyte = seL4_GetMR(2);
     int fd = seL4_GetMR(1);
-    if(curproc->fdt->openfiles[fd] == NULL || nbyte <= 0){
-        seL4_SetMR(0, 0);
-        return 1;
-    }
-    if(!(curproc->fdt->openfiles[fd]->flags & FM_WRITE)){
-        seL4_SetMR(0, 0);
-        return 1;
-    }
     printf("write %d %d\n", fd, nbyte);
     if(fd < 4){ //send stdin etc. to console (make sure to open console)
         fd = 4;
     }
+    if(curproc->fdt->openfiles[fd] == NULL || nbyte <= 0){
+        seL4_SetMR(0, 0);
+        return 1;
+    }
+    
+    if(!(curproc->fdt->openfiles[fd]->flags & FM_WRITE)){
+        printf("why\n");
+        seL4_SetMR(0, 0);
+        return 1;
+    }
+    
     struct vnode * vn = curproc->fdt->openfiles[fd]->vn; 
     struct uio * u = malloc(sizeof(struct uio));
     uio_init(u, UIO_WRITE, nbyte, curproc->fdt->openfiles[fd]->offset);
@@ -43,6 +47,7 @@ int syscall_read(void) {
         seL4_SetMR(0, 0);
         return 1;
     }
+    
     if(!(curproc->fdt->openfiles[fd]->flags & FM_READ)){
         seL4_SetMR(0, 0);
         return 1;
@@ -86,14 +91,13 @@ int syscall_open(void) {
             seL4_SetMR(0, 0);
             seL4_SetMR(1, i);
             full = false;
-            printf("i: %d\n", i);
+            printf("i: %d, flags %d\n", i, mode);
             break;
         }
     } 
     if(full){
         seL4_SetMR(0, 1);
     }
-    printf("i : %d\n", seL4_GetMR(1));
     return 2;
 }
 
@@ -140,12 +144,13 @@ int syscall_stat(void){
         seL4_SetMR(0, 0);
         return 1;
     }
-    sos_stat_t buf;
-    if(VOP_STAT(res, &buf)){
+    sos_stat_t * buf  = malloc(sizeof(sos_stat_t));
+    if(VOP_STAT(res, buf)){
         seL4_SetMR(0, -1);
         return 1;
     }
-    sos_copyin(&buf, sizeof(buf));
+    sos_copyin(buf, sizeof(sos_stat_t));
+    free(buf);
     seL4_SetMR(0, 0);
     return 1;
 }

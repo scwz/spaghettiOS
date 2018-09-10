@@ -375,7 +375,7 @@ int main(void)
     int i, r, done, found, new, argc;
     char *bp, *p;
 
-    in = open("console", FM_READ);
+    in = open("console", FM_READ | FM_WRITE);
     assert(in >= 0);
 
     bp = buf;
