@@ -89,6 +89,7 @@ void nfs_write_cb(int status, struct nfs_context *nfs, void *data, void *private
 
 void nfs_close_cb(int status, struct nfs_context *nfs, void *data, void *private_data)
 {
+	printf("CLOSE\n");
 	struct nfs_data *d = private_data;
 	struct vnode_nfs_data * vnode_data = d->vn->vn_data;
 	struct nfsfh *nfsfh;
@@ -179,11 +180,12 @@ void nfs_lookup_cb(int status, struct nfs_context *nfs, void *data, void *privat
 void nfs_create_cb(int status, struct nfs_context *nfs, void *data, void *private_data)
 {
 	struct nfs_data *d = private_data;
-	struct nfsfh *nfsfh = data;
-
+	struct vnode_nfs_data * vnode_dat = d->vn->vn_data;
+	vnode_dat->nfsfh = data;
+	VOP_INCREF(d->vn);
+	
 	d->ret = 0;
 	resume(d->co, NULL);
-	
 }
 
 static struct vnode * find_device_name(struct vnode *dir, char * name){
@@ -216,6 +218,7 @@ static char * find_device_pos(struct vnode *dir, size_t * i, struct uio * u){
 
 static int vnfs_eachopen(struct vnode *v, int flags)
 {
+	printf("OPEN\n");
 	struct nfs_data * d = malloc(sizeof(struct nfs_data));
 	VOP_INCREF(v);
 	struct vnode_nfs_data * data = v->vn_data;
@@ -347,15 +350,18 @@ static int vnfs_lookup(struct vnode *dir, char *pathname, struct vnode **result)
 	
 	if(ret){
 		struct vnode * new;
-		VOP_CREAT(d->vn, d->path, 0, FM_READ | FM_WRITE, &new);
+		VOP_CREAT(d->vn, d->path, FM_READ | FM_WRITE, FM_READ | FM_WRITE, &new);
 		d->vn = new;
-		if (nfs_create_async(nfs, d->path, 2, 2, nfs_create_cb, d)){
+		int flags= (FM_READ | FM_WRITE) << 6 | (FM_READ | FM_WRITE) << 3 | (FM_READ | FM_WRITE) ;
+		if (nfs_create_async(nfs, d->path, flags, flags, nfs_create_cb, d)){
 			VOP_RECLAIM(new);
 			free(d);
 			return -1;
 		}
 		d->co = get_running();
 		yield(NULL);
+		VOP_RECLAIM(d->vn); //close the new vnode
+		ret = d->ret;
 	}
 	*result = d->vn;
 	free(d);
