@@ -82,7 +82,7 @@ int syscall_open(void) {
         return 1;
     }
     bool full = true;
-    for(unsigned int i = 4; i < 8; i ++){
+    for(unsigned int i = 4; i < PROCESS_MAX_FILES; i ++){
         if(curproc->fdt->openfiles[i] == NULL){
             curproc->fdt->openfiles[i] = malloc(sizeof(struct open_file));
             curproc->fdt->openfiles[i]->vn = res;
@@ -116,6 +116,7 @@ int syscall_close(void) {
     printf("CLOSING\n");
     return 1;
 }
+
 int syscall_getdirent(void){
     int pos = seL4_GetMR(1);
     size_t nbyte = seL4_GetMR(2);

@@ -54,8 +54,6 @@ void nfs_dirent_cb(int status, struct nfs_context *nfs, void *data, void *privat
 	resume(d->co, NULL);
 }
 
-
-
 void nfs_read_cb(int status, struct nfs_context *nfs, void *data, void *private_data)
 {
 	struct nfs_data *d = private_data;

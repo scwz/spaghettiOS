@@ -87,7 +87,7 @@ int console_read(struct uio *uio) {
 
 	char msg[uio->len];
 	unsigned int i = 0;
-    while (i < uio->len) {
+    while (i < uio->len && i < nbytes_read) {
 	//while (!isBufferEmpty(sb_ptr) && i < uio->len) {
 		char c;
 		//bufferRead(sb_ptr, c);
@@ -95,10 +95,10 @@ int console_read(struct uio *uio) {
         msg[i] = buffer[i];
         i++;
 	}
+    printf("i %ld\n", i);
+    printf("HANDLED %d\n", nbytes_read);
     reading = 0;
     nbytes_read = 0;
-    printf("LEN %ld\n", uio->len);
-    printf("HANDLED %d\n", nbytes_read);
 
 	msg[i] = '\0'; 
 	printf("msg: %s\n", msg);

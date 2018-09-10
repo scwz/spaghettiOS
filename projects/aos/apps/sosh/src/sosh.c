@@ -397,6 +397,7 @@ int main(void)
             fflush(stdout);
             r = read(in, bp, BUF_SZ - 1 + buf - bp);
             
+                    printf("Executing... %d\n", r);
             if (r < 0) {
                 printf("Console read failed!\n");
                 done = 1;
