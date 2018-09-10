@@ -20,6 +20,7 @@ int syscall_write(void) {
     struct uio * u = malloc(sizeof(struct uio));
     uio_init(u, UIO_WRITE, nbyte, curproc->fdt->openfiles[fd]->offset);
     size_t bytes_written = VOP_WRITE(vn, u);
+    curproc->fdt->openfiles[fd]->offset += bytes_written;
     free(u);
     seL4_SetMR(0, bytes_written);
     return 1;
