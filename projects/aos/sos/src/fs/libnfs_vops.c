@@ -41,7 +41,7 @@ void nfs_dirent_cb(int status, struct nfs_context *nfs, void *data, void *privat
 	printf("opendir successful\n");
 	size_t i = d->i;
 	while((nfsdirent = nfs_readdir(nfs, nfsdir)) != NULL && i <= d->u->len) {
-		printf("Inode:%d Name:%s\n", (int)nfsdirent->inode, nfsdirent->name);
+		printf("i %d, Inode:%d Name:%s\n", i,   (int)nfsdirent->inode, nfsdirent->name);
 		if(i == d->u->len){
 			d->path = malloc(strlen(nfsdirent->name));
 			strcpy(d->path, nfsdirent->name);
@@ -138,10 +138,8 @@ void nfs_stat64_cb(int status, struct nfs_context *nfs, void *data, void *privat
 	buf->st_size = st->nfs_size;
 	buf->st_type = 0;
 	
-	printf("type %d", (int)st->nfs_dev);
-	printf("Mode %04o\n", (unsigned int) st->nfs_mode);
-	printf("Size %d\n", (int)st->nfs_size);
-	printf("Inode %04o\n", (int)st->nfs_ino);
+	printf("Mode %04o, Size: %x, a_time %x, c_time %x\n", 
+		(unsigned int) st->nfs_mode, st->nfs_size , st->nfs_atime, st->nfs_ctime);
 	
 	d->ret = 0;
 	resume(d->co, NULL);
@@ -305,10 +303,11 @@ static int vnfs_getdirent(struct vnode *dir, struct uio *u){
 	return pathlen;
 }
 
-static int vnfs_stat(struct vnode *object, void * statbuf){
+static int vnfs_stat(struct vnode *v, void * statbuf){
 	struct nfs_data * d = malloc(sizeof(struct nfs_data));
+	struct vnode_nfs_data * vnode_dat= v->vn_data;
 	d->statbuf = statbuf;
-    if(nfs_stat64_async(nfs, "", nfs_stat64_cb, d)){
+    if(nfs_stat64_async(nfs, vnode_dat->path, nfs_stat64_cb, d)){
 		free(d);
 		return -1;
 	}

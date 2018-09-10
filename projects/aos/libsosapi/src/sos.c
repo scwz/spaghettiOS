@@ -111,8 +111,7 @@ int sos_stat(const char *path, sos_stat_t *buf)
     if(seL4_GetMR(0)){
         return seL4_GetMR(0);
     }
-    nbyte = seL4_GetMR(1);
-    user_copyout(buf, nbyte);
+    user_copyout(buf, sizeof(sos_stat_t));
     return seL4_GetMR(0);
 }
 
