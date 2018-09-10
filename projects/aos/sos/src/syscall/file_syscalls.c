@@ -7,6 +7,7 @@
 #include "../proc/proc.h"
 #include "file_syscalls.h"
 #include "../shared_buf.h"
+#include "../fs/libnfs_vops.h"
 #include <sos.h>
 
 int syscall_write(void) {
@@ -139,18 +140,17 @@ int syscall_stat(void){
     char path[nbyte];
     sos_copyout(path, nbyte);
     printf("stat path %d\n", path);
+    sos_stat_t buf;
     struct  vnode * res;
-    if (vfs_lookup(path, &res)){
-        seL4_SetMR(0, 0);
-        return 1;
-    }
-    sos_stat_t * buf  = malloc(sizeof(sos_stat_t));
-    if(VOP_STAT(res, buf)){
+    if (vfs_lookup("", &res)){
         seL4_SetMR(0, -1);
         return 1;
     }
-    sos_copyin(buf, sizeof(sos_stat_t));
-    free(buf);
+    if (nfs_get_statbuf(res, path, &buf)){
+        seL4_SetMR(0, -1);
+        return 1;
+    }
+    sos_copyin(&buf, sizeof(buf));
     seL4_SetMR(0, 0);
     return 1;
 }

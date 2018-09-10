@@ -128,20 +128,20 @@ void nfs_stat64_cb(int status, struct nfs_context *nfs, void *data, void *privat
 	struct nfs_stat_64 *st;
 	st = (struct nfs_stat_64 *)data;
 	if (status < 0) {
-		printf("stat call failed with \"%s\"\n", (char *)data);
-		exit(10);
+		d->ret = -1;
+	} else {
+		sos_stat_t * buf = d->statbuf;
+		buf->st_atime = st->nfs_atime;
+		buf->st_ctime = st->nfs_ctime;
+		buf->st_fmode = st->nfs_mode;
+		buf->st_size = st->nfs_size;
+		buf->st_type = 0;
+		
+		printf("Mode %04o, Size: %x, a_time %x, c_time %x\n", 
+			(unsigned int) st->nfs_mode, st->nfs_size , st->nfs_atime, st->nfs_ctime);
+		
+		d->ret = 0;
 	}
-	sos_stat_t * buf = d->statbuf;
-	buf->st_atime = st->nfs_atime;
-	buf->st_ctime = st->nfs_ctime;
-	buf->st_fmode = st->nfs_mode;
-	buf->st_size = st->nfs_size;
-	buf->st_type = 0;
-	
-	printf("Mode %04o, Size: %x, a_time %x, c_time %x\n", 
-		(unsigned int) st->nfs_mode, st->nfs_size , st->nfs_atime, st->nfs_ctime);
-	
-	d->ret = 0;
 	resume(d->co, NULL);
 }
 
@@ -454,4 +454,28 @@ struct vnode * nfs_bootstrap(){
 	d->path[0] = '\0';
 	assert(d->next == NULL);
 	return v;
+}
+
+int nfs_get_statbuf(struct vnode * dir, char * path, struct stat_buf_t * statbuf){
+	printf("hello\n");
+	struct vnode * dev = find_device_name(dir, path);
+	if(dev != NULL){
+		VOP_STAT(dev, statbuf);
+		return 0;
+	}
+	if(!strcmp(path, "..")){
+		path[1] = '\0';
+	}
+	struct nfs_data * d = malloc(sizeof(struct nfs_data));
+	d->statbuf = statbuf;
+	printf("hello\n");
+    if(nfs_stat64_async(nfs, path, nfs_stat64_cb, d)){
+		free(d);
+		return -1;
+	}
+	d->co = get_running();
+	yield(NULL);
+	int ret = d->ret;
+	free(d);
+	return ret;
 }
