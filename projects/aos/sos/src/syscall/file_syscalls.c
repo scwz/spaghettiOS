@@ -9,9 +9,16 @@
 #include "../shared_buf.h"
 
 int syscall_write(void) {
-
     size_t nbyte = seL4_GetMR(2);
     int fd = seL4_GetMR(1);
+    if(curproc->fdt->openfiles[fd] == NULL || nbyte <= 0){
+        seL4_SetMR(0, 0);
+        return 1;
+    }
+    if(!(curproc->fdt->openfiles[fd]->flags & FM_WRITE)){
+        seL4_SetMR(0, 0);
+        return 1;
+    }
     printf("write %d %d\n", fd, nbyte);
     if(fd < 4){ //send stdin etc. to console (make sure to open console)
         fd = 4;
@@ -31,6 +38,14 @@ int syscall_read(void) {
     int fd = seL4_GetMR(1);
     if(fd < 4){ //send stdin etc. to console (make sure to open console)
         fd = 4;
+    }
+    if(curproc->fdt->openfiles[fd] == NULL || nbyte <= 0){
+        seL4_SetMR(0, 0);
+        return 1;
+    }
+    if(!(curproc->fdt->openfiles[fd]->flags & FM_READ)){
+        seL4_SetMR(0, 0);
+        return 1;
     }
     struct vnode *vn = curproc->fdt->openfiles[fd]->vn; 
     assert(vn);
