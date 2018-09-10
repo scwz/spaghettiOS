@@ -92,6 +92,7 @@ static int cat(int argc, char **argv)
     }
 
     close(stdout_fd);
+    close(fd);
 
     if (num_read == -1 || num_written == -1) {
         printf("error on write\n");
@@ -122,13 +123,15 @@ static int cp(int argc, char **argv)
     assert(fd >= 0);
 
     while ((num_read = read(fd, buf, BUF_SZ)) > 0) {
-        num_written = write(fd_out, buf, num_read);
+        num_written = sos_sys_write(fd_out, buf, num_read);
     }
 
     if (num_read == -1 || num_written == -1) {
         printf("error on cp\n");
         return 1;
     }
+    close(fd);
+    close(fd_out);
 
     return 0;
 }
