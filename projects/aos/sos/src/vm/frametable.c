@@ -24,6 +24,8 @@ static size_t frame_table_size;
 static size_t frame_table_pages;
 static cspace_t *cspace;
 
+static seL4_Word clock_curr;
+
 seL4_Word vaddr_to_page_num(seL4_Word vaddr){
     return ((vaddr - base_vaddr) / PAGE_SIZE_4K); 
 }
@@ -110,6 +112,7 @@ void frame_table_init(cspace_t *cs) {
     assert(frame_table_vaddr);
     printf("frame_table_vaddr: %lx, value %lx\n", frame_table_vaddr, *(seL4_Word *)frame_table_vaddr);
     
+    clock_curr = 0;
 }
 
 struct frame_table_entry * get_frame(seL4_Word page_num){
@@ -120,10 +123,11 @@ struct frame_table_entry * get_frame(seL4_Word page_num){
     return &frame_table[page_num];
 }
 
-seL4_Word frame_alloc(seL4_Word *vaddr) {
+seL4_Word frame_alloc_important(seL4_Word *vaddr){
     uintptr_t paddr;
     seL4_CPtr cap;
     seL4_Word page = next_free_page;
+    
     *vaddr = page_num_to_vaddr(page);
     //printf("pagenum %ld, vaddr %lx, freepage: %ld\n", page, *vaddr, next_free_page);
     ut_t *ut = alloc_retype_map(&cap, vaddr, &paddr);
@@ -134,6 +138,39 @@ seL4_Word frame_alloc(seL4_Word *vaddr) {
     memset((void *) *vaddr, 0, PAGE_SIZE_4K);
     frame_table[page].cap = cap;
     frame_table[page].ut = ut;
+    frame_table[page].important = true;
+    next_free_page = frame_table[page].next_free_page;
+    return page;
+}
+
+seL4_Word frame_alloc(seL4_Word *vaddr) {
+    uintptr_t paddr;
+    seL4_CPtr cap;
+    seL4_Word page = next_free_page;
+    // if null that means all frames used, use clock
+    if(frame_table[page].cap == seL4_CapNull){ 
+        // go around the frametable
+        while(frame_table[clock_curr].ref_bit){
+            if(!frame_table[clock_curr].important){
+                frame_table[clock_curr].ref_bit = false;
+                seL4_ARM_Page_Unmap(frame_table[page].cap);
+            }
+            clock_curr = (clock_curr + 1) % frame_table_size;
+        }
+        frame_free(clock_curr);
+        page = clock_curr;
+    }
+    *vaddr = page_num_to_vaddr(page);
+    //printf("pagenum %ld, vaddr %lx, freepage: %ld\n", page, *vaddr, next_free_page);
+    ut_t *ut = alloc_retype_map(&cap, vaddr, &paddr);
+    
+    if (ut == NULL) {
+        return (seL4_Word) NULL;
+    }
+    memset((void *) *vaddr, 0, PAGE_SIZE_4K);
+    frame_table[page].cap = cap;
+    frame_table[page].ut = ut;
+    frame_table[page].important = false;
     next_free_page = frame_table[page].next_free_page;
     return page;
 }

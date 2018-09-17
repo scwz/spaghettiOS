@@ -17,6 +17,8 @@ struct frame_table_entry {
     seL4_CPtr cap;
     ut_t *ut;
     seL4_Word next_free_page;
+    bool ref_bit;
+    bool important;
 };
 
 seL4_Word vaddr_to_page_num(seL4_Word vaddr);
