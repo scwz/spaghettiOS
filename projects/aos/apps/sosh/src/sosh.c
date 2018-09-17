@@ -117,8 +117,8 @@ static int cp(int argc, char **argv)
     file1 = argv[1];
     file2 = argv[2];
 
-    fd = open(file1, O_RDONLY);
-    fd_out = open(file2, O_WRONLY);
+    fd = open(file1, FM_READ);
+    fd_out = open(file2, FM_WRITE);
 
     assert(fd >= 0);
 
