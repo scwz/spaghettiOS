@@ -1,6 +1,8 @@
 
 #include <sel4/sel4.h>
 #include <stdint.h>
+#include <fcntl.h>
+#include <sos.h>
 
 #include "../uio.h"
 #include "../vfs/vfs.h"
@@ -8,7 +10,6 @@
 #include "file_syscalls.h"
 #include "../shared_buf.h"
 #include "../fs/libnfs_vops.h"
-#include <sos.h>
 
 int syscall_write(void) {
     size_t nbyte = seL4_GetMR(2);
@@ -21,8 +22,9 @@ int syscall_write(void) {
         seL4_SetMR(0, 0);
         return 1;
     }
+    int how = curproc->fdt->openfiles[fd]->flags & O_ACCMODE;
     
-    if(!(curproc->fdt->openfiles[fd]->flags & FM_WRITE)){
+    if (how == O_RDONLY) {
         printf("why\n");
         seL4_SetMR(0, 0);
         return 1;
@@ -48,8 +50,9 @@ int syscall_read(void) {
         seL4_SetMR(0, 0);
         return 1;
     }
+    int how = curproc->fdt->openfiles[fd]->flags & O_ACCMODE;
     
-    if(!(curproc->fdt->openfiles[fd]->flags & FM_READ)){
+    if (how == O_WRONLY) {
         seL4_SetMR(0, 0);
         return 1;
     }
@@ -72,11 +75,12 @@ int syscall_open(void) {
     struct vnode *res;
     char path[size];
     sos_copyout(path, size);
+    path[size] = '\0';
     if(vfs_lookup(path, &res)){
         seL4_SetMR(0, 1);
         return 1;
     } 
-    printf("OPENING\n");
+    printf("OPENING %s\n", path);
     if(VOP_EACHOPEN(res, mode)){
         seL4_SetMR(0, 1);
         return 1;

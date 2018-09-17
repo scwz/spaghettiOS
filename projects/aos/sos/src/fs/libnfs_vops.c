@@ -1,10 +1,13 @@
+
+#include <nfsc/libnfs.h>
+#include <fcntl.h>
+#include <string.h>
+#include <sos.h>
+
 #include "../vfs/vfs.h"
 #include "../vfs/vnode.h"
 #include "../uio.h"
-#include <nfsc/libnfs.h>
-#include <string.h>
 #include "../network.h"
-#include <sos.h>
 #include "../picoro/picoro.h"
 
 struct vnode_nfs_data {
@@ -159,7 +162,7 @@ void nfs_lookup_cb(int status, struct nfs_context *nfs, void *data, void *privat
 	while((nfsdirent = nfs_readdir(nfs, nfsdir)) != NULL) {
 		printf("Inode:%d Name:%s\n", (int)nfsdirent->inode, nfsdirent->name);
 		if(!strcmp(nfsdirent->name, d->path)){
-			VOP_CREAT(d->vn, d->path, 0, FM_READ | FM_WRITE, &result);
+			VOP_CREAT(d->vn, d->path, 0, O_RDWR, &result);
 			printf("MAKING %s", d->path);
 			d->vn = result;
 			found = true;
@@ -214,12 +217,12 @@ static char * find_device_pos(struct vnode *dir, size_t * i, struct uio * u){
 
 static int vnfs_eachopen(struct vnode *v, int flags)
 {
-	printf("OPEN\n");
 	struct nfs_data * d = malloc(sizeof(struct nfs_data));
 	VOP_INCREF(v);
 	struct vnode_nfs_data * data = v->vn_data;
+	printf("OPEN %s\n", data->path);
 	d->vn = v;
-	if(nfs_open_async(nfs, data->path, 2, nfs_open_cb, d)){
+	if(nfs_open_async(nfs, data->path, flags, nfs_open_cb, d)){
 		return -1;
 	}
 	d->co = get_running();
@@ -347,9 +350,9 @@ static int vnfs_lookup(struct vnode *dir, char *pathname, struct vnode **result)
 	
 	if(ret){
 		struct vnode * new;
-		VOP_CREAT(d->vn, d->path, FM_READ | FM_WRITE, FM_READ | FM_WRITE, &new);
+		VOP_CREAT(d->vn, d->path, 0, O_RDWR, &new);
 		d->vn = new;
-		int flags= (FM_READ | FM_WRITE) << 6 | (FM_READ | FM_WRITE) << 3 | (FM_READ | FM_WRITE) ;
+		int flags = (O_RDWR) << 6 | (O_RDWR) << 3 | (O_RDWR);
 		if (nfs_create_async(nfs, d->path, flags, flags, nfs_create_cb, d)){
 			VOP_RECLAIM(new);
 			free(d);

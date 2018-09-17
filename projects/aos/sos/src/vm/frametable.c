@@ -147,6 +147,7 @@ seL4_Word frame_alloc(seL4_Word *vaddr) {
     uintptr_t paddr;
     seL4_CPtr cap;
     seL4_Word page = next_free_page;
+#if 0
     // if null that means all frames used, use clock
     if(frame_table[page].cap == seL4_CapNull){ 
         // go around the frametable
@@ -160,6 +161,7 @@ seL4_Word frame_alloc(seL4_Word *vaddr) {
         frame_free(clock_curr);
         page = clock_curr;
     }
+#endif
     *vaddr = page_num_to_vaddr(page);
     //printf("pagenum %ld, vaddr %lx, freepage: %ld\n", page, *vaddr, next_free_page);
     ut_t *ut = alloc_retype_map(&cap, vaddr, &paddr);

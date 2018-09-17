@@ -1,6 +1,7 @@
 
 #include <stdint.h>
 #include <sos.h>
+#include <fcntl.h>
 #include <serial/serial.h>
 
 #include "console.h"
@@ -32,11 +33,13 @@ int console_init(void) {
     return 0;
 }
 
-int console_open(struct vnode * vn,int flags) {
+int console_open(struct vnode * vn, int flags) {
     struct device * d = vn->vn_data;
     struct console * c = d->data;
+    int how = flags & O_ACCMODE;
     printf("flags %x, c->reader = %d\n", flags, c->reader);
-    if(flags  & FM_READ){
+
+    if (how == O_RDONLY || how == O_RDWR) {
         if(c->reader != NULL){
             return -1;
         }
