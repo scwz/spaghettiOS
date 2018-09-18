@@ -17,11 +17,15 @@ struct frame_table_entry {
     seL4_CPtr cap;
     ut_t *ut;
     seL4_Word next_free_page;
+    seL4_Word pid;
+    seL4_Word user_vaddr;
     bool ref_bit;
     bool important;
 };
 
 seL4_Word vaddr_to_page_num(seL4_Word vaddr);
+
+seL4_Word page_num_to_vaddr(seL4_Word page);
 
 void frame_table_init(cspace_t *cs);
 

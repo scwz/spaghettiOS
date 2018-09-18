@@ -14,6 +14,8 @@
 #include "../mapping.h"
 #include "vmem_layout.h"
 #include "frametable.h"
+#include "address_space.h"
+#include "../proc/proc.h"
 
 static struct frame_table_entry *frame_table = NULL;
 static seL4_Word top_paddr;
@@ -31,7 +33,7 @@ seL4_Word vaddr_to_page_num(seL4_Word vaddr){
 }
 
 
-static seL4_Word page_num_to_vaddr(seL4_Word page){
+seL4_Word page_num_to_vaddr(seL4_Word page){
     return  page * PAGE_SIZE_4K + base_vaddr;
 }
 
@@ -131,7 +133,6 @@ seL4_Word frame_alloc_important(seL4_Word *vaddr){
     *vaddr = page_num_to_vaddr(page);
     //printf("pagenum %ld, vaddr %lx, freepage: %ld\n", page, *vaddr, next_free_page);
     ut_t *ut = alloc_retype_map(&cap, vaddr, &paddr);
-    
     if (ut == NULL) {
         return (seL4_Word) NULL;
     }
@@ -139,7 +140,10 @@ seL4_Word frame_alloc_important(seL4_Word *vaddr){
     frame_table[page].cap = cap;
     frame_table[page].ut = ut;
     frame_table[page].important = true;
+    frame_table[page].user_vaddr = 0;
+    frame_table[page].pid = -1;
     next_free_page = frame_table[page].next_free_page;
+    
     return page;
 }
 
@@ -157,6 +161,7 @@ seL4_Word frame_alloc(seL4_Word *vaddr) {
             }
             clock_curr = (clock_curr + 1) % frame_table_size;
         }
+        //TODO: Figure out how to call pager/invalidate frames
         frame_free(clock_curr);
         page = clock_curr;
     }

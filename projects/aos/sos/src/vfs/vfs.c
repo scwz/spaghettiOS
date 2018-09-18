@@ -10,8 +10,6 @@
 
 static struct device_entry * device_list;
 
-static struct vnode * root;
-
 static struct vnode * find_device(char * name){
     struct device_entry * curr = device_list;
     for(; curr != NULL; curr = curr->next){

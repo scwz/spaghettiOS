@@ -55,7 +55,7 @@ void save_seL4_info(struct page_table* page_table, ut_t * ut, seL4_CPtr slot);
 
 int page_table_insert(struct page_table * page_table, seL4_Word vaddr, seL4_Word page_num);
 
-int page_table_remove(struct page_table * page_table, seL4_Word vaddr);
+int page_table_invalidate(struct page_table * page_table, seL4_Word vaddr);
 
 void page_table_destroy(struct page_table * page_table);
 

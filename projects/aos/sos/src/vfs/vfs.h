@@ -7,6 +7,7 @@ struct device_entry {
     struct device_entry * next;
 };
 
+struct vnode * root;
 
 int vfs_lookup(char *path, struct vnode **result);
 int vfs_lookparent(char *path, struct vnode **result, char *buf, size_t buflen);
