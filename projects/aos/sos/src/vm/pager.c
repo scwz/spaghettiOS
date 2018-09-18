@@ -29,6 +29,34 @@ static size_t next_free_node(){
     return pf_list->size++;
 }
 
+static int add_free_list(size_t entry){
+    struct pagefile_node * new_node = malloc(sizeof(struct pagefile_node));
+    new_node->index = entry;
+    if(!new_node){
+        return -1;
+    }
+    if(pf_list->head == NULL){
+        pf_list->head = new_node;
+        pf_list->head->next = NULL;
+        return 0;
+    }
+
+    struct pagefile_node * curr = pf_list->head;
+    if(entry <= curr->index){
+        new_node->next = curr;
+        pf_list->head = new_node;
+        return 0;
+    }
+
+    while(curr != NULL ){
+        if(entry >= curr->index || curr->next == NULL){
+            new_node->next = curr->next;
+            curr->next = new_node;
+            break;
+        }
+    }
+    return 0;
+}
 
 static int pagefile_open(){
     if(VOP_LOOKUP(root, "pagefile", &pf_vnode)){
@@ -70,6 +98,9 @@ int pagein(seL4_Word entry, seL4_Word vaddr){
             return -1;
         }
     }
+    if(entry > pf_list->size){ //simple error check
+        return -1;
+    }
     seL4_Word kernel_vaddr;
     seL4_Word page = frame_alloc(&kernel_vaddr);
     struct uio u;
@@ -79,6 +110,8 @@ int pagein(seL4_Word entry, seL4_Word vaddr){
     assert(bytes_read == 4096);
     bytes_read = sos_copyout(kernel_vaddr, PAGE_SIZE_4K);
     assert(bytes_read == 4096);
+    
+    add_free_list(entry);
     return 0;
 }
 
