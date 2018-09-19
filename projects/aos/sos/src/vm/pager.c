@@ -84,7 +84,7 @@ int pagein(seL4_Word entry, seL4_Word vaddr){
     return 0;
 }
 
-void pager_bootsrap(){
+void pager_bootstrap(void) {
     pf_list->size = 0;
     pf_list->head = NULL;
     pagefile_fd = open("pagefile", FM_READ | FM_WRITE);

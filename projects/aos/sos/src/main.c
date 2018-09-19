@@ -37,6 +37,7 @@
 #include "elfload.h"
 #include "syscall/syscalls.h"
 #include "tests/tests.h"
+#include "vm/pager.h"
 #include "vm/frametable.h"
 #include "vm/pagetable.h"
 #include "vm/address_space.h"
@@ -401,8 +402,8 @@ NORETURN void *main_continued(UNUSED void *arg)
     frame_table_init(&cspace);
     shared_buf_init(&cspace);
     vfs_bootstrap();
-    //test_m1();
-    //test_m2();
+    pager_bootstrap();
+
 
     /* Start the user application */
     printf("Start first process\n");
