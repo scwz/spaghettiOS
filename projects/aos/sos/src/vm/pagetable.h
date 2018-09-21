@@ -13,13 +13,13 @@
 #include <utils/page.h>
 #include "../ut/ut.h"
 
-#define P_VALID 1
-#define P_FRAME_TABLE 2
+#define P_INVALID 1
+#define P_PAGEFILE 2
 
 
 #define PAGE_INDEX_SIZE (PAGE_SIZE_4K / 8)
 
-//store attributes in first n bytes 
+//store attributes in first 8 bytes 
 struct pt {
     seL4_Word page[PAGE_INDEX_SIZE];
 };
@@ -54,6 +54,12 @@ struct page_table{
 
 
 struct page_table* page_table_init(void);
+
+seL4_Word * page_lookup(struct page_table*, seL4_Word vaddr);
+
+page_set_bits(seL4_Word * page_entry, uint8_t bits);
+
+uint8_t page_get_bits(seL4_Word page_entry);
 
 void save_seL4_info(struct page_table* page_table, ut_t * ut, seL4_CPtr slot);
 

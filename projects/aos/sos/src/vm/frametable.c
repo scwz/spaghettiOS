@@ -161,7 +161,9 @@ seL4_Word frame_alloc(seL4_Word *vaddr) {
             }
             clock_curr = (clock_curr + 1) % frame_table_size;
         }
-        //TODO: Figure out how to call pager/invalidate frames
+        if(pageout(page)){
+            ZF_LOGE("PAGEOUT ERROR");
+        }
         frame_free(clock_curr);
         page = clock_curr;
     }

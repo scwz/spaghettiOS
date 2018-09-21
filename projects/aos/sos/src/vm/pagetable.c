@@ -32,7 +32,12 @@ struct page_table * page_table_init(void) {
     return page_table;
 }
 
-static void page_set_bits(seL4_Word * page_entry, uint8_t bits) {
+static seL4_Word page_entry_number(seL4_Word page){
+    page << sizeof(uint8_t);
+    page >> sizeof(uint8_t);
+    return page;
+}
+void page_set_bits(seL4_Word * page_entry, uint8_t bits) {
     //clear bits
     *page_entry << sizeof(uint8_t);
     *page_entry >> sizeof(uint8_t);
@@ -41,7 +46,7 @@ static void page_set_bits(seL4_Word * page_entry, uint8_t bits) {
     *page_entry |= word;
 }
 
-static uint8_t page_get_bits(seL4_Word page_entry){
+uint8_t page_get_bits(seL4_Word page_entry){
     page_entry >> sizeof(sizeof(seL4_Word) - sizeof(uint8_t));
     return page_entry;
 }
@@ -142,6 +147,7 @@ void save_seL4_info(struct page_table* page_table, ut_t * ut, seL4_CPtr slot){
 }
 void vm_fault(cspace_t *cspace, seL4_Word faultaddress) {
     //printf("vm fault at %lx!\n", faultaddress);
+
     struct addrspace *as = curproc->as;
     seL4_CPtr reply = cspace_alloc_slot(cspace);
     seL4_CPtr err = cspace_save_reply_cap(cspace, reply);

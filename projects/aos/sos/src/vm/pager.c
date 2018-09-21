@@ -4,6 +4,9 @@
 #include "../vfs/vfs.h"
 #include "../vfs/vnode.h"
 #include "../uio.h"
+#include "pagetable.h"
+#include "../proc/proc.h"
+#include "address_space.h"
 
 static struct pagefile_node {
     size_t index;
@@ -59,25 +62,37 @@ static int add_free_list(size_t entry){
     return 0;
 }
 
-//TODO invalidate the correct frames
-//set the pagetable page 
-int pageout(seL4_Word page, seL4_Word entry){
+// set the pagetable page 
+int pageout(seL4_Word page){
+    // get page table entry
     struct frame_table_entry * fte = get_frame(page);
-    size_t offset = next_free_node() * PAGE_SIZE_4K;
+    assert(fte->pid >= 0);
+    struct page_table * pagetable = procs[fte->pid].as->pt;
+    seL4_Word * pte = page_lookup(pagetable, fte->user_vaddr);
+    assert(pte);
+
+    // set page table entry to be a pagefile index
+    size_t ind = next_free_node();
+    *pte = ind;
+    page_set_bits(pte, P_PAGEFILE);
+    
+    // write out
+    sos_copyin(page_num_to_vaddr(page), PAGE_SIZE_4K);
+    size_t offset =  ind * PAGE_SIZE_4K;
     size_t bytes_written = write(pagefile_fd, offset, PAGE_SIZE_4K);
     assert(bytes_written == 4096);
     return 0;
 }
 
-int pagein(seL4_Word entry, seL4_Word vaddr){
+int pagein(seL4_Word entry, seL4_Word kernel_vaddr){
     if(entry > pf_list->size){ //simple error check
         return -1;
     }
-    seL4_Word kernel_vaddr;
-    seL4_Word page = frame_alloc(&kernel_vaddr);
-    struct uio u;
+
+    //read and write to kernel_vaddr;
     size_t offset = entry * PAGE_SIZE_4K;
     size_t bytes_read = read(pagefile_fd, offset, PAGE_SIZE_4K);
+    sos_copyout(kernel_vaddr, PAGE_SIZE_4K);
     assert(bytes_read == 4096);
     
     add_free_list(entry);
