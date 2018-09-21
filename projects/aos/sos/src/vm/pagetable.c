@@ -4,6 +4,7 @@
 #include "frametable.h"
 #include "../mapping.h"
 #include "../proc/proc.h"
+#include "pager.h"
 
 static struct pt_index {
     uint8_t offset;
@@ -80,7 +81,6 @@ int page_table_insert(struct page_table * page_table, seL4_Word vaddr, seL4_Word
         pgd->pud[ind.l1]->pd[ind.l2]->pt[ind.l3] = pt;
     }
     pt->page[ind.l4] = page_num;
-    page_set_bits(&pt->page[ind.l4], P_VALID | P_FRAME_TABLE);
     //printf("PAGETABLE, ADDR: %lx, l1: %lx l2: %lx l3:%lx l4:%lx, PAGENUM: %ld\n", vaddr, ind.l1, ind.l2, ind.l3, ind.l4, page_num);
     return 0;
 }
@@ -156,16 +156,50 @@ void vm_fault(cspace_t *cspace, seL4_Word faultaddress) {
 
     if (reg != NULL) {
         //as->stack->vbase = PAGE_ALIGN_4K(faultaddress);
+        seL4_Word * pte = page_lookup(as->pt, PAGE_ALIGN_4K(faultaddress));
+        seL4_Word entry = page_entry_number(*pte);
+        uint8_t bits = page_get_bits(*pte);
+
+        seL4_CPtr slot;
+        struct frame_table_entry *frame_info;
         seL4_Word vaddr;
-        seL4_Word page = frame_alloc(&vaddr);
-        struct frame_table_entry * frame_info = get_frame(page);
-        seL4_CPtr slot = cspace_alloc_slot(cspace);
-        err = cspace_copy(cspace, slot, cspace, frame_info->cap, seL4_AllRights);
-        //printf("cptr1: %lx, cptr2: %lx  \n", slot, frame_info->cap);
-        err = sos_map_frame(cspace, as->pt,  slot,  curproc->vspace, 
-                        PAGE_ALIGN_4K(faultaddress), seL4_AllRights, 
-                        seL4_ARM_Default_VMAttributes, page, false);
-        ZF_LOGE_IFERR(err, "failed to map frame");
+        seL4_Word page;
+        
+        //remap a deref'd page
+        if(!bits){
+            frame_info = get_frame(entry);
+            seL4_CPtr slot = cspace_alloc_slot(cspace);
+            seL4_Error err = seL4_ARM_Page_Map(slot, curproc->vspace, 
+                                PAGE_ALIGN_4K(faultaddress), seL4_AllRights,
+                                seL4_ARM_Default_VMAttributes);
+            frame_info->ref_bit = 1;
+        }
+        //realloc a paged file
+        else if(bits & P_PAGEFILE){
+            page = frame_alloc(&vaddr);
+            frame_info = get_frame(page);
+            err = sos_map_frame(cspace, frame_info->user_cap,  slot,  curproc->vspace, 
+                            PAGE_ALIGN_4K(faultaddress), seL4_AllRights, 
+                            seL4_ARM_Default_VMAttributes, page, false);
+            err = pagein(entry, vaddr);
+            frame_info->pid = 0; //hardcoded atm;
+            frame_info->user_vaddr = PAGE_ALIGN_4K(faultaddress);
+            ZF_LOGE_IFERR(err, "failed to map frame");
+        }
+        else {
+            page = frame_alloc(&vaddr);
+            frame_info = get_frame(page);
+            slot = cspace_alloc_slot(cspace);
+            err = cspace_copy(cspace, slot, cspace, frame_info->cap, seL4_AllRights);
+            //printf("cptr1: %lx, cptr2: %lx  \n", slot, frame_info->cap);
+            err = sos_map_frame(cspace, as->pt,  slot,  curproc->vspace, 
+                            PAGE_ALIGN_4K(faultaddress), seL4_AllRights, 
+                            seL4_ARM_Default_VMAttributes, page, false);
+            ZF_LOGE_IFERR(err, "failed to map frame");
+            frame_info->pid = 0; //hardcoded atm;
+            frame_info->user_vaddr = PAGE_ALIGN_4K(faultaddress);
+            frame_info->user_cap = slot;
+        }
 
         seL4_SetMR(0, 0);
     }

@@ -142,6 +142,7 @@ seL4_Word frame_alloc_important(seL4_Word *vaddr){
     frame_table[page].important = true;
     frame_table[page].user_vaddr = 0;
     frame_table[page].pid = -1;
+    frame_table[page].user_cap = seL4_CapNull;
     next_free_page = frame_table[page].next_free_page;
     
     return page;
@@ -157,7 +158,7 @@ seL4_Word frame_alloc(seL4_Word *vaddr) {
         while(frame_table[clock_curr].ref_bit){
             if(!frame_table[clock_curr].important){
                 frame_table[clock_curr].ref_bit = false;
-                seL4_ARM_Page_Unmap(frame_table[page].cap);
+                seL4_ARM_Page_Unmap(frame_table[page].user_cap);
             }
             clock_curr = (clock_curr + 1) % frame_table_size;
         }
@@ -178,6 +179,9 @@ seL4_Word frame_alloc(seL4_Word *vaddr) {
     frame_table[page].cap = cap;
     frame_table[page].ut = ut;
     frame_table[page].important = false;
+    frame_table[page].user_vaddr = 0;
+    frame_table[page].pid = -1;
+    frame_table[page].user_cap = seL4_CapNull;
     next_free_page = frame_table[page].next_free_page;
     return page;
 }

@@ -15,6 +15,7 @@
 
 struct frame_table_entry {
     seL4_CPtr cap;
+    seL4_CPtr user_cap;
     ut_t *ut;
     seL4_Word next_free_page;
     seL4_Word pid;

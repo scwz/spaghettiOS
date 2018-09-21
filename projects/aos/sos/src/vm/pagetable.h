@@ -57,7 +57,7 @@ struct page_table* page_table_init(void);
 
 seL4_Word * page_lookup(struct page_table*, seL4_Word vaddr);
 
-page_set_bits(seL4_Word * page_entry, uint8_t bits);
+void page_set_bits(seL4_Word * page_entry, uint8_t bits);
 
 uint8_t page_get_bits(seL4_Word page_entry);
 
