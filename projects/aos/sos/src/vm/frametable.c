@@ -32,7 +32,6 @@ seL4_Word vaddr_to_page_num(seL4_Word vaddr){
     return ((vaddr - base_vaddr) / PAGE_SIZE_4K); 
 }
 
-
 seL4_Word page_num_to_vaddr(seL4_Word page){
     return  page * PAGE_SIZE_4K + base_vaddr;
 }
@@ -83,7 +82,8 @@ static ut_t *alloc_retype_map(seL4_CPtr *cptr, uintptr_t *vaddr, uintptr_t *padd
 void frame_table_init(cspace_t *cs) {
     cspace = cs;
 
-    frame_table_size = 0.8 * (ut_size() / PAGE_SIZE_4K);
+    frame_table_size = 0.1 * (ut_size() / PAGE_SIZE_4K); // REMOVE THis AFTER PAGING IS DONE
+    //frame_table_size = 0.8 * (ut_size() / PAGE_SIZE_4K);
     frame_table_pages = BYTES_TO_4K_PAGES(frame_table_size * sizeof(struct frame_table_entry));
     seL4_Word frame_table_vaddr = SOS_FRAME_TABLE;
     seL4_CPtr cap;
@@ -102,6 +102,11 @@ void frame_table_init(cspace_t *cs) {
     seL4_Word i;
     for(i = 0; i < frame_table_size; i++){
         frame_table[i].cap = seL4_CapNull;
+        frame_table[i].important = false;
+        frame_table[i].ref_bit = false;
+        frame_table[i].user_vaddr = 0;
+        frame_table[i].pid = -1;
+        frame_table[i].user_cap = seL4_CapNull;
         frame_table[i].next_free_page = i+1;
     }
     frame_table[i].next_free_page = 0;
@@ -153,7 +158,7 @@ seL4_Word frame_alloc(seL4_Word *vaddr) {
     seL4_CPtr cap;
     seL4_Word page = next_free_page;
     // if null that means all frames used, use clock
-    if(frame_table[page].cap == seL4_CapNull){ 
+    if(page == frame_table_size){ 
         // go around the frametable
         while(frame_table[clock_curr].ref_bit){
             if(!frame_table[clock_curr].important){
