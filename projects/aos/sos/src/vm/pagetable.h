@@ -13,6 +13,10 @@
 #include <utils/page.h>
 #include "../ut/ut.h"
 
+#define P_VALID 1
+#define P_FRAME_TABLE 2
+
+
 #define PAGE_INDEX_SIZE (PAGE_SIZE_4K / 8)
 
 //store attributes in first n bytes 

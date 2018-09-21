@@ -32,6 +32,19 @@ struct page_table * page_table_init(void) {
     return page_table;
 }
 
+static void page_set_bits(seL4_Word * page_entry, uint8_t bits) {
+    //clear bits
+    *page_entry << sizeof(uint8_t);
+    *page_entry >> sizeof(uint8_t);
+    //set the bits
+    seL4_Word word = bits << (sizeof(seL4_Word) - sizeof(uint8_t));
+    *page_entry |= word;
+}
+
+static uint8_t page_get_bits(seL4_Word page_entry){
+    page_entry >> sizeof(sizeof(seL4_Word) - sizeof(uint8_t));
+    return page_entry;
+}
 
 int page_table_insert(struct page_table * page_table, seL4_Word vaddr, seL4_Word page_num) {
     struct pgd * pgd = &page_table->pgd;
@@ -62,27 +75,36 @@ int page_table_insert(struct page_table * page_table, seL4_Word vaddr, seL4_Word
         pgd->pud[ind.l1]->pd[ind.l2]->pt[ind.l3] = pt;
     }
     pt->page[ind.l4] = page_num;
+    page_set_bits(&pt->page[ind.l4], P_VALID | P_FRAME_TABLE);
     //printf("PAGETABLE, ADDR: %lx, l1: %lx l2: %lx l3:%lx l4:%lx, PAGENUM: %ld\n", vaddr, ind.l1, ind.l2, ind.l3, ind.l4, page_num);
     return 0;
 }
 
-int page_table_remove(struct page_table* page_table, seL4_Word vaddr) {
-    //atm dont free page table
+seL4_Word * page_lookup(struct page_table* page_table, seL4_Word vaddr){
     struct pgd * pgd = &page_table->pgd;
     struct pt_index ind = get_pt_index(vaddr);
     struct pud* pud = pgd->pud[ind.l1];
     if(pud  == NULL){
-        return -1;
+        return NULL;
     }
     struct pd* pd = pgd->pud[ind.l1]->pd[ind.l2];
     if(pd  == NULL){
-        return -1;
+        return NULL;
     }
     struct pt* pt = pgd->pud[ind.l1]->pd[ind.l2]->pt[ind.l3];
     if(pt  == NULL){
+        return NULL;
+    }
+    return &pt->page[ind.l4];
+}
+
+int page_table_remove(struct page_table* page_table, seL4_Word vaddr) {
+    //atm dont free page table
+    seL4_Word * page = page_lookup(page_table, vaddr);
+    if(page){
         return -1;
     }
-    pt->page[ind.l4] = NULL;
+    *page = 0;
     return 0;
 }
 
