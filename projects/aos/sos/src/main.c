@@ -263,7 +263,8 @@ NORETURN void syscall_loop(seL4_CPtr ep)
         } else if (label == seL4_Fault_VMFault) {
             seL4_Word faultaddress = seL4_GetMR(1);
             //printf("%lx, %lx, %lx\n", seL4_GetMR(1), seL4_GetMR(2), seL4_GetMR(3));
-            vm_fault(&cspace, faultaddress);
+            resume(coroutine((void *(*)(void *))vm_fault), &cspace);
+            //vm_fault(&cspace, faultaddress);
 
             seL4_Word err = seL4_GetMR(0);
             if (err) {

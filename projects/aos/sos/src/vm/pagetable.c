@@ -145,8 +145,9 @@ void save_seL4_info(struct page_table* page_table, ut_t * ut, seL4_CPtr slot){
     frame->page_objects[ind].ut = ut;
     frame->page_objects[ind].cap = slot;
 }
-void vm_fault(cspace_t *cspace, seL4_Word faultaddress) {
+void vm_fault(cspace_t *cspace) {
     //printf("vm fault at %lx!\n", faultaddress);
+    seL4_Word faultaddress = seL4_GetMR(1);
 
     struct addrspace *as = curproc->as;
     seL4_CPtr reply = cspace_alloc_slot(cspace);
