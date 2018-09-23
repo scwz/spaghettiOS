@@ -5,10 +5,10 @@ void * shared_buf;
 
 void shared_buf_init(){
     seL4_Word first_frame;
-    frame_alloc(&first_frame);
+    frame_alloc_important(&first_frame);
     seL4_Word vaddr;
     for(size_t i = 1; i < SHARED_BUF_PAGES; i++){
-        frame_alloc(&vaddr);
+        frame_alloc_important(&vaddr);
     }
     assert(first_frame);
     assert(vaddr);

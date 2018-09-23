@@ -16,6 +16,7 @@
 #include "frametable.h"
 #include "address_space.h"
 #include "../proc/proc.h"
+#include "pager.h"
 
 static struct frame_table_entry *frame_table = NULL;
 static seL4_Word top_paddr;
@@ -24,6 +25,7 @@ static seL4_Word base_vaddr;
 static seL4_Word next_free_page;
 static size_t frame_table_size;
 static size_t frame_table_pages;
+static size_t frame_table_curr_size;
 static cspace_t *cspace;
 
 static seL4_Word clock_curr;
@@ -81,8 +83,8 @@ static ut_t *alloc_retype_map(seL4_CPtr *cptr, uintptr_t *vaddr, uintptr_t *padd
 
 void frame_table_init(cspace_t *cs) {
     cspace = cs;
-
-    frame_table_size = 0.1 * (ut_size() / PAGE_SIZE_4K); // REMOVE THis AFTER PAGING IS DONE
+    frame_table_curr_size = 0;
+    frame_table_size = 2500; // REMOVE THis AFTER PAGING IS DONE
     //frame_table_size = 0.8 * (ut_size() / PAGE_SIZE_4K);
     frame_table_pages = BYTES_TO_4K_PAGES(frame_table_size * sizeof(struct frame_table_entry));
     seL4_Word frame_table_vaddr = SOS_FRAME_TABLE;
@@ -102,14 +104,14 @@ void frame_table_init(cspace_t *cs) {
     seL4_Word i;
     for(i = 0; i < frame_table_size; i++){
         frame_table[i].cap = seL4_CapNull;
-        frame_table[i].important = true;
-        frame_table[i].ref_bit = true;
+        frame_table[i].important = false;
+        frame_table[i].ref_bit = false;
         frame_table[i].user_vaddr = 0;
         frame_table[i].pid = -1;
         frame_table[i].user_cap = seL4_CapNull;
         frame_table[i].next_free_page = i+1;
     }
-    frame_table[i].next_free_page = 0;
+    frame_table[i-1].next_free_page = 0;
 
     //init values (physical memory allocates downwards)
     top_paddr -= PAGE_SIZE_4K; // first page will be here
@@ -118,6 +120,7 @@ void frame_table_init(cspace_t *cs) {
     // test
     assert(frame_table_vaddr);
     printf("frame_table_vaddr: %lx, value %lx\n", frame_table_vaddr, *(seL4_Word *)frame_table_vaddr);
+    printf("frame_table_size: %lu\n", frame_table_size);
     
     clock_curr = 0;
 }
@@ -148,8 +151,9 @@ seL4_Word frame_alloc_important(seL4_Word *vaddr){
     frame_table[page].user_vaddr = 0;
     frame_table[page].pid = -1;
     frame_table[page].user_cap = seL4_CapNull;
+    frame_table[page].ref_bit = 1;
     next_free_page = frame_table[page].next_free_page;
-    
+    frame_table_curr_size++;
     return page;
 }
 
@@ -158,12 +162,22 @@ seL4_Word frame_alloc(seL4_Word *vaddr) {
     seL4_CPtr cap;
     seL4_Word page = next_free_page;
     // if null that means all frames used, use clock
-    if(page == frame_table_size){ 
+    assert(frame_table_curr_size <= frame_table_size);
+    if(frame_table_curr_size == frame_table_size){ 
         // go around the frametable
         while(frame_table[clock_curr].ref_bit){
+            printf("clock_curr: %ld\n", clock_curr);
             if(!frame_table[clock_curr].important){
                 frame_table[clock_curr].ref_bit = false;
-                seL4_ARM_Page_Unmap(frame_table[page].user_cap);
+                printf("WTF\n");
+                if(frame_table[clock_curr].user_cap != seL4_CapNull){
+                    printf("WTF\n");
+                    seL4_ARM_Page_Unmap(frame_table[clock_curr].user_cap);
+                    printf("WTF\n");
+                }
+                printf("WTF\n");
+                seL4_ARM_Page_Unmap(frame_table[clock_curr].cap);
+                printf("WTF\n");
             }
             clock_curr = (clock_curr + 1) % frame_table_size;
         }
@@ -187,7 +201,10 @@ seL4_Word frame_alloc(seL4_Word *vaddr) {
     frame_table[page].user_vaddr = 0;
     frame_table[page].pid = -1;
     frame_table[page].user_cap = seL4_CapNull;
+    frame_table[page].ref_bit = 1;
     next_free_page = frame_table[page].next_free_page;
+    frame_table_curr_size++;
+    printf("framealloc PAGE: %ld, SIZE: %ld\n", page, frame_table_curr_size);
     return page;
 }
 
@@ -213,5 +230,6 @@ void frame_free(seL4_Word page) {
     cspace_free_slot(cspace, frame_table[page].cap);
     ut_free(frame_table[page].ut, PAGE_BITS_4K);
     frame_table[page].cap = seL4_CapNull;
+    frame_table_curr_size--;
 }
 

@@ -354,7 +354,7 @@ int test_buffers(int console_fd) {
 }
 
 static int thrash(int argc, char *argv[]) {
-    int npages = 100;
+    int npages = 270;
     int buffer[npages * MAX_IO_BUF];
 
     while (1) {
