@@ -20,7 +20,22 @@ static struct pagefile_list {
 };
 
 struct pagefile_list * pf_list; 
-static int pagefile_fd;
+struct vnode * pf_vnode;
+
+static int pagefile_open(){
+    if(VOP_LOOKUP(root, "pagefile", &pf_vnode)){
+        return -1;
+    }
+    if(VOP_EACHOPEN(pf_vnode, FM_READ | FM_WRITE)){
+        return -1;
+    }
+    return 0;
+}
+
+static int pagefile_close(){
+    VOP_RECLAIM(pf_vnode);
+    return 0;
+}
 
 static size_t next_free_node(){
     if(pf_list->head != NULL){ // try grab a node from list
@@ -64,6 +79,11 @@ static int add_free_list(size_t entry){
 
 // set the pagetable page 
 int pageout(seL4_Word page){
+    if(pf_vnode == NULL){
+        if(pagefile_open()){
+            return -1;
+        }
+    }
     // get page table entry
     struct frame_table_entry * fte = get_frame(page);
     assert(fte->pid >= 0);
@@ -79,8 +99,14 @@ int pageout(seL4_Word page){
     // write out
     sos_copyin(page_num_to_vaddr(page), PAGE_SIZE_4K);
     size_t offset =  ind * PAGE_SIZE_4K;
-    size_t bytes_written = write(pagefile_fd, offset, PAGE_SIZE_4K);
+
+    // write
+    uio_init(&u, UIO_WRITE, PAGE_SIZE_4K, offset);
+    size_t bytes_written = sos_copyin(page_num_to_vaddr(page), PAGE_SIZE_4K);
     assert(bytes_written == 4096);
+    bytes_written = VOP_WRITE(pf_vnode, &u);   
+    assert(bytes_written == 4096);
+
     return 0;
 }
 
@@ -90,9 +116,12 @@ int pagein(seL4_Word entry, seL4_Word kernel_vaddr){
     }
 
     //read and write to kernel_vaddr;
+    struct uio u;
     size_t offset = entry * PAGE_SIZE_4K;
-    size_t bytes_read = read(pagefile_fd, offset, PAGE_SIZE_4K);
-    sos_copyout(kernel_vaddr, PAGE_SIZE_4K);
+    uio_init(&u, UIO_READ, PAGE_SIZE_4K, offset);
+    size_t bytes_read = VOP_READ(pf_vnode, &u);
+    assert(bytes_read == 4096);
+    bytes_read = sos_copyout(kernel_vaddr, PAGE_SIZE_4K);
     assert(bytes_read == 4096);
     
     add_free_list(entry);
@@ -103,5 +132,5 @@ void pager_bootstrap(void) {
     pf_list = malloc(sizeof(struct pagefile_list));
     pf_list->size = 0;
     pf_list->head = NULL;
-    pagefile_fd = open("pagefile", FM_READ | FM_WRITE);
+    pf_vnode = NULL;
 }
