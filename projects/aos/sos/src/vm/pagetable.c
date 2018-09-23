@@ -28,8 +28,8 @@ static struct pt_index get_pt_index(seL4_Word vaddr){
 struct page_table * page_table_init(void) {
     struct page_table * page_table;
     assert(sizeof(struct pgd) == PAGE_SIZE_4K);
-    frame_alloc(&page_table);
-    frame_alloc(&page_table->pgd);
+    frame_alloc_important(&page_table);
+    frame_alloc_important(&page_table->pgd);
     return page_table;
 }
 
@@ -58,7 +58,7 @@ int page_table_insert(struct page_table * page_table, seL4_Word vaddr, seL4_Word
     struct pud* pud = pgd->pud[ind.l1];
 
     if(pud == NULL){
-        frame_alloc(&pud);
+        frame_alloc_important(&pud);
         if(pud == NULL){
             return -1;
         }
@@ -66,7 +66,7 @@ int page_table_insert(struct page_table * page_table, seL4_Word vaddr, seL4_Word
     }
     struct pd* pd = pgd->pud[ind.l1]->pd[ind.l2];
     if(pd == NULL){
-        frame_alloc(&pd);
+        frame_alloc_important(&pd);
         if(pd == NULL){
             return -1;
         }
@@ -74,7 +74,7 @@ int page_table_insert(struct page_table * page_table, seL4_Word vaddr, seL4_Word
     }
     struct pt* pt = pgd->pud[ind.l1]->pd[ind.l2]->pt[ind.l3];
     if(pt == NULL){
-        frame_alloc(&pt);
+        frame_alloc_important(&pt);
         if(pt == NULL){
             return -1;
         }
@@ -116,7 +116,7 @@ int page_table_remove(struct page_table* page_table, seL4_Word vaddr) {
 void save_seL4_info(struct page_table* page_table, ut_t * ut, seL4_CPtr slot){
     struct seL4_page_objects_frame* frame;
     if(page_table->seL4_pages == NULL){
-        frame_alloc(&(page_table->seL4_pages));
+        frame_alloc_important(&(page_table->seL4_pages));
         if(page_table->seL4_pages == NULL){
             ZF_LOGE("frame alloc fail");
         }  else {
@@ -130,7 +130,7 @@ void save_seL4_info(struct page_table* page_table, ut_t * ut, seL4_CPtr slot){
             frame = frame->nextframe;
         }
         if(frame->size == 253){
-            frame_alloc(&(frame->nextframe));
+            frame_alloc_important(&(frame->nextframe));
             if(frame->nextframe == NULL){
                 ZF_LOGE("frame alloc fail");
             }  else {

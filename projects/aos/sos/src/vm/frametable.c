@@ -102,8 +102,8 @@ void frame_table_init(cspace_t *cs) {
     seL4_Word i;
     for(i = 0; i < frame_table_size; i++){
         frame_table[i].cap = seL4_CapNull;
-        frame_table[i].important = false;
-        frame_table[i].ref_bit = false;
+        frame_table[i].important = true;
+        frame_table[i].ref_bit = true;
         frame_table[i].user_vaddr = 0;
         frame_table[i].pid = -1;
         frame_table[i].user_cap = seL4_CapNull;
