@@ -100,6 +100,7 @@ int pagein(seL4_Word entry, seL4_Word kernel_vaddr){
 }
 
 void pager_bootstrap(void) {
+    pf_list = malloc(sizeof(struct pagefile_list));
     pf_list->size = 0;
     pf_list->head = NULL;
     pagefile_fd = open("pagefile", FM_READ | FM_WRITE);

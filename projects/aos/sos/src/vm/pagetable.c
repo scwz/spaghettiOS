@@ -157,18 +157,28 @@ void vm_fault(cspace_t *cspace, seL4_Word faultaddress) {
     if (reg != NULL) {
         //as->stack->vbase = PAGE_ALIGN_4K(faultaddress);
         seL4_Word * pte = page_lookup(as->pt, PAGE_ALIGN_4K(faultaddress));
-        seL4_Word entry = page_entry_number(*pte);
-        uint8_t bits = page_get_bits(*pte);
+        //if null
+        uint8_t bits;
+        seL4_Word entry;
 
         seL4_CPtr slot;
         struct frame_table_entry *frame_info;
         seL4_Word vaddr;
         seL4_Word page;
+
+        if(!pte){ // lookup failed
+            bits = P_INVALID;
+        } else {
+            assert(pte);
+            entry = page_entry_number(*pte);
+            bits = page_get_bits(*pte);
+        }
         
+
         //remap a deref'd page
         if(!bits){
             frame_info = get_frame(entry);
-            seL4_CPtr slot = cspace_alloc_slot(cspace);
+            slot = frame_info->user_cap;
             seL4_Error err = seL4_ARM_Page_Map(slot, curproc->vspace, 
                                 PAGE_ALIGN_4K(faultaddress), seL4_AllRights,
                                 seL4_ARM_Default_VMAttributes);
@@ -177,13 +187,16 @@ void vm_fault(cspace_t *cspace, seL4_Word faultaddress) {
         //realloc a paged file
         else if(bits & P_PAGEFILE){
             page = frame_alloc(&vaddr);
+            slot = cspace_alloc_slot(cspace);
             frame_info = get_frame(page);
+            frame_info->user_cap = slot;
             err = sos_map_frame(cspace, frame_info->user_cap,  slot,  curproc->vspace, 
                             PAGE_ALIGN_4K(faultaddress), seL4_AllRights, 
                             seL4_ARM_Default_VMAttributes, page, false);
             err = pagein(entry, vaddr);
             frame_info->pid = 0; //hardcoded atm;
             frame_info->user_vaddr = PAGE_ALIGN_4K(faultaddress);
+            
             ZF_LOGE_IFERR(err, "failed to map frame");
         }
         else {
