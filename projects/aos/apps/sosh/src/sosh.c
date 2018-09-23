@@ -353,6 +353,21 @@ int test_buffers(int console_fd) {
     }
 }
 
+static int thrash(int argc, char *argv[]) {
+    int npages = 100;
+    int buffer[npages * MAX_IO_BUF];
+
+    while (1) {
+        for (int i = 0; i < npages * MAX_IO_BUF; i++) {
+            buffer[i] = i;
+        }
+        for (int i = 0; i < npages * MAX_IO_BUF; i++) {
+            assert(buffer[i] == i);
+        }
+    }
+    return 0;
+}
+
 struct command {
     char *name;
     int (*command)(int argc, char **argv);
@@ -362,7 +377,7 @@ struct command commands[] = { { "dir", dir }, { "ls", dir }, { "cat", cat }, {
         "cp", cp
     }, { "ps", ps }, { "exec", exec }, {"sleep", second_sleep}, {"msleep", milli_sleep},
     {"time", second_time}, {"mtime", micro_time}, {"kill", kill},
-    {"benchmark", benchmark}
+    {"benchmark", benchmark}, {"thrash", thrash}
 };
 
 int main(void)

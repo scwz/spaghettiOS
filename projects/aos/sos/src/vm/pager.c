@@ -101,6 +101,7 @@ int pageout(seL4_Word page){
     size_t offset =  ind * PAGE_SIZE_4K;
 
     // write
+    struct uio * u = malloc(sizeof(struct uio));
     uio_init(&u, UIO_WRITE, PAGE_SIZE_4K, offset);
     size_t bytes_written = sos_copyin(page_num_to_vaddr(page), PAGE_SIZE_4K);
     assert(bytes_written == 4096);
@@ -116,7 +117,7 @@ int pagein(seL4_Word entry, seL4_Word kernel_vaddr){
     }
 
     //read and write to kernel_vaddr;
-    struct uio u;
+    struct uio * u = malloc(sizeof(struct uio));
     size_t offset = entry * PAGE_SIZE_4K;
     uio_init(&u, UIO_READ, PAGE_SIZE_4K, offset);
     size_t bytes_read = VOP_READ(pf_vnode, &u);
