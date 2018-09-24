@@ -189,7 +189,7 @@ int sos_map_frame(cspace_t *cspace, struct page_table* page_table, seL4_CPtr fra
         }
     }
     if (is_sos_addr){
-        page_table_insert(page_table, vaddr, page);
+        err = page_table_insert(page_table, vaddr, page);
     }
     return err;
 }

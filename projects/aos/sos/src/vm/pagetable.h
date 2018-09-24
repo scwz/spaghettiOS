@@ -61,6 +61,8 @@ void page_set_bits(seL4_Word * page_entry, uint8_t bits);
 
 uint8_t page_get_bits(seL4_Word page_entry);
 
+void page_update_entry(seL4_Word * page_entry, uint8_t bits, seL4_Word num);
+
 void save_seL4_info(struct page_table* page_table, ut_t * ut, seL4_CPtr slot);
 
 int page_table_insert(struct page_table * page_table, seL4_Word vaddr, seL4_Word page_num);

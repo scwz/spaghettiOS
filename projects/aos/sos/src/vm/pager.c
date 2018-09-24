@@ -89,20 +89,19 @@ int pageout(seL4_Word page){
     }
     // get page table entry
     struct frame_table_entry * fte = get_frame(page);
-    assert(fte->pid >= 0);
+    assert(fte->pid >= 0 && fte->pid <= MAX_PROCESSES);
+    printf("PID: %d, pt: %lx, vaddr: %lx, pn: %ld\n", fte->pid, procs[fte->pid].as->pt, page_num_to_vaddr(page), page);
     struct page_table * pagetable = procs[fte->pid].as->pt;
     seL4_Word * pte = page_lookup(pagetable, fte->user_vaddr);
     assert(pte);
-
     // set page table entry to be a pagefile index
     size_t ind = next_free_node();
-    *pte = ind;
-    page_set_bits(pte, P_PAGEFILE);
-    
-    // write out
-    sos_copyin(page_num_to_vaddr(page), PAGE_SIZE_4K);
-    size_t offset =  ind * PAGE_SIZE_4K;
 
+    page_update_entry(pte, P_INVALID, ind);
+    printf("new entry %lx", *pte);
+
+    // write out
+    size_t offset =  ind * PAGE_SIZE_4K;
     // write
     struct uio * u = malloc(sizeof(struct uio));
     uio_init(u, UIO_WRITE, PAGE_SIZE_4K, offset);
@@ -118,7 +117,7 @@ int pagein(seL4_Word entry, seL4_Word kernel_vaddr){
     if(entry > pf_list->size){ //simple error check
         return -1;
     }
-
+    printf("PAGEIN\n");
     //read and write to kernel_vaddr;
     struct uio * u = malloc(sizeof(struct uio));
     size_t offset = entry * PAGE_SIZE_4K;

@@ -167,21 +167,15 @@ seL4_Word frame_alloc(seL4_Word *vaddr) {
         // go around the frametable
         while(frame_table[clock_curr].ref_bit){
             printf("clock_curr: %ld\n", clock_curr);
-            if(!frame_table[clock_curr].important){
+            if(!frame_table[clock_curr].important && frame_table[clock_curr].pid <= MAX_PROCESSES){
                 frame_table[clock_curr].ref_bit = false;
-                printf("WTF\n");
                 if(frame_table[clock_curr].user_cap != seL4_CapNull){
-                    printf("WTF\n");
                     seL4_ARM_Page_Unmap(frame_table[clock_curr].user_cap);
-                    printf("WTF\n");
                 }
-                printf("WTF\n");
-                seL4_ARM_Page_Unmap(frame_table[clock_curr].cap);
-                printf("WTF\n");
             }
             clock_curr = (clock_curr + 1) % frame_table_size;
         }
-        if(pageout(page)){
+        if(pageout(clock_curr)){
             ZF_LOGE("PAGEOUT ERROR");
         }
         frame_free(clock_curr);
@@ -204,12 +198,11 @@ seL4_Word frame_alloc(seL4_Word *vaddr) {
     frame_table[page].ref_bit = 1;
     next_free_page = frame_table[page].next_free_page;
     frame_table_curr_size++;
-    printf("framealloc PAGE: %ld, SIZE: %ld\n", page, frame_table_curr_size);
+    printf("framealloc PAGE: %ld, SIZE: %ld, cap: %ld\n", page, frame_table_curr_size, cap);
     return page;
 }
 
 void frame_free(seL4_Word page) {
-
     if(page > frame_table_size){
         ZF_LOGE("Page does not exist");
         return;
@@ -223,13 +216,23 @@ void frame_free(seL4_Word page) {
         ZF_LOGE("Page is already free");
         return;
     }
+    assert(!frame_table[page].important);
     frame_table[page].next_free_page = next_free_page;
-    next_free_page = page;
+    
     seL4_ARM_Page_Unmap(frame_table[page].cap);
     cspace_delete(cspace, frame_table[page].cap);
     cspace_free_slot(cspace, frame_table[page].cap);
+
+    cspace_delete(cspace, frame_table[page].user_cap);
+    cspace_free_slot(cspace, frame_table[page].user_cap);
+    
     ut_free(frame_table[page].ut, PAGE_BITS_4K);
     frame_table[page].cap = seL4_CapNull;
+    frame_table[page].user_vaddr = 0;
+    frame_table[page].pid = -1;
+    
+    printf("page free: %ld\n", page);
     frame_table_curr_size--;
+    next_free_page = page;
 }
 

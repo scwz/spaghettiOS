@@ -159,8 +159,8 @@ void nfs_lookup_cb(int status, struct nfs_context *nfs, void *data, void *privat
 	while((nfsdirent = nfs_readdir(nfs, nfsdir)) != NULL) {
 		printf("Inode:%d Name:%s\n", (int)nfsdirent->inode, nfsdirent->name);
 		if(!strcmp(nfsdirent->name, d->path)){
-			VOP_CREAT(d->vn, d->path, 0, FM_READ | FM_WRITE, &result);
-			printf("MAKING %s", d->path);
+			VOP_CREAT(d->vn, d->path, FM_READ | FM_WRITE, FM_READ | FM_WRITE, &result);
+			printf("MAKING %s\n", d->path);
 			d->vn = result;
 			found = true;
 			break;
@@ -214,14 +214,16 @@ static char * find_device_pos(struct vnode *dir, size_t * i, struct uio * u){
 
 static int vnfs_eachopen(struct vnode *v, int flags)
 {
-	printf("OPEN\n");
+	printf("OPEN1\n");
 	struct nfs_data * d = malloc(sizeof(struct nfs_data));
 	VOP_INCREF(v);
 	struct vnode_nfs_data * data = v->vn_data;
 	d->vn = v;
-	if(nfs_open_async(nfs, data->path, 2, nfs_open_cb, d)){
+	printf("OPEN2\n");
+	if(nfs_open_async(nfs, data->path, FM_WRITE | FM_READ, nfs_open_cb, d)){
 		return -1;
 	}
+	printf("OPEN3\n");
 	d->co = get_running();
 	yield(NULL);
 	int ret = d->ret;
