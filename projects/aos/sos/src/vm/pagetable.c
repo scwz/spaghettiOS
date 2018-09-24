@@ -45,8 +45,11 @@ void page_set_bits(seL4_Word * page_entry, uint8_t bits) {
     *page_entry = *page_entry << (sizeof(uint8_t) * 8);
     *page_entry = *page_entry >> (sizeof(uint8_t) * 8);
     //set the bits
-    seL4_Word word = bits << ((sizeof(seL4_Word) - sizeof(uint8_t)) * 8);
-    *page_entry |= word;
+    seL4_Word word = bits << 16;
+    word = word << 16;
+    word = word << 16;
+    word = word << 4;
+    *page_entry = word | *page_entry;
 }
 void page_update_entry(seL4_Word * page_entry, uint8_t bits, seL4_Word num){
     *page_entry = num;
@@ -54,8 +57,10 @@ void page_update_entry(seL4_Word * page_entry, uint8_t bits, seL4_Word num){
 }
 
 uint8_t page_get_bits(seL4_Word page_entry){
-    page_entry = page_entry >> ((sizeof(seL4_Word) - sizeof(uint8_t))* 8);
-    printf("bits %lx\n", page_entry);
+    page_entry = page_entry >> 16;
+    page_entry = page_entry >> 16;
+    page_entry = page_entry >> 16;
+    page_entry = page_entry >> 4;
     return page_entry;
 }
 
@@ -86,8 +91,7 @@ int page_table_insert(struct page_table * page_table, seL4_Word vaddr, seL4_Word
             return -1;
         }
         for(int i = 0; i < PAGE_INDEX_SIZE; i++){
-            pt->page[i] = 1u << i;
-            printf("i: %d, %lx\n",i, pt->page[i] >> i);
+            page_update_entry(&pt->page[i], P_INVALID, 0);
         }
         pgd->pud[ind.l1]->pd[ind.l2]->pt[ind.l3] = pt;
     }
@@ -184,9 +188,8 @@ void vm_fault(cspace_t *cspace) {
             bits = P_INVALID;
         } else {
             assert(pte);
-            //entry = page_entry_number(*pte);
+            entry = page_entry_number(*pte);
             bits = page_get_bits(*pte);
-            printf("num: %lx, entry %ld, bits %x\n", *pte >> 32, entry, bits);
         }
         printf("===vm fault at %llx: entry %llx bits: %llx!\n", faultaddress, pte, bits);
         //remap a deref'd page
