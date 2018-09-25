@@ -23,15 +23,12 @@ struct pagefile_list * pf_list;
 struct vnode * pf_vnode;
 
 static int pagefile_open(){
-    printf("OPEN\n");
     if(VOP_LOOKUP(root, "pagefile", &pf_vnode)){
         return -1;
     }
-    printf("OPEN\n");
     if(VOP_EACHOPEN(pf_vnode, FM_READ | FM_WRITE)){
         return -1;
     }
-    printf("OPEN\n");
     return 0;
 }
 
@@ -97,8 +94,9 @@ int pageout(seL4_Word page){
     // set page table entry to be a pagefile index
     size_t ind = next_free_node();
 
-    page_update_entry(pte, P_INVALID, ind);
-    printf("new entry %lx", *pte);
+    page_update_entry(pte, P_PAGEFILE, ind);
+    printf("pte: %lx, num %lx, ind %lx\n", *pte, page_entry_number(*pte), ind);
+    assert(page_entry_number(*pte) == ind);
 
     // write out
     size_t offset =  ind * PAGE_SIZE_4K;
@@ -114,10 +112,11 @@ int pageout(seL4_Word page){
 }
 
 int pagein(seL4_Word entry, seL4_Word kernel_vaddr){
+    printf("PAGEIN entry %d, list->size %d\n", entry, pf_list->size);
     if(entry > pf_list->size){ //simple error check
         return -1;
     }
-    printf("PAGEIN\n");
+    
     //read and write to kernel_vaddr;
     struct uio * u = malloc(sizeof(struct uio));
     size_t offset = entry * PAGE_SIZE_4K;

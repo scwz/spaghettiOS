@@ -354,10 +354,10 @@ int test_buffers(int console_fd) {
 }
 
 static int thrash(int argc, char *argv[]) {
-    int npages = 270;
+    int npages = 700;
     int buffer[npages * MAX_IO_BUF];
 
-    while (1) {
+    for(int j = 0; j < 2; j++) {
         for (int i = 0; i < npages * MAX_IO_BUF; i++) {
             buffer[i] = i;
         }
@@ -365,6 +365,7 @@ static int thrash(int argc, char *argv[]) {
             assert(buffer[i] == i);
         }
     }
+    printf("thrash completed!\n");
     return 0;
 }
 

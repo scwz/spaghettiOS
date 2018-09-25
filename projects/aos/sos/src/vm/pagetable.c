@@ -33,23 +33,29 @@ struct page_table * page_table_init(void) {
     return page_table;
 }
 
-static seL4_Word page_entry_number(seL4_Word page){
-    page = page << (sizeof(uint8_t) * 8);
-    page = page >> (sizeof(uint8_t) * 8);
+seL4_Word page_entry_number(seL4_Word page){
+    page_set_bits(&page, 0);
     return page;
 }
 
 
 void page_set_bits(seL4_Word * page_entry, uint8_t bits) {
     //clear bits
-    *page_entry = *page_entry << (sizeof(uint8_t) * 8);
-    *page_entry = *page_entry >> (sizeof(uint8_t) * 8);
+    seL4_Word mask = 0x00 << 16;
+    mask |= 0xFFFF;
+    mask = mask << 16;
+    mask |= 0xFFFF;
+    mask = mask << 16;
+    mask |= 0xFFFF;
+    mask = mask << 4;
+    mask |= 0xF;
+
     //set the bits
     seL4_Word word = bits << 16;
     word = word << 16;
     word = word << 16;
     word = word << 4;
-    *page_entry = word | *page_entry;
+    *page_entry = word | (mask & *page_entry);
 }
 void page_update_entry(seL4_Word * page_entry, uint8_t bits, seL4_Word num){
     *page_entry = num;
@@ -228,7 +234,7 @@ void vm_fault(cspace_t *cspace) {
             slot = cspace_alloc_slot(cspace);
             err = cspace_copy(cspace, slot, cspace, frame_info->cap, seL4_AllRights);
             //printf("cptr1: %lx, cptr2: %lx  \n", slot, frame_info->cap);
-            
+            ZF_LOGE_IFERR(err, "fail alloc");
             err = sos_map_frame(cspace, as->pt,  slot,  curproc->vspace, 
                             PAGE_ALIGN_4K(faultaddress), seL4_AllRights, 
                             seL4_ARM_Default_VMAttributes, page, true);

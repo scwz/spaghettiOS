@@ -71,4 +71,6 @@ int page_table_invalidate(struct page_table * page_table, seL4_Word vaddr);
 
 void page_table_destroy(struct page_table * page_table);
 
+seL4_Word page_entry_number(seL4_Word page);
+
 void vm_fault(cspace_t *cspace);

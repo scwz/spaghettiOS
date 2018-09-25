@@ -53,7 +53,7 @@ static ut_t *alloc_retype_map(seL4_CPtr *cptr, uintptr_t *vaddr, uintptr_t *padd
         ut_free(ut, seL4_PageBits);
         return NULL;
     }
-
+    printf("ut->cap %ld, cptr %ld\n", ut->cap, *cptr);
     seL4_Error err = cspace_untyped_retype(cspace, 
                                             ut->cap, 
                                             *cptr, 
@@ -137,6 +137,27 @@ seL4_Word frame_alloc_important(seL4_Word *vaddr){
     uintptr_t paddr;
     seL4_CPtr cap;
     seL4_Word page = next_free_page;
+    // if null that means all frames used, use clock
+    assert(frame_table_curr_size <= frame_table_size);
+
+    if(frame_table_curr_size == frame_table_size){ 
+        // go around the frametable
+        while(frame_table[clock_curr].ref_bit){
+            printf("clock_curr: %ld\n", clock_curr);
+            if(!frame_table[clock_curr].important || frame_table[clock_curr].pid <= MAX_PROCESSES){
+                frame_table[clock_curr].ref_bit = false;
+                if(frame_table[clock_curr].user_cap != seL4_CapNull){
+                    seL4_ARM_Page_Unmap(frame_table[clock_curr].user_cap);
+                }
+            }
+            clock_curr = (clock_curr + 1) % frame_table_size;
+        }
+        if(pageout(clock_curr)){
+            ZF_LOGE("PAGEOUT ERROR");
+        }
+        frame_free(clock_curr);
+        page = clock_curr;
+    }
     
     *vaddr = page_num_to_vaddr(page);
     //printf("pagenum %ld, vaddr %lx, freepage: %ld\n", page, *vaddr, next_free_page);
@@ -167,7 +188,7 @@ seL4_Word frame_alloc(seL4_Word *vaddr) {
         // go around the frametable
         while(frame_table[clock_curr].ref_bit){
             printf("clock_curr: %ld\n", clock_curr);
-            if(!frame_table[clock_curr].important && frame_table[clock_curr].pid <= MAX_PROCESSES){
+            if(!frame_table[clock_curr].important || frame_table[clock_curr].pid <= MAX_PROCESSES){
                 frame_table[clock_curr].ref_bit = false;
                 if(frame_table[clock_curr].user_cap != seL4_CapNull){
                     seL4_ARM_Page_Unmap(frame_table[clock_curr].user_cap);
@@ -228,6 +249,7 @@ void frame_free(seL4_Word page) {
     
     ut_free(frame_table[page].ut, PAGE_BITS_4K);
     frame_table[page].cap = seL4_CapNull;
+    frame_table[page].user_cap = seL4_CapNull;
     frame_table[page].user_vaddr = 0;
     frame_table[page].pid = -1;
     
