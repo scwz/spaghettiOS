@@ -11,6 +11,8 @@
 #include "../vm/vmem_layout.h"
 
 extern char _cpio_archive[];
+static cspace_t *cs;
+static seL4_CPtr pep;
 
 static int stack_write(seL4_Word *mapped_stack, int index, uintptr_t val)
 {
@@ -131,6 +133,12 @@ static uintptr_t init_process_stack(cspace_t *cspace, seL4_CPtr local_vspace, ch
  */
 bool start_first_process(cspace_t *cspace, char* app_name, seL4_CPtr ep)
 {
+    if (cs == NULL) {
+        cs = cspace;
+    }
+    if (pep == NULL) {
+        pep = ep;
+    }
     curproc->as = as_create();
     curproc->fdt = fdt_create();
 
@@ -253,4 +261,8 @@ bool start_first_process(cspace_t *cspace, char* app_name, seL4_CPtr ep)
     err = seL4_TCB_WriteRegisters(curproc->tcb, 1, 0, 2, &context);
     ZF_LOGE_IF(err, "Failed to write registers");
     return err == seL4_NoError;
+}
+
+int proc_create(char *appname) {
+    return start_first_process(cs, appname, pep);
 }

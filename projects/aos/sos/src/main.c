@@ -47,6 +47,7 @@
 #include "syscall/file_syscalls.h"
 #include "syscall/vm_syscalls.h"
 #include "syscall/time_syscalls.h"
+#include "syscall/proc_syscalls.h"
 
 #include <aos/vsyscall.h>
 
@@ -268,14 +269,6 @@ NORETURN void *main_continued(UNUSED void *arg)
                  badge_irq_ntfn(ntfn, IRQ_BADGE_NETWORK_TICK),
                  timer_vaddr);
 
-    /*printf("Serial init\n");
-    serial_port = serial_init();
-    serial_register_handler(serial_port, handler);
-    stream_buf sb;
-    bufferInit(sb, 1024, char);
-    sb_ptr = &sb;
-    */
-
     printf("Starting timers\n");
     start_timer(&cspace, badge_irq_ntfn(ntfn, IRQ_BADGE_TIMER), timer_vaddr);
 
@@ -283,7 +276,6 @@ NORETURN void *main_continued(UNUSED void *arg)
     shared_buf_init(&cspace);
     vfs_bootstrap();
     pager_bootstrap();
-
 
     /* Start the user application */
     printf("Start first process\n");

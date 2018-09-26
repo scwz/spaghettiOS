@@ -47,3 +47,4 @@ struct proc {
 struct proc procs[MAX_PROCESSES];
 
 bool start_first_process(cspace_t *cspace, char *app_name, seL4_CPtr ep);
+int proc_create(char *appname);

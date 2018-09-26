@@ -118,7 +118,12 @@ int sos_stat(const char *path, sos_stat_t *buf)
 pid_t sos_process_create(const char *path)
 {
     seL4_MessageInfo_t tag = seL4_MessageInfo_new(0, 0, 0, 2);
-    seL4_SetMR(0, )
+    seL4_SetMR(0, SOS_PROC_CREATE);
+
+    size_t nbytes = user_copyin(path, strlen(path));
+    seL4_SetMR(1, nbytes);
+    seL4_Call(SOS_IPC_EP_CAP, tag);
+
     return -1;
 }
 
