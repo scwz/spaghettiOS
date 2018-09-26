@@ -28,6 +28,11 @@
 #define SOS_SYS_TIME_STAMP 7
 #define SOS_SYS_GETDIRENT  8
 #define SOS_SYS_STAT       9
+#define SOS_PROC_CREATE    10
+#define SOS_PROC_DELETE    11
+#define SOS_PROC_MY_ID     12
+#define SOS_PROC_STATUS    13
+#define SOS_PROC_WAIT      14
 
 /* Endpoint for talking to SOS */
 #define SOS_IPC_EP_CAP     (0x1)

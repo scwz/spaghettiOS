@@ -80,7 +80,12 @@ static int (*syscall_table[])(void) = {
     syscall_usleep,
     syscall_time_stamp,
     syscall_getdirent,
-    syscall_stat
+    syscall_stat,
+    syscall_proc_create,
+    syscall_proc_delete,
+    syscall_proc_my_id,
+    syscall_proc_status,
+    syscall_proc_wait
 };
 
 //void handle_syscall(UNUSED seL4_Word badge, UNUSED int num_args)
@@ -103,7 +108,7 @@ void handle_syscall(void)
     seL4_Error err = cspace_save_reply_cap(&cspace, reply);
     ZF_LOGF_IFERR(err, "Failed to save reply");
 
-    if (syscall_number > 0 && syscall_number < 10) {
+    if (syscall_number > 0 && syscall_number < 15) {
         int nwords = syscall_table[syscall_number]();
         seL4_MessageInfo_t reply_msg = seL4_MessageInfo_new(0, 0, 0, nwords);
         seL4_Send(reply, reply_msg);
@@ -113,125 +118,6 @@ void handle_syscall(void)
     }
 
     cspace_free_slot(&cspace, reply);
-#if 0
-    /* Process system call */
-    switch (syscall_number) {
-    case SOS_SYS_WRITE:
-        ZF_LOGV("syscall: thread called sys_write (1)\n");
-        // get data from message registers
-        size_t nbyte = seL4_GetMR(2);
-        int fd = seL4_GetMR(1);
-        printf("%d, %d, %s", nbyte, fd, shared_buf);
-        if(fd < 3 && fd > 0){
-            fd = 3;
-        }
-        struct vnode * vn = curproc->fdt->openfiles[fd]; 
-        struct uio * u = malloc(sizeof(struct uio));
-        uio_init(u, WRITE, nbyte);
-        size_t bytes_written = VOP_WRITE(vn, u);
-        free(u);
-        seL4_SetMR(0, bytes_written);
-        /* send back the number of bytes transmitted */
-        reply_msg = seL4_MessageInfo_new(0, 0, 0, 1);
-        seL4_Send(reply, reply_msg);
-        cspace_free_slot(&cspace, reply);
-        break;
-    case SOS_SYS_READ:
-        ZF_LOGV("syscall: thread called sys_read (2)\n");
-        // get data from message registers
-        nbyte = seL4_GetMR(2);
-        vn = curproc->fdt->openfiles[seL4_GetMR(1)]; 
-        assert(vn);
-        u = malloc(sizeof(struct uio));
-        uio_init(u, READ, nbyte);
-        size_t bytes_read = VOP_READ(vn, u);
-        free(u);
-        seL4_SetMR(0, bytes_read);
-        /* send back the number of bytes transmitted */
-        reply_msg = seL4_MessageInfo_new(0, 0, 0, 1);
-        seL4_Send(reply, reply_msg);
-        cspace_free_slot(&cspace, reply);
-        break;
-    case SOS_SYS_OPEN:
-        ZF_LOGV("syscall: thread called sys_open (3)\n");
-        fmode_t mode = seL4_GetMR(1);
-        struct vnode *res;
-        vfs_lookup(seL4_GetIPCBuffer()->msg + 2, &res); 
-        VOP_EACHOPEN(res, 0);
-        bool full = true;
-        for(unsigned int i = 3; i < 8; i ++){
-            if(curproc->fdt->openfiles[i] == NULL){
-                curproc->fdt->openfiles[i] = res;
-                seL4_SetMR(0, 0);
-                seL4_SetMR(1, i);
-                full = false;
-                printf("i: %d\n", i);
-                break;
-            }
-        } 
-        if(full){
-            seL4_SetMR(0, 1);
-        }
-        reply_msg = seL4_MessageInfo_new(0, 0, 0, 2);
-        printf("i : %d\n", seL4_GetMR(1));
-        seL4_Send(reply, reply_msg);
-        cspace_free_slot(&cspace, reply);
-        break;
-    case SOS_SYS_CLOSE:
-        ZF_LOGV("syscall: thread called sys_close (4)\n");
-        break;
-    case SOS_SYS_BRK:
-        ZF_LOGV("syscall: thread called sys_brk (5)\n");
-
-        seL4_Word newbrk = seL4_GetMR(1);
-
-        seL4_Word hbase = curproc->as->heap->vbase;
-        if (newbrk >= PROCESS_HEAP_BASE) {
-            hbase = newbrk;
-        }
-        reply_msg = seL4_MessageInfo_new(0, 0, 0, 2);
-        seL4_SetMR(0, 0);
-        seL4_SetMR(1, hbase);
-        seL4_Send(reply, reply_msg);
-
-        cspace_free_slot(&cspace, reply);
-        break;
-    case SOS_SYS_USLEEP:
-        ZF_LOGV("syscall: thread called sys_usleep (6)\n");
-        
-        int msec = seL4_GetMR(1);
-
-        seL4_CPtr* reply_cap = malloc(sizeof(seL4_CPtr));
-        *reply_cap = reply;
-
-        int timer = register_timer(msec, ONE_SHOT, &usleep_handler, reply_cap);
-        printf("timer %ld, %d, %ld", timer, msec, *reply_cap);
-        if(!timer){
-            ZF_LOGE("Timer failed to initialize %lu\n", syscall_number);
-            reply_msg = seL4_MessageInfo_new(0, 0, 0, 1);
-            seL4_SetMR(0, -1); //error
-            seL4_Send(reply, reply_msg);
-            cspace_free_slot(&cspace, reply);
-        }
-        
-        break;
-    case SOS_SYS_TIME_STAMP:
-        ZF_LOGV("syscall: thread called sys_time_stamp (7)\n");
-
-        int64_t time = get_time();
-
-        reply_msg = seL4_MessageInfo_new(0, 0, 0, 1);
-        seL4_SetMR(0, time);
-        seL4_Send(reply, reply_msg);
-
-        cspace_free_slot(&cspace, reply);
-        break;
-    default:
-        ZF_LOGE("Unknown syscall %lu\n", syscall_number);
-        cspace_free_slot(&cspace, reply);
-        /* don't reply to an unknown syscall */
-    }
-#endif
 }
 
 NORETURN void syscall_loop(seL4_CPtr ep)
