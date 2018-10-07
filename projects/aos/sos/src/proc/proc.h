@@ -20,12 +20,13 @@
 #define TTY_EP_BADGE         (101)
 
 // for now we can use this as is since theres only 1 process
-#define curproc (&procs[0])
+#define curproc (procs[0])
 
-#define MAX_PROCESSES 1
+#define MAX_PROCESSES 32
 
 /* the one process we start */
 struct proc {
+    pid_t pid;
     ut_t *tcb_ut;
     seL4_CPtr tcb;
     ut_t *vspace_ut;
@@ -44,7 +45,7 @@ struct proc {
     struct filetable *fdt;
 };
 
-struct proc procs[MAX_PROCESSES];
-
-bool start_first_process(cspace_t *cspace, char *app_name, seL4_CPtr ep);
-int proc_create(char *appname);
+struct proc *procs[MAX_PROCESSES];
+bool proc_bootstrap(cspace_t *cspace, seL4_CPtr ep);
+bool proc_start(char *app_name);
+struct proc *proc_create(void);

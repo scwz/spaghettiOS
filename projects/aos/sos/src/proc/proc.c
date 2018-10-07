@@ -10,9 +10,11 @@
 #include "proc.h"
 #include "../vm/vmem_layout.h"
 
+
 extern char _cpio_archive[];
-static cspace_t *cs;
-static seL4_CPtr pep;
+static cspace_t *cspace;
+static seL4_CPtr ep; //endpoint
+static pid_t curr_pid = 0;
 
 static int stack_write(seL4_Word *mapped_stack, int index, uintptr_t val)
 {
@@ -22,11 +24,11 @@ static int stack_write(seL4_Word *mapped_stack, int index, uintptr_t val)
 
 /* set up System V ABI compliant stack, so that the process can
  * start up and initialise the C library */
-static uintptr_t init_process_stack(cspace_t *cspace, seL4_CPtr local_vspace, char *elf_file)
+static uintptr_t init_process_stack(struct proc *proc, seL4_CPtr local_vspace, char *elf_file)
 {
     /* Create a stack frame */
-    curproc->stack_ut = alloc_retype(cspace, &curproc->stack, seL4_ARM_SmallPageObject, seL4_PageBits);
-    if (curproc->stack_ut == NULL) {
+    proc->stack_ut = alloc_retype(cspace, &proc->stack, seL4_ARM_SmallPageObject, seL4_PageBits);
+    if (proc->stack_ut == NULL) {
         ZF_LOGE("Failed to allocate stack");
         return 0;
     }
@@ -46,7 +48,7 @@ static uintptr_t init_process_stack(cspace_t *cspace, seL4_CPtr local_vspace, ch
     }
 
     /* Map in the stack frame for the user app */
-    seL4_Error err = map_frame(cspace, curproc->stack, curproc->vspace, stack_bottom,
+    seL4_Error err = map_frame(cspace, proc->stack, proc->vspace, stack_bottom,
                                seL4_AllRights, seL4_ARM_Default_VMAttributes);
     if (err != 0) {
         ZF_LOGE("Unable to map stack for user app");
@@ -61,7 +63,7 @@ static uintptr_t init_process_stack(cspace_t *cspace, seL4_CPtr local_vspace, ch
     }
 
     /* copy the stack frame cap into the slot */
-    err = cspace_copy(cspace, local_stack_cptr, cspace, curproc->stack, seL4_AllRights);
+    err = cspace_copy(cspace, local_stack_cptr, cspace, proc->stack, seL4_AllRights);
     if (err != seL4_NoError) {
         cspace_free_slot(cspace, local_stack_cptr);
         ZF_LOGE("Failed to copy cap");
@@ -125,48 +127,66 @@ static uintptr_t init_process_stack(cspace_t *cspace, seL4_CPtr local_vspace, ch
     return stack_top;
 }
 
+static pid_t find_next_pid(void) {
+    pid_t pid = 0;
+    do {
+        if (procs[pid] == NULL) {
+            return pid;
+        }
+        pid++;
+    } while(pid != curr_pid);
+
+    return -1;
+}
+
+bool proc_bootstrap(cspace_t *cs, seL4_CPtr pep) {
+    cspace = cs;
+    ep = pep;
+
+    proc_start("sosh");
+    return true;
+}
+
 /* Start the first process, and return true if successful
  *
  * This function will leak memory if the process does not start successfully.
  * TODO: avoid leaking memory once you implement real processes, otherwise a user
  *       can force your OS to run out of memory by creating lots of failed processes.
  */
-bool start_first_process(cspace_t *cspace, char* app_name, seL4_CPtr ep)
+bool proc_start(char* app_name)
 {
-    if (cs == NULL) {
-        cs = cspace;
-    }
-    if (pep == NULL) {
-        pep = ep;
-    }
-    curproc->as = as_create();
-    curproc->fdt = fdt_create();
+    struct proc *new = proc_create();
+    pid_t pid = find_next_pid();
+    procs[pid] = new;
+
+    new->as = as_create();
+    new->fdt = fdt_create();
 
     /* Create a VSpace */
-    curproc->vspace_ut = alloc_retype(cspace, &curproc->vspace, seL4_ARM_PageGlobalDirectoryObject,
+    new->vspace_ut = alloc_retype(cspace, &new->vspace, seL4_ARM_PageGlobalDirectoryObject,
                                               seL4_PGDBits);
-    if (curproc->vspace_ut == NULL) {
+    if (new->vspace_ut == NULL) {
         return false;
     }
 
     /* assign the vspace to an asid pool */
-    seL4_Word err = seL4_ARM_ASIDPool_Assign(seL4_CapInitThreadASIDPool, curproc->vspace);
+    seL4_Word err = seL4_ARM_ASIDPool_Assign(seL4_CapInitThreadASIDPool, new->vspace);
     if (err != seL4_NoError) {
         ZF_LOGE("Failed to assign asid pool");
         return false;
     }
 
     /* Create a simple 1 level CSpace */
-    err = cspace_create_one_level(cspace, &curproc->cspace);
+    err = cspace_create_one_level(cspace, &new->cspace);
     if (err != CSPACE_NOERROR) {
         ZF_LOGE("Failed to create cspace");
         return false;
     }
 
     /* Create an IPC buffer */
-    curproc->ipc_buffer_ut = alloc_retype(cspace, &curproc->ipc_buffer, seL4_ARM_SmallPageObject,
+    new->ipc_buffer_ut = alloc_retype(cspace, &new->ipc_buffer, seL4_ARM_SmallPageObject,
                                                   seL4_PageBits);
-    if (curproc->ipc_buffer_ut == NULL) {
+    if (new->ipc_buffer_ut == NULL) {
         ZF_LOGE("Failed to alloc ipc buffer ut");
         return false;
     }
@@ -174,45 +194,45 @@ bool start_first_process(cspace_t *cspace, char* app_name, seL4_CPtr ep)
     /* allocate a new slot in the target cspace which we will mint a badged endpoint cap into --
      * the badge is used to identify the process, which will come in handy when you have multiple
      * processes. */
-    seL4_CPtr user_ep = cspace_alloc_slot(&curproc->cspace);
+    seL4_CPtr user_ep = cspace_alloc_slot(&new->cspace);
     if (user_ep == seL4_CapNull) {
         ZF_LOGE("Failed to alloc user ep slot");
         return false;
     }
 
     /* now mutate the cap, thereby setting the badge */
-    err = cspace_mint(&curproc->cspace, user_ep, cspace, ep, seL4_AllRights, TTY_EP_BADGE);
+    err = cspace_mint(&new->cspace, user_ep, cspace, ep, seL4_AllRights, TTY_EP_BADGE);
     if (err) {
         ZF_LOGE("Failed to mint user ep");
         return false;
     }
 
     /* Create a new TCB object */
-    curproc->tcb_ut = alloc_retype(cspace, &curproc->tcb, seL4_TCBObject, seL4_TCBBits);
-    if (curproc->tcb_ut == NULL) {
+    new->tcb_ut = alloc_retype(cspace, &new->tcb, seL4_TCBObject, seL4_TCBBits);
+    if (new->tcb_ut == NULL) {
         ZF_LOGE("Failed to alloc tcb ut");
         return false;
     }
 
     /* Configure the TCB */
-    err = seL4_TCB_Configure(curproc->tcb, user_ep,
-                             curproc->cspace.root_cnode, seL4_NilData,
-                             curproc->vspace, seL4_NilData, PROCESS_IPC_BUFFER,
-                             curproc->ipc_buffer);
+    err = seL4_TCB_Configure(new->tcb, user_ep,
+                             new->cspace.root_cnode, seL4_NilData,
+                             new->vspace, seL4_NilData, PROCESS_IPC_BUFFER,
+                             new->ipc_buffer);
     if (err != seL4_NoError) {
         ZF_LOGE("Unable to configure new TCB");
         return false;
     }
 
     /* Set the priority */
-    err = seL4_TCB_SetPriority(curproc->tcb, seL4_CapInitThreadTCB, TTY_PRIORITY);
+    err = seL4_TCB_SetPriority(new->tcb, seL4_CapInitThreadTCB, TTY_PRIORITY);
     if (err != seL4_NoError) {
         ZF_LOGE("Unable to set priority of new TCB");
         return false;
     }
 
     /* Provide a name for the thread -- Helpful for debugging */
-    NAME_THREAD(curproc->tcb, app_name);
+    NAME_THREAD(new->tcb, app_name);
 
     /* parse the cpio image */
     ZF_LOGI( "\nStarting \"%s\"...\n", app_name);
@@ -224,33 +244,32 @@ bool start_first_process(cspace_t *cspace, char* app_name, seL4_CPtr ep)
     }
 
     /* set up the stack */
-    seL4_Word sp = init_process_stack(cspace, seL4_CapInitThreadVSpace, elf_base);
-    //seL4_Word sp;
+    seL4_Word sp = init_process_stack(new, seL4_CapInitThreadVSpace, elf_base);
     
     /* load the elf image from the cpio file */
-    err = elf_load(cspace, seL4_CapInitThreadVSpace, curproc->vspace, elf_base);
+    err = elf_load(cspace, seL4_CapInitThreadVSpace, new->vspace, elf_base);
     if (err) {
         ZF_LOGE("Failed to load elf image");
         return false;
     }
     
     // setup/create region for stack
-    as_define_stack(curproc->as);
-    as_define_heap(curproc->as);
+    as_define_stack(new->as);
+    as_define_heap(new->as);
 
-    as_define_region(curproc->as, PROCESS_SHARED_BUF_TOP - PAGE_SIZE_4K * SHARED_BUF_PAGES, PAGE_SIZE_4K * SHARED_BUF_PAGES, READ | WRITE);
+    as_define_region(new->as, PROCESS_SHARED_BUF_TOP - PAGE_SIZE_4K * SHARED_BUF_PAGES, PAGE_SIZE_4K * SHARED_BUF_PAGES, READ | WRITE);
     //map buffer
     sos_map_buf();
 
     /* Map in the IPC buffer for the thread */
-    err = map_frame(cspace, curproc->ipc_buffer, curproc->vspace, PROCESS_IPC_BUFFER,
+    err = map_frame(cspace, new->ipc_buffer, new->vspace, PROCESS_IPC_BUFFER,
                     seL4_AllRights, seL4_ARM_Default_VMAttributes);
     if (err != 0) {
         ZF_LOGE("Unable to map IPC buffer for user app");
         return false;
     }
     // setup region for ipc buffer
-    as_define_region(curproc->as, PROCESS_IPC_BUFFER, PAGE_SIZE_4K, READ | WRITE);
+    as_define_region(new->as, PROCESS_IPC_BUFFER, PAGE_SIZE_4K, READ | WRITE);
     
     /* Start the new process */
     seL4_UserContext context = {
@@ -258,11 +277,12 @@ bool start_first_process(cspace_t *cspace, char* app_name, seL4_CPtr ep)
         .sp = sp,
     };
     printf("Starting %s at %p\n", app_name, (void *) context.pc);
-    err = seL4_TCB_WriteRegisters(curproc->tcb, 1, 0, 2, &context);
+    err = seL4_TCB_WriteRegisters(new->tcb, 1, 0, 2, &context);
     ZF_LOGE_IF(err, "Failed to write registers");
     return err == seL4_NoError;
 }
 
-int proc_create(char *appname) {
-    return start_first_process(cs, appname, pep);
+struct proc *proc_create(void) {
+    struct proc *new = malloc(sizeof(struct proc));
+    return new;
 }

@@ -8,7 +8,7 @@ int syscall_proc_create(void) {
     size_t nbytes = seL4_GetMR(1);
     char path[nbytes];
     sos_copyout(path, nbytes);
-    proc_create(path);
+    proc_start(path);
     return 0;
 }
 

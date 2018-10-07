@@ -106,7 +106,7 @@ static int cp(int argc, char **argv)
 {
     int fd, fd_out;
     char *file1, *file2;
-    char buf[BUF_SZ];
+    char buf[2600 * 4096];
     int num_read, num_written = 0;
 
     if (argc != 3) {

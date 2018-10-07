@@ -279,7 +279,7 @@ NORETURN void *main_continued(UNUSED void *arg)
 
     /* Start the user application */
     printf("Start first process\n");
-    bool success = start_first_process(&cspace, TTY_NAME, ipc_ep);
+    bool success = proc_bootstrap(&cspace, ipc_ep);
     ZF_LOGF_IF(!success, "Failed to start first process");
     printf("\nSOS entering syscall loop\n");
     syscall_loop(ipc_ep);
