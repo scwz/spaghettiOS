@@ -130,6 +130,15 @@ int pagein(seL4_Word entry, seL4_Word kernel_vaddr){
     return 0;
 }
 
+
+int pagefile_remove(seL4_Word entry){
+    if(entry > pf_list->size){ //simple error check
+        return -1;
+    }
+    add_free_list(entry);
+    return 0;
+}
+
 void pager_bootstrap(void) {
     pf_list = malloc(sizeof(struct pagefile_list));
     pf_list->size = 0;
