@@ -177,6 +177,8 @@ void page_table_destroy(struct page_table * page_table, cspace_t * cspace){
         frame = frame->nextframe;
         frame_free(vaddr_to_page_num(&(tmpframe)));
     }
+    frame_free(vaddr_to_page_num(&(page_table->pgd)));
+    frame_free(vaddr_to_page_num(&(page_table)));
 }
 
 void save_seL4_info(struct page_table* page_table, ut_t * ut, seL4_CPtr slot){
