@@ -261,6 +261,7 @@ vnfs_read(struct vnode *v, struct uio *uio)
 {
 	struct nfs_data * d = malloc(sizeof(struct nfs_data));
 	struct vnode_nfs_data * vnode_dat = v->vn_data;
+	printf("uio: %lu\n", uio->len);
 	if(nfs_pread_async(nfs, vnode_dat->nfsfh, uio->offset, uio->len, nfs_read_cb, d)){
 		free(d);
 		return -1;
