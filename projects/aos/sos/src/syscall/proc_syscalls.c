@@ -17,18 +17,26 @@ int syscall_proc_create(void) {
 }
 
 int syscall_proc_delete(void) {
-    return 0;
+    pid_t pid = seL4_GetMR(1);
+
+    seL4_SetMR(0, -1);
+    return 1;
 }
 
 int syscall_proc_my_id(void) {
-    return 0;
+    seL4_SetMR(0, curproc->pid);
+    return 1;
 }
 
 int syscall_proc_status(void) {
-    return 0;
+    seL4_SetMR(0, -1);
+    return 1;
 }
 
 int syscall_proc_wait(void) {
-    return 0;
+    pid_t pid = seL4_GetMR(1);
+
+    seL4_SetMR(0, -1);
+    return 1;
 }
 

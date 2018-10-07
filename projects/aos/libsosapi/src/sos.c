@@ -129,27 +129,46 @@ pid_t sos_process_create(const char *path)
 
 int sos_process_delete(pid_t pid)
 {
-    assert(!"sos_process_delete not implemented!");
-    return -1;
+    seL4_MessageInfo_t tag = seL4_MessageInfo_new(0, 0, 0, 2);
+    seL4_SetMR(0, SOS_PROC_DELETE);
+    seL4_SetMR(1, pid);
+    seL4_Call(SOS_IPC_EP_CAP, tag);
+
+    return seL4_GetMR(0);
 }
 
 pid_t sos_my_id(void)
 {
-    assert(!"sos_my_id not implemented!");
-    return -1;
+    seL4_MessageInfo_t tag = seL4_MessageInfo_new(0, 0, 0, 1);
+    seL4_SetMR(0, SOS_PROC_MY_ID);
+    seL4_Call(SOS_IPC_EP_CAP, tag);
+
+    return seL4_GetMR(0);
 
 }
 
 int sos_process_status(sos_process_t *processes, unsigned max)
 {
-    assert(!"sos_process_status not implemented!");
-    return -1;
+    seL4_MessageInfo_t tag = seL4_MessageInfo_new(0, 0, 0, 1);
+    seL4_SetMR(0, SOS_PROC_STATUS);
+    seL4_Call(SOS_IPC_EP_CAP, tag);
+
+    user_copyout(processes, sizeof(processes));
+    if(seL4_GetMR(0)){
+        return seL4_GetMR(0);
+    }
+
+    return seL4_GetMR(0);
 }
 
 pid_t sos_process_wait(pid_t pid)
 {
-    assert(!"sos_process_wait not implemented!");
-    return -1;
+    seL4_MessageInfo_t tag = seL4_MessageInfo_new(0, 0, 0, 2);
+    seL4_SetMR(0, SOS_PROC_WAIT);
+    seL4_SetMR(1, pid);
+    seL4_Call(SOS_IPC_EP_CAP, tag);
+
+    return seL4_GetMR(0);
 
 }
 

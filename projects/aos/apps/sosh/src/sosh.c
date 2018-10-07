@@ -179,22 +179,25 @@ static int exec(int argc, char **argv)
         bg = 1;
     }
 
-    if (bg == 0) {
+    /*if (bg == 0) {
         r = close(in);
         assert(r == 0);
-    }
+    }*/
 
     pid = sos_process_create(argv[1]);
-    if (pid >= 0) {
+    if (pid > 0) {
         printf("Child pid=%d\n", pid);
         if (bg == 0) {
+            r = close(in);
+            assert(r == 0);
             sos_process_wait(pid);
         }
     } else {
         printf("Failed!\n");
     }
-    if (bg == 0) {
-        in = open("console", O_RDONLY);
+
+    if (bg == 0 && pid > 0) {
+        in = open("console", FM_READ | FM_WRITE);
         assert(in >= 0);
     }
     return 0;
