@@ -10,10 +10,12 @@
 #include "../vfs/device_vops.h"
 #include "../proc/proc.h"
 
+#define BUFFER_SIZE 8192
+
 static struct serial *serial;
 static coro curr;
-char buffer[8192];
-static int nbytes_read = 0;
+char buffer[BUFFER_SIZE];
+static size_t nbytes_read = 0;
 static int reading = 1;
 
 static void console_handler(struct serial *serial, char c) {
@@ -58,9 +60,8 @@ int console_read(struct uio *uio) {
     reading = 1;
 	curr = get_running();
     yield(NULL);
-
-	char msg[uio->len];
-	unsigned int i = 0;
+	char msg[BUFFER_SIZE];
+	size_t i = 0;
     while (i < uio->len && i < nbytes_read) {
         msg[i] = buffer[i];
         i++;
