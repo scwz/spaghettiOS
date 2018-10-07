@@ -8,8 +8,12 @@ int syscall_proc_create(void) {
     size_t nbytes = seL4_GetMR(1);
     char path[nbytes];
     sos_copyout(path, nbytes);
-    proc_start(path);
-    return 0;
+    path[nbytes] = '\0';
+
+    pid_t pid = proc_start(path);
+    seL4_SetMR(0, pid);
+
+    return 1;
 }
 
 int syscall_proc_delete(void) {

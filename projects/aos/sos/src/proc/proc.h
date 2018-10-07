@@ -47,5 +47,5 @@ struct proc {
 
 struct proc *procs[MAX_PROCESSES];
 bool proc_bootstrap(cspace_t *cspace, seL4_CPtr ep);
-bool proc_start(char *app_name);
+pid_t proc_start(char *app_name);
 struct proc *proc_create(void);

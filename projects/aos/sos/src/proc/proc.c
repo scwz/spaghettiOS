@@ -128,12 +128,13 @@ static uintptr_t init_process_stack(struct proc *proc, seL4_CPtr local_vspace, c
 }
 
 static pid_t find_next_pid(void) {
-    pid_t pid = 0;
+    pid_t pid = curr_pid;
     do {
         if (procs[pid] == NULL) {
+            curr_pid = pid;
             return pid;
         }
-        pid++;
+        pid = (pid + 1) % MAX_PROCESSES;
     } while(pid != curr_pid);
 
     return -1;
@@ -153,7 +154,7 @@ bool proc_bootstrap(cspace_t *cs, seL4_CPtr pep) {
  * TODO: avoid leaking memory once you implement real processes, otherwise a user
  *       can force your OS to run out of memory by creating lots of failed processes.
  */
-bool proc_start(char* app_name)
+pid_t proc_start(char* app_name)
 {
     struct proc *new = proc_create();
     pid_t pid = find_next_pid();
@@ -279,7 +280,7 @@ bool proc_start(char* app_name)
     printf("Starting %s at %p\n", app_name, (void *) context.pc);
     err = seL4_TCB_WriteRegisters(new->tcb, 1, 0, 2, &context);
     ZF_LOGE_IF(err, "Failed to write registers");
-    return err == seL4_NoError;
+    return new->pid;
 }
 
 struct proc *proc_create(void) {

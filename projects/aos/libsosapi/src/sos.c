@@ -124,7 +124,7 @@ pid_t sos_process_create(const char *path)
     seL4_SetMR(1, nbytes);
     seL4_Call(SOS_IPC_EP_CAP, tag);
 
-    return -1;
+    return seL4_GetMR(0);
 }
 
 int sos_process_delete(pid_t pid)
