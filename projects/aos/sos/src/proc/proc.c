@@ -162,6 +162,7 @@ pid_t proc_start(char* app_name)
 
     new->as = as_create();
     new->fdt = fdt_create();
+    new->pid = pid;
 
     /* Create a VSpace */
     new->vspace_ut = alloc_retype(cspace, &new->vspace, seL4_ARM_PageGlobalDirectoryObject,
