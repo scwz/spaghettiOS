@@ -288,3 +288,33 @@ struct proc *proc_create(void) {
     struct proc *new = malloc(sizeof(struct proc));
     return new;
 }
+
+int proc_destroy(pid_t pid){
+    page_table_destroy(procs[pid]->as->pt, cspace);
+    if(proc_wait_wakeup(pid)){
+        return -1;
+    }
+    return 0;
+}
+
+static int proc_wait_wakeup(pid_t pid){
+    struct proc_wait_node* curr = procs[pid]->wait_list;
+    struct proc_wait_node* tmp;
+    while(curr != NULL){
+        //wakeup(curr->pid)
+        tmp = curr;
+        curr = curr->next;
+        free(tmp);
+    }
+}
+
+int proc_wait_list_add(pid_t pid, pid_t pid_to_add){
+    struct proc_wait_node* node = malloc(sizeof(struct proc_wait_node));
+    if(node == NULL){
+        return -1;
+    }
+    node->pid = pid_to_add;
+    node->next = procs[pid]->wait_list;
+    procs[pid]->wait_list = node;
+    return 0;
+}

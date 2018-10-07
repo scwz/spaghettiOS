@@ -24,6 +24,11 @@
 
 #define MAX_PROCESSES 32
 
+struct proc_wait_node {
+    pid_t pid;
+    struct proc_wait_node * next;
+};
+
 /* the one process we start */
 struct proc {
     pid_t pid;
@@ -41,11 +46,18 @@ struct proc {
 
     ut_t *stack_ut;
     seL4_CPtr stack;
-    
+
+    struct proc_wait_node * wait_list;
+
     struct filetable *fdt;
 };
+
+
 
 struct proc *procs[MAX_PROCESSES];
 bool proc_bootstrap(cspace_t *cspace, seL4_CPtr ep);
 pid_t proc_start(char *app_name);
 struct proc *proc_create(void);
+
+int proc_destroy(pid_t pid);
+int proc_wait_list_add(pid_t pid, pid_t pid_to_add);
