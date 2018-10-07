@@ -29,7 +29,7 @@
 
 #define SMALL_BUF_SZ 2
 //#define BUF_SZ 4096
-#define BUF_SZ    6144 * 300
+#define BUF_SZ    6144
 #define MAX_ARGS   32
 
 static int in;
@@ -106,7 +106,7 @@ static int cp(int argc, char **argv)
 {
     int fd, fd_out;
     char *file1, *file2;
-    char buf[5000];
+    char buf[BUF_SZ];
     int num_read, num_written = 0;
 
     if (argc != 3) {

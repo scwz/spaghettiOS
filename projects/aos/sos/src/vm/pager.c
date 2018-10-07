@@ -87,7 +87,7 @@ int pageout(seL4_Word page){
     // get page table entry
     struct frame_table_entry * fte = get_frame(page);
     assert(fte->pid >= 0 && fte->pid <= MAX_PROCESSES);
-    printf("PID: %d, pt: %lx, vaddr: %lx, pn: %ld\n", fte->pid, procs[fte->pid]->as->pt, page_num_to_vaddr(page), page);
+    //printf("PID: %d, pt: %lx, vaddr: %lx, pn: %ld\n", fte->pid, procs[fte->pid]->as->pt, page_num_to_vaddr(page), page);
     struct page_table * pagetable = procs[fte->pid]->as->pt;
     seL4_Word * pte = page_lookup(pagetable, fte->user_vaddr);
     assert(pte);
@@ -95,7 +95,7 @@ int pageout(seL4_Word page){
     size_t ind = next_free_node();
 
     page_update_entry(pte, P_PAGEFILE, ind);
-    printf("pte: %lx, num %lx, ind %lx\n", *pte, page_entry_number(*pte), ind);
+    //printf("pte: %lx, num %lx, ind %lx\n", *pte, page_entry_number(*pte), ind);
     assert(page_entry_number(*pte) == ind);
 
     // write out
@@ -112,7 +112,7 @@ int pageout(seL4_Word page){
 }
 
 int pagein(seL4_Word entry, seL4_Word kernel_vaddr){
-    printf("PAGEIN entry %d, list->size %d\n", entry, pf_list->size);
+    //printf("PAGEIN entry %d, list->size %d\n", entry, pf_list->size);
     if(entry > pf_list->size){ //simple error check
         return -1;
     }

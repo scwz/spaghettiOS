@@ -53,7 +53,7 @@ static ut_t *alloc_retype_map(seL4_CPtr *cptr, uintptr_t *vaddr, uintptr_t *padd
         ut_free(ut, seL4_PageBits);
         return NULL;
     }
-    printf("ut->cap %ld, cptr %ld\n", ut->cap, *cptr);
+    //printf("ut->cap %ld, cptr %ld\n", ut->cap, *cptr);
     seL4_Error err = cspace_untyped_retype(cspace, 
                                             ut->cap, 
                                             *cptr, 
@@ -84,8 +84,8 @@ static ut_t *alloc_retype_map(seL4_CPtr *cptr, uintptr_t *vaddr, uintptr_t *padd
 void frame_table_init(cspace_t *cs) {
     cspace = cs;
     frame_table_curr_size = 0;
-    frame_table_size = 2500; // REMOVE THis AFTER PAGING IS DONE
-    //frame_table_size = 0.8 * (ut_size() / PAGE_SIZE_4K);
+    //frame_table_size = 2500; // REMOVE THis AFTER PAGING IS DONE
+    frame_table_size = 0.8 * (ut_size() / PAGE_SIZE_4K);
     frame_table_pages = BYTES_TO_4K_PAGES(frame_table_size * sizeof(struct frame_table_entry));
     seL4_Word frame_table_vaddr = SOS_FRAME_TABLE;
     seL4_CPtr cap;
@@ -119,8 +119,8 @@ void frame_table_init(cspace_t *cs) {
     
     // test
     assert(frame_table_vaddr);
-    printf("frame_table_vaddr: %lx, value %lx\n", frame_table_vaddr, *(seL4_Word *)frame_table_vaddr);
-    printf("frame_table_size: %lu\n", frame_table_size);
+    //printf("frame_table_vaddr: %lx, value %lx\n", frame_table_vaddr, *(seL4_Word *)frame_table_vaddr);
+    //printf("frame_table_size: %lu\n", frame_table_size);
     
     clock_curr = 0;
 }
@@ -143,7 +143,7 @@ seL4_Word frame_alloc_important(seL4_Word *vaddr){
     if(frame_table_curr_size == frame_table_size){ 
         // go around the frametable
         while(frame_table[clock_curr].ref_bit){
-            printf("clock_curr: %ld\n", clock_curr);
+            //printf("clock_curr: %ld\n", clock_curr);
             if(!frame_table[clock_curr].important || frame_table[clock_curr].pid <= MAX_PROCESSES){
                 frame_table[clock_curr].ref_bit = false;
                 if(frame_table[clock_curr].user_cap != seL4_CapNull){
@@ -187,7 +187,7 @@ seL4_Word frame_alloc(seL4_Word *vaddr) {
     if(frame_table_curr_size == frame_table_size){ 
         // go around the frametable
         while(frame_table[clock_curr].ref_bit){
-            printf("clock_curr: %ld\n", clock_curr);
+            //printf("clock_curr: %ld\n", clock_curr);
             if(!frame_table[clock_curr].important || frame_table[clock_curr].pid <= MAX_PROCESSES){
                 frame_table[clock_curr].ref_bit = false;
                 if(frame_table[clock_curr].user_cap != seL4_CapNull){
@@ -219,7 +219,7 @@ seL4_Word frame_alloc(seL4_Word *vaddr) {
     frame_table[page].ref_bit = 1;
     next_free_page = frame_table[page].next_free_page;
     frame_table_curr_size++;
-    printf("framealloc PAGE: %ld, SIZE: %ld, cap: %ld\n", page, frame_table_curr_size, cap);
+    //printf("framealloc PAGE: %ld, SIZE: %ld, cap: %ld\n", page, frame_table_curr_size, cap);
     return page;
 }
 
@@ -229,7 +229,7 @@ void frame_free(seL4_Word page) {
         return;
     }
     if(frame_table[page].cap == seL4_CapNull){
-        printf("%ld\n", page);
+        //printf("%ld\n", page);
     }
     assert(frame_table[page].cap != seL4_CapNull);
     //printf("freeing page %ld\n", page);
@@ -253,7 +253,7 @@ void frame_free(seL4_Word page) {
     frame_table[page].user_vaddr = 0;
     frame_table[page].pid = -1;
     
-    printf("page free: %ld\n", page);
+    //printf("page free: %ld\n", page);
     frame_table_curr_size--;
     next_free_page = page;
 }
