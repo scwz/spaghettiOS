@@ -134,6 +134,50 @@ int page_table_remove(struct page_table* page_table, seL4_Word vaddr) {
     *page = 0;
     return 0;
 }
+void page_table_destroy(struct page_table * page_table, cspace_t * cspace){
+    struct pgd * pgd = page_table->pgd;
+    for(int i = 0; i < PAGE_INDEX_SIZE; i++){
+        if(pgd->pud[i] != NULL){
+            for(int j = 0; j < PAGE_INDEX_SIZE; j++){
+                if(pgd->pud[i]->pd[j] != NULL){
+                    for(int k = 0; k < PAGE_INDEX_SIZE; k++){
+                        if(pgd->pud[i]->pd[j]->pt[k] != NULL){
+                            for(int l = 0; l < PAGE_INDEX_SIZE; l++){
+                                seL4_Word * pte = &(pgd->pud[i]->pd[j]->pt[k]->page[l]);
+                                seL4_Word entry = page_entry_number(*pte);
+                                seL4_Word bits = page_get_bits(*pte);
+                                if(P_INVALID & bits){
+                                    continue;
+                                } else if (P_PAGEFILE & bits){
+                                    pagefile_remove(entry);
+                                } else {
+                                    frame_free(entry);
+                                }
+                            }
+                            frame_free(vaddr_to_page_num(&(pgd->pud[i]->pd[j]->pt[k])));
+                        }
+                    }
+                    frame_free(vaddr_to_page_num(&(pgd->pud[i]->pd[j])));
+                }
+            }
+            frame_free(vaddr_to_page_num(&(pgd->pud[i])));
+        }
+    }
+    struct seL4_page_objects_frame* frame;
+    struct seL4_page_objects_frame* tmpframe;
+    frame = page_table->seL4_pages;
+    while (frame!= NULL ){
+        for(int i = 0; i < 253; i++){
+            struct seL4_page_objects object = frame->page_objects[i];
+            cspace_delete(cspace, object.cap);
+            cspace_free_slot(cspace, object.cap);
+            ut_free(object.ut, PAGE_BITS_4K);
+        }
+        tmpframe = frame;
+        frame = frame->nextframe;
+        frame_free(vaddr_to_page_num(&(tmpframe)));
+    }
+}
 
 void save_seL4_info(struct page_table* page_table, ut_t * ut, seL4_CPtr slot){
     struct seL4_page_objects_frame* frame;

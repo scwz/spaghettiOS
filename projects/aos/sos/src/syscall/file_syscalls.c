@@ -72,11 +72,11 @@ int syscall_open(void) {
     struct vnode *res;
     char path[size];
     sos_copyout(path, size);
+    printf("OPENING %s\n", path);
     if(vfs_lookup(path, &res)){
         seL4_SetMR(0, 1);
         return 1;
     } 
-    printf("OPENING\n");
     if(VOP_EACHOPEN(res, mode)){
         seL4_SetMR(0, 1);
         return 1;

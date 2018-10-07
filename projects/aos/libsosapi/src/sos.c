@@ -42,8 +42,8 @@ int sos_sys_open(const char *path, fmode_t mode)
     seL4_MessageInfo_t tag = seL4_MessageInfo_new(0, 0, 0, 3);
     seL4_SetMR(0, SOS_SYS_OPEN);
     seL4_SetMR(1, mode);
-    seL4_SetMR(2, strlen(path));
-    user_copyin(path, strlen(path));
+    seL4_SetMR(2, strlen(path)+1);
+    user_copyin(path, strlen(path)+1);
     seL4_Call(SOS_IPC_EP_CAP, tag);
 
     if(seL4_GetMR(0)){
@@ -105,7 +105,7 @@ int sos_stat(const char *path, sos_stat_t *buf)
 {
     seL4_MessageInfo_t tag = seL4_MessageInfo_new(0, 0, 0, 2);
     seL4_SetMR(0, SOS_SYS_STAT);
-    size_t nbyte = user_copyin(path, strlen(path));
+    size_t nbyte = user_copyin(path, strlen(path)+1);
     seL4_SetMR(1, nbyte);
     seL4_Call(SOS_IPC_EP_CAP, tag);
     if(seL4_GetMR(0)){
@@ -120,7 +120,7 @@ pid_t sos_process_create(const char *path)
     seL4_MessageInfo_t tag = seL4_MessageInfo_new(0, 0, 0, 2);
     seL4_SetMR(0, SOS_PROC_CREATE);
 
-    size_t nbytes = user_copyin(path, strlen(path));
+    size_t nbytes = user_copyin(path, strlen(path)+1);
     seL4_SetMR(1, nbytes);
     seL4_Call(SOS_IPC_EP_CAP, tag);
 

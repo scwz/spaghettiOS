@@ -69,7 +69,7 @@ int page_table_insert(struct page_table * page_table, seL4_Word vaddr, seL4_Word
 
 int page_table_invalidate(struct page_table * page_table, seL4_Word vaddr);
 
-void page_table_destroy(struct page_table * page_table);
+void page_table_destroy(struct page_table * page_table, cspace_t *cspace);
 
 seL4_Word page_entry_number(seL4_Word page);
 
