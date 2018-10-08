@@ -25,6 +25,9 @@
 #include "proc/proc.h"
 #include "vm/address_space.h"
 
+#include "vfs/vfs.h"
+#include "vfs/vnode.h"
+#include <sos.h>
 /*
  * Convert ELF permissions into seL4 permissions.
  */
@@ -287,4 +290,29 @@ int elf_load(cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr loadee_vspace,
     }
 
     return 0;
+}
+
+int elf_load_fs(cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr loadee_vspace, char *path){
+    struct vnode * vn;
+    if(VOP_LOOKUP(root, path, vn, 0)){
+        return -1;
+    }
+    assert(vn);
+    sos_stat_t buf;
+    VOP_STAT(vn, &buf);
+    size_t file_size = buf.st_size;
+    char elf_file[file_size];
+    size_t bytes_to_read = file_size;
+    size_t offset = 0;
+
+    struct uio * u = malloc(sizeof(struct uio));
+    uio_init(u, UIO_READ, 0, 0);
+    while(bytes_to_read){
+        u->len = bytes_to_read;
+        size_t bytes_read = VOP_READ(vn, u);
+        bytes_to_read -= bytes_read;
+        offset += bytes_read;
+    }
+
+    return elf_load(cspace, loader_vspace, loadee_vspace, elf_file);
 }

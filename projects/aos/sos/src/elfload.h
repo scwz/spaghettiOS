@@ -17,3 +17,6 @@
 #include <elf.h>
 
 int elf_load(cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr loadee_vspace, char *elf_file);
+
+// cannot use before vfs_boostrap and frametable bootstrap
+int elf_load_fs(cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr loadee_vspace, char *path);
