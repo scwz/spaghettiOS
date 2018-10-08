@@ -319,7 +319,7 @@ static int vnfs_stat(struct vnode *v, void * statbuf){
 	return ret;
 }
 
-static int vnfs_lookup(struct vnode *dir, char *pathname, struct vnode **result){
+static int vnfs_lookup(struct vnode *dir, char *pathname, struct vnode **result, bool create){
 	struct vnode * curr = dir;
 	*result = NULL;
 	while(curr != NULL){
@@ -348,7 +348,7 @@ static int vnfs_lookup(struct vnode *dir, char *pathname, struct vnode **result)
 	yield(NULL);
 	int ret = d->ret;
 	
-	if(ret){
+	if(ret && create){
 		struct vnode * new;
 		VOP_CREAT(d->vn, d->path, FM_READ | FM_WRITE, FM_READ | FM_WRITE, &new);
 		d->vn = new;
@@ -362,6 +362,8 @@ static int vnfs_lookup(struct vnode *dir, char *pathname, struct vnode **result)
 		yield(NULL);
 		VOP_RECLAIM(d->vn); //close the new vnode
 		ret = d->ret;
+	} else if (ret){
+		free(d->path);
 	}
 	*result = d->vn;
 	free(d);

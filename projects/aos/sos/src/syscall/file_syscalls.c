@@ -73,7 +73,7 @@ int syscall_open(void) {
     char path[size];
     sos_copyout(path, size);
     printf("OPENING %s\n", path);
-    if(vfs_lookup(path, &res)){
+    if(vfs_lookup(path, &res, 1)){
         seL4_SetMR(0, 1);
         return 1;
     } 
@@ -123,7 +123,7 @@ int syscall_getdirent(void){
     char path[nbyte];
     sos_copyout(path, nbyte);
     struct  vnode * res;
-    if (vfs_lookup("", &res)){
+    if (vfs_lookup("", &res, 1)){
         seL4_SetMR(0, 0);
         return 1;
     }
@@ -143,7 +143,7 @@ int syscall_stat(void){
     printf("stat path %d\n", path);
     sos_stat_t buf;
     struct  vnode * res;
-    if (vfs_lookup("", &res)){
+    if (vfs_lookup("", &res, 1)){
         seL4_SetMR(0, -1);
         return 1;
     }

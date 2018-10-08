@@ -9,7 +9,7 @@ struct device_entry {
 
 struct vnode * root;
 
-int vfs_lookup(char *path, struct vnode **result);
+int vfs_lookup(char *path, struct vnode **result, bool create);
 int vfs_lookparent(char *path, struct vnode **result, char *buf, size_t buflen);
 
 int vfs_open(char *path, int openflags, int mode, struct vnode **ret);

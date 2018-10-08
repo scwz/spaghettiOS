@@ -289,14 +289,6 @@ struct proc *proc_create(void) {
     return new;
 }
 
-int proc_destroy(pid_t pid){
-    page_table_destroy(procs[pid]->as->pt, cspace);
-    if(proc_wait_wakeup(pid)){
-        return -1;
-    }
-    return 0;
-}
-
 static int proc_wait_wakeup(pid_t pid){
     struct proc_wait_node* curr = procs[pid]->wait_list;
     struct proc_wait_node* tmp;
@@ -307,6 +299,16 @@ static int proc_wait_wakeup(pid_t pid){
         free(tmp);
     }
 }
+
+int proc_destroy(pid_t pid){
+    page_table_destroy(procs[pid]->as->pt, cspace);
+    if(proc_wait_wakeup(pid)){
+        return -1;
+    }
+    return 0;
+}
+
+
 
 int proc_wait_list_add(pid_t pid, pid_t pid_to_add){
     struct proc_wait_node* node = malloc(sizeof(struct proc_wait_node));

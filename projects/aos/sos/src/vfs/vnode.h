@@ -30,7 +30,7 @@ struct vnode_ops {
 
     int (*vop_creat)(struct vnode *dir, const char *name, int excl, int mode, struct vnode **result);
 
-    int (*vop_lookup)(struct vnode *dir, char *pathname, struct vnode **result);
+    int (*vop_lookup)(struct vnode *dir, char *pathname, struct vnode **result, bool create);
     int (*vop_lookparent)(struct vnode *dir, char *pathname, struct vnode **result, char *buf, size_t len);
 };
 
@@ -52,7 +52,7 @@ void vnode_decref(struct vnode *);
 
 #define VOP_CREAT(vn,nm,excl,mode,res)      (__VOP(vn, creat)(vn,nm,excl,mode,res)) 
 
-#define VOP_LOOKUP(vn, name, res)           (__VOP(vn, lookup)(vn, name, res))
+#define VOP_LOOKUP(vn, name, res, create)   (__VOP(vn, lookup)(vn, name, res, create))
 #define VOP_LOOKPARENT(vn,name,res,bf,ln)   (__VOP(vn, lookparent)(vn,name,res,bf,ln))
 
 void vnode_check(struct vnode *, const char *op);

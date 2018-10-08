@@ -23,7 +23,7 @@ struct pagefile_list * pf_list;
 struct vnode * pf_vnode;
 
 static int pagefile_open(){
-    if(VOP_LOOKUP(root, "pagefile", &pf_vnode)){
+    if(VOP_LOOKUP(root, "pagefile", &pf_vnode, 1)){
         return -1;
     }
     if(VOP_EACHOPEN(pf_vnode, FM_READ | FM_WRITE)){
