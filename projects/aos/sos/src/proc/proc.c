@@ -249,7 +249,8 @@ pid_t proc_start(char* app_name)
     seL4_Word sp = init_process_stack(new, seL4_CapInitThreadVSpace, elf_base);
     
     /* load the elf image from the cpio file */
-    err = elf_load(cspace, seL4_CapInitThreadVSpace, new->vspace, elf_base);
+    //err = elf_load(cspace, seL4_CapInitThreadVSpace, new->vspace, elf_base);
+    err = elf_load_fs(cspace, seL4_CapInitThreadVSpace, new->vspace, app_name);
     if (err) {
         ZF_LOGE("Failed to load elf image");
         return false;
