@@ -10,7 +10,7 @@
 #include "../fs/libnfs_vops.h"
 #include <sos.h>
 
-int syscall_write(void) {
+int syscall_write(struct proc *curproc) {
     size_t nbyte = seL4_GetMR(2);
     int fd = seL4_GetMR(1);
     printf("write %d %d\n", fd, nbyte);
@@ -38,7 +38,7 @@ int syscall_write(void) {
     return 1;
 }
 
-int syscall_read(void) {
+int syscall_read(struct proc *curproc) {
     size_t nbyte = seL4_GetMR(2);
     int fd = seL4_GetMR(1);
     if(fd < 4){ //send stdin etc. to console (make sure to open console)
@@ -65,7 +65,7 @@ int syscall_read(void) {
     return 1;
 }
 
-int syscall_open(void) {
+int syscall_open(struct proc *curproc) {
 
     fmode_t mode = seL4_GetMR(1);
     size_t size = seL4_GetMR(2);
@@ -102,7 +102,7 @@ int syscall_open(void) {
     return 2;
 }
 
-int syscall_close(void) {
+int syscall_close(struct proc *curproc) {
     
     int fd = seL4_GetMR(1);
     
@@ -117,7 +117,7 @@ int syscall_close(void) {
     return 1;
 }
 
-int syscall_getdirent(void){
+int syscall_getdirent(struct proc *curproc){
     int pos = seL4_GetMR(1);
     size_t nbyte = seL4_GetMR(2);
     char path[nbyte];
@@ -136,13 +136,13 @@ int syscall_getdirent(void){
     return 1;
 }
 
-int syscall_stat(void){
+int syscall_stat(struct proc *curproc){
     size_t nbyte = seL4_GetMR(1);
     char path[nbyte];
     sos_copyout(path, nbyte);
     printf("stat path %d\n", path);
     sos_stat_t buf;
-    struct  vnode * res;
+    struct vnode * res;
     if (vfs_lookup("", &res, 1)){
         seL4_SetMR(0, -1);
         return 1;

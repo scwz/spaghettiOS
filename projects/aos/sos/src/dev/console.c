@@ -42,7 +42,7 @@ int console_open(struct vnode * vn,int flags) {
         if(c->reader != NULL){
             return -1;
         }
-        c->reader = curproc;
+        c->reader = proc_get(0); // PLACEHOLDER
     }
     return 0;
 }
@@ -50,7 +50,7 @@ int console_open(struct vnode * vn,int flags) {
 int console_close(struct vnode * vn) {
     struct device * d = vn->vn_data;
     struct console * c = d->data;
-    if(c->reader == curproc){
+    if(c->reader == proc_get(0)){
         c->reader = NULL;
     }
     return 0;

@@ -10,6 +10,7 @@
 #include "proc.h"
 #include "../vm/vmem_layout.h"
 
+struct proc *procs[MAX_PROCESSES];
 
 extern char _cpio_archive[];
 static cspace_t *cspace;
@@ -131,7 +132,7 @@ static pid_t find_next_pid(void) {
     pid_t pid = curr_pid;
     do {
         if (procs[pid] == NULL) {
-            curr_pid = pid;
+            curr_pid = (pid + 1 % MAX_PROCESSES);
             return pid;
         }
         pid = (pid + 1) % MAX_PROCESSES;
@@ -249,8 +250,8 @@ pid_t proc_start(char* app_name)
     seL4_Word sp = init_process_stack(new, seL4_CapInitThreadVSpace, elf_base);
     
     /* load the elf image from the cpio file */
-    //err = elf_load(cspace, seL4_CapInitThreadVSpace, new->vspace, elf_base);
-    err = elf_load_fs(cspace, seL4_CapInitThreadVSpace, new->vspace, app_name);
+    err = elf_load(new->pid, cspace, seL4_CapInitThreadVSpace, new->vspace, elf_base);
+    //err = elf_load_fs(cspace, seL4_CapInitThreadVSpace, new->vspace, app_name);
     if (err) {
         ZF_LOGE("Failed to load elf image");
         return false;
@@ -262,7 +263,7 @@ pid_t proc_start(char* app_name)
 
     as_define_region(new->as, PROCESS_SHARED_BUF_TOP - PAGE_SIZE_4K * SHARED_BUF_PAGES, PAGE_SIZE_4K * SHARED_BUF_PAGES, READ | WRITE);
     //map buffer
-    sos_map_buf();
+    sos_map_buf(new->pid);
 
     /* Map in the IPC buffer for the thread */
     err = map_frame(cspace, new->ipc_buffer, new->vspace, PROCESS_IPC_BUFFER,
@@ -299,6 +300,7 @@ static int proc_wait_wakeup(pid_t pid){
         curr = curr->next;
         free(tmp);
     }
+    return 0;
 }
 
 int proc_destroy(pid_t pid){
@@ -309,8 +311,6 @@ int proc_destroy(pid_t pid){
     return 0;
 }
 
-
-
 int proc_wait_list_add(pid_t pid, pid_t pid_to_add){
     struct proc_wait_node* node = malloc(sizeof(struct proc_wait_node));
     if(node == NULL){
@@ -320,4 +320,8 @@ int proc_wait_list_add(pid_t pid, pid_t pid_to_add){
     node->next = procs[pid]->wait_list;
     procs[pid]->wait_list = node;
     return 0;
+}
+
+struct proc *proc_get(pid_t pid) {
+    return procs[pid];
 }

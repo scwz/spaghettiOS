@@ -19,9 +19,6 @@
 #define TTY_PRIORITY         (0)
 #define TTY_EP_BADGE         (101)
 
-// for now we can use this as is since theres only 1 process
-#define curproc (procs[0])
-
 #define MAX_PROCESSES 32
 
 struct proc_wait_node {
@@ -52,12 +49,11 @@ struct proc {
     struct filetable *fdt;
 };
 
-
-
-struct proc *procs[MAX_PROCESSES];
 bool proc_bootstrap(cspace_t *cspace, seL4_CPtr ep);
 pid_t proc_start(char *app_name);
 struct proc *proc_create(void);
 
 int proc_destroy(pid_t pid);
 int proc_wait_list_add(pid_t pid, pid_t pid_to_add);
+
+struct proc *proc_get(pid_t pid);

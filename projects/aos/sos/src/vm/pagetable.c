@@ -1,3 +1,6 @@
+
+#include <sos.h>
+
 #include "address_space.h"
 #include "pagetable.h"
 #include "vmem_layout.h"
@@ -5,6 +8,8 @@
 #include "../mapping.h"
 #include "../proc/proc.h"
 #include "pager.h"
+
+static cspace_t *cspace;
 
 static struct pt_index {
     uint16_t offset;
@@ -213,8 +218,9 @@ void save_seL4_info(struct page_table* page_table, ut_t * ut, seL4_CPtr slot){
     frame->page_objects[ind].ut = ut;
     frame->page_objects[ind].cap = slot;
 }
-void vm_fault(cspace_t *cspace) {
-    
+
+void vm_fault(pid_t pid) {
+    struct proc *curproc = proc_get(pid);
     seL4_Word faultaddress = seL4_GetMR(1);
     
     struct addrspace *as = curproc->as;
@@ -303,4 +309,8 @@ void vm_fault(cspace_t *cspace) {
     
     seL4_Send(reply, reply_msg);
     cspace_free_slot(cspace, reply);
+}
+
+void vm_bootstrap(cspace_t *cs) {
+    cspace = cs;
 }

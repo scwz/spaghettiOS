@@ -71,7 +71,7 @@ extern void (__register_frame)(void *);
 /* root tasks cspace */
 static cspace_t cspace;
 
-static int (*syscall_table[])(void) = {
+static int (*syscall_table[])(struct proc *curproc) = {
     NULL,
     syscall_write,
     syscall_read,
@@ -90,7 +90,7 @@ static int (*syscall_table[])(void) = {
 };
 
 //void handle_syscall(UNUSED seL4_Word badge, UNUSED int num_args)
-void handle_syscall(void)
+void handle_syscall(pid_t pid)
 {
 
     /* allocate a slot for the reply cap */
@@ -109,8 +109,10 @@ void handle_syscall(void)
     seL4_Error err = cspace_save_reply_cap(&cspace, reply);
     ZF_LOGF_IFERR(err, "Failed to save reply");
 
+    struct proc *p = proc_get(pid);
+
     if (syscall_number > 0 && syscall_number < 15) {
-        int nwords = syscall_table[syscall_number]();
+        int nwords = syscall_table[syscall_number](p);
         seL4_MessageInfo_t reply_msg = seL4_MessageInfo_new(0, 0, 0, nwords);
         seL4_Send(reply, reply_msg);
     }
@@ -132,6 +134,8 @@ NORETURN void syscall_loop(seL4_CPtr ep)
          * see what the message is about */
         seL4_Word label = seL4_MessageInfo_get_label(message);
 
+        pid_t pid = 0; // since idk how to get the pid from the ep atm
+
         if (badge & IRQ_EP_BADGE) {
             /* It's a notification from our bound notification
              * object! */
@@ -148,22 +152,19 @@ NORETURN void syscall_loop(seL4_CPtr ep)
                 timer_interrupt();
             }
         } else if (label == seL4_Fault_VMFault) {
-            seL4_Word faultaddress = seL4_GetMR(1);
-            //printf("%lx, %lx, %lx\n", seL4_GetMR(1), seL4_GetMR(2), seL4_GetMR(3));
-            resume(coroutine((void *(*)(void *))vm_fault), &cspace);
-            //vm_fault(&cspace, faultaddress);
-
+            /* it's a vm fault */
+            resume(coroutine((void *(*)(void *))vm_fault), (void *)pid);
         } else if (label == seL4_Fault_NullFault) {
             /* It's not a fault or an interrupt, it must be an IPC
              * message from tty_test! */
-            //handle_syscall(badge, seL4_MessageInfo_get_length(message) - 1);
-            resume(coroutine((void *(*)(void *))handle_syscall), NULL);
-
+            resume(coroutine((void *(*)(void *))handle_syscall), (void *)pid);
         } else {
+#if 0
             /* some kind of fault */
             debug_print_fault(message, TTY_NAME);
             /* dump registers too */
             debug_dump_registers(curproc->tcb);
+#endif
 
             ZF_LOGF("The SOS skeleton does not know how to handle faults!");
         }
@@ -273,6 +274,7 @@ NORETURN void *main_continued(UNUSED void *arg)
     start_timer(&cspace, badge_irq_ntfn(ntfn, IRQ_BADGE_TIMER), timer_vaddr);
 
     frame_table_init(&cspace);
+    vm_bootstrap(&cspace);
     shared_buf_init(&cspace);
     vfs_bootstrap();
     pager_bootstrap();

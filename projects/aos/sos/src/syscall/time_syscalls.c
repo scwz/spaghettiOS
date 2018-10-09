@@ -4,6 +4,7 @@
 #include <clock/clock.h>
 #include "time_syscalls.h"
 #include "../picoro/picoro.h"
+#include "../proc/proc.h"
 
 volatile static int timer_fired;
 
@@ -14,7 +15,7 @@ static void usleep_handler(uint32_t id, void *data) {
     seL4_SetMR(0, 0);
 }
 
-int syscall_usleep(void) {
+int syscall_usleep(struct proc *curproc) {
     int msec = seL4_GetMR(1);
 
     timer_fired = 0;
@@ -30,7 +31,7 @@ int syscall_usleep(void) {
     return 1;
 }
 
-int syscall_time_stamp(void) {
+int syscall_time_stamp(struct proc *curproc) {
     int64_t time = get_time();
     seL4_SetMR(0, time);
     return 1;

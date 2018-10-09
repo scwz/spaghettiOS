@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+#include <sos.h>
 
 #include <cspace/cspace.h>
 #include <aos/sel4_zf_logif.h>
@@ -73,4 +74,6 @@ void page_table_destroy(struct page_table * page_table, cspace_t *cspace);
 
 seL4_Word page_entry_number(seL4_Word page);
 
-void vm_fault(cspace_t *cspace);
+void vm_fault(pid_t pid);
+
+void vm_bootstrap(cspace_t *cs);

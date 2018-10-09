@@ -78,11 +78,13 @@ static inline seL4_CapRights_t get_sel4_rights_from_elf(unsigned long permission
  * @return
  *
  */
-static int load_segment_into_vspace(cspace_t *cspace, seL4_CPtr loader, seL4_CPtr loadee,
+static int load_segment_into_vspace(pid_t pid, cspace_t *cspace, seL4_CPtr loader, seL4_CPtr loadee,
                                     char *src, size_t segment_size,
                                     size_t file_size, uintptr_t dst, seL4_CapRights_t permissions)
 {
     assert(file_size <= segment_size);
+
+    struct proc *curproc = proc_get(pid);
 
     /* We work a page at a time in the destination vspace. */
     unsigned int pos = 0;
@@ -253,9 +255,9 @@ static int load_segment_into_vspace(cspace_t *cspace, seL4_CPtr loader, seL4_CPt
     return 0;
 }
 
-int elf_load(cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr loadee_vspace, char *elf_file)
+int elf_load(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr loadee_vspace, char *elf_file)
 {
-
+    struct proc *curproc = proc_get(pid);
     /* Ensure that the file is an elf file. */
     if (elf_file == NULL || elf_checkFile(elf_file)) {
         ZF_LOGE("Invalid elf file");
@@ -279,7 +281,7 @@ int elf_load(cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr loadee_vspace,
 
         /* Copy it across into the vspace. */
         ZF_LOGD(" * Loading segment %p-->%p\n", (void *) vaddr, (void *)(vaddr + segment_size));
-        int err = load_segment_into_vspace(cspace, loader_vspace, loadee_vspace,
+        int err = load_segment_into_vspace(pid, cspace, loader_vspace, loadee_vspace,
                                            source_addr, segment_size, file_size, vaddr,
                                            get_sel4_rights_from_elf(flags));
         if (err) {
@@ -293,9 +295,10 @@ int elf_load(cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr loadee_vspace,
     return 0;
 }
 
-static int load_segment_from_fs(struct vnode * vn, cspace_t * cspace, seL4_CPtr loader, seL4_CPtr loadee, 
+static int load_segment_from_fs(pid_t pid, struct vnode * vn, cspace_t * cspace, seL4_CPtr loader, seL4_CPtr loadee, 
 size_t offset, size_t segment_size, size_t file_size,  uintptr_t dst, seL4_CapRights_t permissions)
 {
+    struct proc *curproc = proc_get(pid);
     assert(file_size <= segment_size);
     struct uio * u = malloc(sizeof(struct uio));
     assert(u);
@@ -407,7 +410,8 @@ size_t offset, size_t segment_size, size_t file_size,  uintptr_t dst, seL4_CapRi
     return 0;
 }
 
-int elf_load_fs(cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr loadee_vspace, char *path){
+int elf_load_fs(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr loadee_vspace, char *path){
+    struct proc *curproc = proc_get(pid);
     struct vnode * vn;
     if(VOP_LOOKUP(root, path, &vn, 0)){
         return -1;
@@ -442,7 +446,7 @@ int elf_load_fs(cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr loadee_vspa
 
         /* Copy it across into the vspace. */
         ZF_LOGD(" * Loading segment %p-->%p\n", (void *) vaddr, (void *)(vaddr + segment_size));
-        int err = load_segment_from_fs(vn, cspace, loader_vspace, loadee_vspace,
+        int err = load_segment_from_fs(pid, vn, cspace, loader_vspace, loadee_vspace,
                                            offset, segment_size, file_size, vaddr,
                                            get_sel4_rights_from_elf(flags));
         if (err) {

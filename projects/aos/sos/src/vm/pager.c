@@ -88,7 +88,7 @@ int pageout(seL4_Word page){
     struct frame_table_entry * fte = get_frame(page);
     assert(fte->pid >= 0 && fte->pid <= MAX_PROCESSES);
     //printf("PID: %d, pt: %lx, vaddr: %lx, pn: %ld\n", fte->pid, procs[fte->pid]->as->pt, page_num_to_vaddr(page), page);
-    struct page_table * pagetable = procs[fte->pid]->as->pt;
+    struct page_table * pagetable = proc_get(fte->pid)->as->pt;
     seL4_Word * pte = page_lookup(pagetable, fte->user_vaddr);
     assert(pte);
     // set page table entry to be a pagefile index

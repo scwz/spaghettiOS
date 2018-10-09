@@ -1,3 +1,6 @@
+
+#include <sos.h>
+
 #include "shared_buf.h"
 #include "vm/vmem_layout.h"
 #include "mapping.h"
@@ -20,7 +23,8 @@ void shared_buf_init(cspace_t * cspace){
     printf("shared buf: %lx\n", shared_buf);
 }
 
-void sos_map_buf(){
+void sos_map_buf(pid_t pid){
+    struct proc *curproc = proc_get(pid);
     struct region* reg = as_seek_region(curproc->as, (seL4_Word) PROCESS_SHARED_BUF_TOP);
     for(size_t i = 0; i < SHARED_BUF_PAGES; i++){
         seL4_Word page = vaddr_to_page_num(shared_buf + i*PAGE_SIZE_4K);

@@ -1,4 +1,6 @@
 
 #pragma once
 
-int syscall_brk(void);
+#include "../proc/proc.h"
+
+int syscall_brk(struct proc *curproc);

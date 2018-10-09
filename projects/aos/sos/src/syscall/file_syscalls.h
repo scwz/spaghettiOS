@@ -1,9 +1,9 @@
 
 #pragma once
 
-int syscall_write(void);
-int syscall_read(void);
-int syscall_open(void);
-int syscall_close(void);
-int syscall_stat(void);
-int syscall_getdirent(void);
+int syscall_write(struct proc *curproc);
+int syscall_read(struct proc *curproc);
+int syscall_open(struct proc *curproc);
+int syscall_close(struct proc *curproc);
+int syscall_stat(struct proc *curproc);
+int syscall_getdirent(struct proc *curproc);

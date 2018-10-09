@@ -4,7 +4,7 @@
 #include "../proc/proc.h"
 #include "../shared_buf.h"
 
-int syscall_proc_create(void) {
+int syscall_proc_create(struct proc *curproc) {
     size_t nbytes = seL4_GetMR(1);
     char path[nbytes];
     sos_copyout(path, nbytes);
@@ -16,24 +16,24 @@ int syscall_proc_create(void) {
     return 1;
 }
 
-int syscall_proc_delete(void) {
+int syscall_proc_delete(struct proc *curproc) {
     pid_t pid = seL4_GetMR(1);
 
     seL4_SetMR(0, -1);
     return 1;
 }
 
-int syscall_proc_my_id(void) {
+int syscall_proc_my_id(struct proc *curproc) {
     seL4_SetMR(0, curproc->pid);
     return 1;
 }
 
-int syscall_proc_status(void) {
+int syscall_proc_status(struct proc *curproc) {
     seL4_SetMR(0, -1);
     return 1;
 }
 
-int syscall_proc_wait(void) {
+int syscall_proc_wait(struct proc *curproc) {
     pid_t pid = seL4_GetMR(1);
 
     seL4_SetMR(0, -1);
