@@ -6,7 +6,7 @@
 #include "../vfs/vfs.h"
 #include "../proc/proc.h"
 #include "file_syscalls.h"
-#include "../shared_buf.h"
+#include "../vm/shared_buf.h"
 #include "../fs/libnfs_vops.h"
 #include <sos.h>
 

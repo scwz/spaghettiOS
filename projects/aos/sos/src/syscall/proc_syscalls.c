@@ -2,7 +2,7 @@
 #include "proc_syscalls.h"
 
 #include "../proc/proc.h"
-#include "../shared_buf.h"
+#include "../vm/shared_buf.h"
 
 int syscall_proc_create(struct proc *curproc) {
     size_t nbytes = seL4_GetMR(1);

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdint.h>
-#include "shared_buf.h"
+#include "vm/shared_buf.h"
 
 enum uio_rw {
     UIO_READ,

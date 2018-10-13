@@ -1,5 +1,5 @@
 #include "uio.h"
-#include "shared_buf.h"
+#include "vm/shared_buf.h"
 
 //uio only works in kernel, use sharebuffer commands in userland
 void uio_init(struct uio * u, enum uio_rw rw, size_t len, size_t offset)
