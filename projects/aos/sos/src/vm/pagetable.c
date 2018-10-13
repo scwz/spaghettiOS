@@ -33,8 +33,8 @@ static struct pt_index get_pt_index(seL4_Word vaddr){
 struct page_table * page_table_init(void) {
     struct page_table * page_table;
     assert(sizeof(struct pgd) == PAGE_SIZE_4K);
-    frame_alloc_important(&page_table);
-    frame_alloc_important(&(page_table->pgd));
+    frame_alloc_important((seL4_Word *) &page_table);
+    frame_alloc_important((seL4_Word *) &(page_table->pgd));
     return page_table;
 }
 
@@ -81,7 +81,7 @@ int page_table_insert(struct page_table * page_table, seL4_Word vaddr, seL4_Word
     struct pud* pud = pgd->pud[ind.l1];
 
     if(pud == NULL){
-        frame_alloc_important(&pud);
+        frame_alloc_important((seL4_Word *) &pud);
         if(pud == NULL){
             return -1;
         }
@@ -89,7 +89,7 @@ int page_table_insert(struct page_table * page_table, seL4_Word vaddr, seL4_Word
     }
     struct pd* pd = pgd->pud[ind.l1]->pd[ind.l2];
     if(pd == NULL){
-        frame_alloc_important(&pd);
+        frame_alloc_important((seL4_Word *) &pd);
         if(pd == NULL){
             return -1;
         }
@@ -97,12 +97,12 @@ int page_table_insert(struct page_table * page_table, seL4_Word vaddr, seL4_Word
     }
     struct pt* pt = pgd->pud[ind.l1]->pd[ind.l2]->pt[ind.l3];
     if(pt == NULL){
-        frame_alloc_important(&pt);
+        frame_alloc_important((seL4_Word *) &pt);
         if(pt == NULL){
             return -1;
         }
-        for(int i = 0; i < PAGE_INDEX_SIZE; i++){
-            page_update_entry(&pt->page[i], P_INVALID, 0);
+        for(unsigned int i = 0; i < PAGE_INDEX_SIZE; i++){
+            page_update_entry((seL4_Word *) &pt->page[i], P_INVALID, 0);
         }
         pgd->pud[ind.l1]->pd[ind.l2]->pt[ind.l3] = pt;
     }
@@ -141,13 +141,13 @@ int page_table_remove(struct page_table* page_table, seL4_Word vaddr) {
 }
 void page_table_destroy(struct page_table * page_table, cspace_t * cspace){
     struct pgd * pgd = page_table->pgd;
-    for(int i = 0; i < PAGE_INDEX_SIZE; i++){
+    for(unsigned int i = 0; i < PAGE_INDEX_SIZE; i++){
         if(pgd->pud[i] != NULL){
-            for(int j = 0; j < PAGE_INDEX_SIZE; j++){
+            for(unsigned int j = 0; j < PAGE_INDEX_SIZE; j++){
                 if(pgd->pud[i]->pd[j] != NULL){
-                    for(int k = 0; k < PAGE_INDEX_SIZE; k++){
+                    for(unsigned int k = 0; k < PAGE_INDEX_SIZE; k++){
                         if(pgd->pud[i]->pd[j]->pt[k] != NULL){
-                            for(int l = 0; l < PAGE_INDEX_SIZE; l++){
+                            for(unsigned int l = 0; l < PAGE_INDEX_SIZE; l++){
                                 seL4_Word * pte = &(pgd->pud[i]->pd[j]->pt[k]->page[l]);
                                 seL4_Word entry = page_entry_number(*pte);
                                 seL4_Word bits = page_get_bits(*pte);
@@ -159,13 +159,13 @@ void page_table_destroy(struct page_table * page_table, cspace_t * cspace){
                                     frame_free(entry);
                                 }
                             }
-                            frame_free(vaddr_to_page_num(&(pgd->pud[i]->pd[j]->pt[k])));
+                            frame_free(vaddr_to_page_num((seL4_Word) &(pgd->pud[i]->pd[j]->pt[k])));
                         }
                     }
-                    frame_free(vaddr_to_page_num(&(pgd->pud[i]->pd[j])));
+                    frame_free(vaddr_to_page_num((seL4_Word) &(pgd->pud[i]->pd[j])));
                 }
             }
-            frame_free(vaddr_to_page_num(&(pgd->pud[i])));
+            frame_free(vaddr_to_page_num((seL4_Word) &(pgd->pud[i])));
         }
     }
     struct seL4_page_objects_frame* frame;
@@ -179,35 +179,35 @@ void page_table_destroy(struct page_table * page_table, cspace_t * cspace){
             ut_free(object.ut, PAGE_BITS_4K);
         }
         tmpframe = frame;
-        frame = frame->nextframe;
-        frame_free(vaddr_to_page_num(&(tmpframe)));
+        frame = (struct seL4_page_objects_frame*) frame->nextframe;
+        frame_free(vaddr_to_page_num((seL4_Word) &(tmpframe)));
     }
-    frame_free(vaddr_to_page_num(&(page_table->pgd)));
-    frame_free(vaddr_to_page_num(&(page_table)));
+    frame_free(vaddr_to_page_num((seL4_Word) &(page_table->pgd)));
+    frame_free(vaddr_to_page_num((seL4_Word) &(page_table)));
 }
 
 void save_seL4_info(struct page_table* page_table, ut_t * ut, seL4_CPtr slot){
     struct seL4_page_objects_frame* frame;
     if(page_table->seL4_pages == NULL){
-        frame_alloc_important(&(page_table->seL4_pages));
+        frame_alloc_important((seL4_Word*) &(page_table->seL4_pages));
         if(page_table->seL4_pages == NULL){
             ZF_LOGE("frame alloc fail");
         }  else {
             page_table->seL4_pages->size = 0;
-            page_table->seL4_pages->nextframe = NULL;
+            page_table->seL4_pages->nextframe =  NULL;
             frame = page_table->seL4_pages;
         }
     } else {
         frame = page_table->seL4_pages;
         while (frame->nextframe != NULL){
-            frame = frame->nextframe;
+            frame = (struct seL4_page_objects_frame*) frame->nextframe;
         }
         if(frame->size == 253){
-            frame_alloc_important(&(frame->nextframe));
+            frame_alloc_important((seL4_Word*) &(frame->nextframe));
             if(frame->nextframe == NULL){
                 ZF_LOGE("frame alloc fail");
             }  else {
-                frame = frame->nextframe;
+                frame = (struct seL4_page_objects_frame*) frame->nextframe;
                 frame->size = 0;
                 frame->nextframe = NULL;
             }
@@ -258,6 +258,7 @@ void vm_fault(pid_t pid) {
             seL4_Error err = seL4_ARM_Page_Map(slot, curproc->vspace, 
                                 PAGE_ALIGN_4K(faultaddress), seL4_AllRights,
                                 seL4_ARM_Default_VMAttributes);
+            ZF_LOGE_IFERR(err, "failed to re-map frame");
             frame_info->ref_bit = 1;
         }
         //realloc a paged file

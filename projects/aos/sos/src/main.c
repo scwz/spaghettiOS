@@ -153,11 +153,11 @@ NORETURN void syscall_loop(seL4_CPtr ep)
             }
         } else if (label == seL4_Fault_VMFault) {
             /* it's a vm fault */
-            resume(coroutine((void *(*)(void *))vm_fault), (void *)pid);
+            resume(coroutine((void *(*)(void *))vm_fault), (void *)(seL4_Word)pid);
         } else if (label == seL4_Fault_NullFault) {
             /* It's not a fault or an interrupt, it must be an IPC
              * message from tty_test! */
-            resume(coroutine((void *(*)(void *))handle_syscall), (void *)pid);
+            resume(coroutine((void *(*)(void *))handle_syscall), (void *)(seL4_Word)pid);
         } else {
 #if 0
             /* some kind of fault */

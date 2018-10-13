@@ -220,7 +220,7 @@ static int vnfs_eachopen(struct vnode *v, int flags)
 	struct vnode_nfs_data * data = v->vn_data;
 	d->vn = v;
 	printf("OPEN2\n");
-	if(nfs_open_async(nfs, data->path, FM_WRITE | FM_READ, nfs_open_cb, d)){
+	if(nfs_open_async(nfs, data->path, flags, nfs_open_cb, d)){
 		return -1;
 	}
 	printf("OPEN3\n");

@@ -44,7 +44,7 @@ struct seL4_page_objects{
 
 struct seL4_page_objects_frame{
     uint64_t size;
-    seL4_Word nextframe;
+    struct sel4_page_objects_frame * nextframe;
     struct seL4_page_objects page_objects[253];
 };
 
