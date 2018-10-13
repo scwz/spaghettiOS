@@ -16,4 +16,4 @@ struct filetable {
 };
 
 struct filetable *fdt_create(void);
-void fdt_destroy(void);
+void fdt_destroy(struct filetable * fdt);

@@ -171,19 +171,32 @@ pid_t proc_start(char* app_name)
     new->vspace_ut = alloc_retype(cspace, &new->vspace, seL4_ARM_PageGlobalDirectoryObject,
                                               seL4_PGDBits);
     if (new->vspace_ut == NULL) {
+        as_destroy(new->as);
+        fdt_destroy(new->fdt);
+        procs[pid] = NULL;
+        free(new);
         return false;
     }
 
     /* assign the vspace to an asid pool */
     seL4_Word err = seL4_ARM_ASIDPool_Assign(seL4_CapInitThreadASIDPool, new->vspace);
     if (err != seL4_NoError) {
+        as_destroy(new->as);
+        fdt_destroy(new->fdt);
+        procs[pid] = NULL;
         ZF_LOGE("Failed to assign asid pool");
+        free(new);
         return false;
     }
 
     /* Create a simple 1 level CSpace */
     err = cspace_create_one_level(cspace, &new->cspace);
     if (err != CSPACE_NOERROR) {
+        as_destroy(new->as);
+        fdt_destroy(new->fdt);
+        procs[pid] = NULL;
+        cspace_destroy(&new->cspace);
+        free(new);
         ZF_LOGE("Failed to create cspace");
         return false;
     }
@@ -192,6 +205,12 @@ pid_t proc_start(char* app_name)
     new->ipc_buffer_ut = alloc_retype(cspace, &new->ipc_buffer, seL4_ARM_SmallPageObject,
                                                   seL4_PageBits);
     if (new->ipc_buffer_ut == NULL) {
+        as_destroy(new->as);
+        fdt_destroy(new->fdt);
+        procs[pid] = NULL;
+        cspace_destroy(&new->cspace);
+        ut_free(new->vspace_ut, seL4_PGDBits);
+        free(new);
         ZF_LOGE("Failed to alloc ipc buffer ut");
         return false;
     }
@@ -201,6 +220,13 @@ pid_t proc_start(char* app_name)
      * processes. */
     seL4_CPtr user_ep = cspace_alloc_slot(&new->cspace);
     if (user_ep == seL4_CapNull) {
+        as_destroy(new->as);
+        fdt_destroy(new->fdt);
+        procs[pid] = NULL;
+        cspace_destroy(&new->cspace);
+        ut_free(new->vspace_ut, seL4_PGDBits);
+        ut_free(new->ipc_buffer_ut, seL4_PageBits);
+        free(new);
         ZF_LOGE("Failed to alloc user ep slot");
         return false;
     }
@@ -208,6 +234,14 @@ pid_t proc_start(char* app_name)
     /* now mutate the cap, thereby setting the badge */
     err = cspace_mint(&new->cspace, user_ep, cspace, ep, seL4_AllRights, TTY_EP_BADGE);
     if (err) {
+        as_destroy(new->as);
+        fdt_destroy(new->fdt);
+        procs[pid] = NULL;
+        cspace_destroy(&new->cspace);
+        ut_free(new->vspace_ut, seL4_PGDBits);
+        ut_free(new->ipc_buffer_ut, seL4_PageBits);
+        cspace_delete(&new->cspace, user_ep);
+        free(new);
         ZF_LOGE("Failed to mint user ep");
         return false;
     }
@@ -215,6 +249,14 @@ pid_t proc_start(char* app_name)
     /* Create a new TCB object */
     new->tcb_ut = alloc_retype(cspace, &new->tcb, seL4_TCBObject, seL4_TCBBits);
     if (new->tcb_ut == NULL) {
+        as_destroy(new->as);
+        fdt_destroy(new->fdt);
+        procs[pid] = NULL;
+        cspace_destroy(&new->cspace);
+        ut_free(new->vspace_ut, seL4_PGDBits);
+        ut_free(new->ipc_buffer_ut, seL4_PageBits);
+        cspace_delete(&new->cspace, user_ep);
+        free(new);
         ZF_LOGE("Failed to alloc tcb ut");
         return false;
     }
@@ -227,12 +269,28 @@ pid_t proc_start(char* app_name)
     if (err != seL4_NoError) {
         ZF_LOGE("Unable to configure new TCB");
         return false;
+        as_destroy(new->as);
+        fdt_destroy(new->fdt);
+        procs[pid] = NULL;
+        cspace_destroy(&new->cspace);
+        ut_free(new->vspace_ut, seL4_PGDBits);
+        ut_free(new->ipc_buffer_ut, seL4_PageBits);
+        cspace_delete(&new->cspace, user_ep);
+        free(new);
     }
 
     /* Set the priority */
     err = seL4_TCB_SetPriority(new->tcb, seL4_CapInitThreadTCB, TTY_PRIORITY);
     if (err != seL4_NoError) {
         ZF_LOGE("Unable to set priority of new TCB");
+        as_destroy(new->as);
+        fdt_destroy(new->fdt);
+        procs[pid] = NULL;
+        cspace_destroy(&new->cspace);
+        ut_free(new->vspace_ut, seL4_PGDBits);
+        ut_free(new->ipc_buffer_ut, seL4_PageBits);
+        cspace_delete(&new->cspace, user_ep);
+        free(new);
         return false;
     }
 
@@ -256,6 +314,14 @@ pid_t proc_start(char* app_name)
     err = elf_load_fs(new->pid, cspace, seL4_CapInitThreadVSpace, new->vspace, app_name);
     if (err) {
         ZF_LOGE("Failed to load elf image");
+        as_destroy(new->as);
+        fdt_destroy(new->fdt);
+        procs[pid] = NULL;
+        cspace_destroy(&new->cspace);
+        ut_free(new->vspace_ut, seL4_PGDBits);
+        ut_free(new->ipc_buffer_ut, seL4_PageBits);
+        cspace_delete(&new->cspace, user_ep);
+        free(new);
         return false;
     }
     
@@ -272,6 +338,14 @@ pid_t proc_start(char* app_name)
                     seL4_AllRights, seL4_ARM_Default_VMAttributes);
     if (err != 0) {
         ZF_LOGE("Unable to map IPC buffer for user app");
+        as_destroy(new->as);
+        fdt_destroy(new->fdt);
+        procs[pid] = NULL;
+        cspace_destroy(&new->cspace);
+        ut_free(new->vspace_ut, seL4_PGDBits);
+        ut_free(new->ipc_buffer_ut, seL4_PageBits);
+        cspace_delete(&new->cspace, user_ep);
+        free(new);
         return false;
     }
     // setup region for ipc buffer
@@ -437,10 +511,19 @@ static int proc_wait_wakeup(pid_t pid){
 }
 
 int proc_destroy(pid_t pid){
-    page_table_destroy(procs[pid]->as->pt, cspace);
+    struct proc * p = proc_get(pid);
     if(proc_wait_wakeup(pid)){
         return -1;
     }
+    page_table_destroy(p->as->pt, cspace);
+    as_destroy(p->as);
+    fdt_destroy(p->fdt);
+    procs[pid] = NULL;
+    cspace_destroy(&p->cspace);
+    ut_free(p->vspace_ut, seL4_PGDBits);
+    ut_free(p->ipc_buffer_ut, seL4_PageBits);
+    //cspace_delete(&p->cspace, user_ep);
+    free(p);
     return 0;
 }
 

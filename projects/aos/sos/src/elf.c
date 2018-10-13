@@ -44,6 +44,14 @@ static inline seL4_CapRights_t get_sel4_rights_from_elf(unsigned long permission
     return seL4_CapRights_new(false, canRead, canWrite);
 }
 
+static int perm_from_elf(unsigned long permissions){
+    int p = 0;
+    if(PF_X & permissions) p |= EXEC;
+    if(PF_R & permissions) p |= READ;
+    if(PF_W & permissions) p |= WRITE;
+    return p;
+}
+
 /*
  * Load an elf segment into the given vspace.
  *
@@ -80,7 +88,7 @@ static inline seL4_CapRights_t get_sel4_rights_from_elf(unsigned long permission
  */
 static int load_segment_into_vspace(pid_t pid, cspace_t *cspace, seL4_CPtr loader, seL4_CPtr loadee,
                                     char *src, size_t segment_size,
-                                    size_t file_size, uintptr_t dst, seL4_CapRights_t permissions)
+                                    size_t file_size, uintptr_t dst, seL4_CapRights_t permissions, seL4_Word flags)
 {
     assert(file_size <= segment_size);
 
@@ -198,11 +206,15 @@ static int load_segment_into_vspace(pid_t pid, cspace_t *cspace, seL4_CPtr loade
             frame_free(loadee_page);
             return err;
         } else if (err == seL4_DeleteFirst){
-            //TODO: do not map if different permissions
-            ZF_LOGE("failed to map frame");
-            cspace_delete(cspace, loadee_slot);
-            cspace_free_slot(cspace, loadee_slot);
-            frame_free(loadee_page);
+            struct proc *p = proc_get(pid);
+            struct region * r = as_seek_region(p->as, loadee_vaddr);
+            if(r->accmode != perm_from_elf(flags)){
+                //do not map if different permissions
+                ZF_LOGE("failed to map frame");
+                cspace_delete(cspace, loadee_slot);
+                cspace_free_slot(cspace, loadee_slot);
+                frame_free(loadee_page);
+            }
         }
 
         //loader
@@ -281,23 +293,23 @@ int elf_load(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr loa
 
         /* Copy it across into the vspace. */
         ZF_LOGD(" * Loading segment %p-->%p\n", (void *) vaddr, (void *)(vaddr + segment_size));
-        printf(" * Loading segment %p-->%p, f_size %d\n", (void *) vaddr, (void *)(vaddr + segment_size), file_size);
+        //printf(" * Loading segment %p-->%p, f_size %d\n", (void *) vaddr, (void *)(vaddr + segment_size), file_size);
         int err = load_segment_into_vspace(pid, cspace, loader_vspace, loadee_vspace,
                                            source_addr, segment_size, file_size, vaddr,
-                                           get_sel4_rights_from_elf(flags));
+                                           get_sel4_rights_from_elf(flags), flags);
         if (err) {
             ZF_LOGE("Elf loading failed!");
             return -1;
         }
 
-        as_define_region(curproc->as, vaddr, segment_size, READ | WRITE | EXEC);
+        as_define_region(curproc->as, vaddr, segment_size, perm_from_elf(flags));
     }
 
     return 0;
 }
 
 static int load_segment_from_fs(pid_t pid, struct vnode * vn, cspace_t * cspace, seL4_CPtr loader, seL4_CPtr loadee, 
-size_t offset, size_t segment_size, size_t file_size,  uintptr_t dst, seL4_CapRights_t permissions)
+size_t offset, size_t segment_size, size_t file_size,  uintptr_t dst, seL4_CapRights_t permissions, seL4_Word flags)
 {
     struct proc *curproc = proc_get(pid);
     assert(file_size <= segment_size);
@@ -347,11 +359,16 @@ size_t offset, size_t segment_size, size_t file_size,  uintptr_t dst, seL4_CapRi
             free(u);
             return err;
         } else if (err == seL4_DeleteFirst){
-            //TODO: do not map if different permissions
-            ZF_LOGE("failed to map frame");
-            cspace_delete(cspace, loadee_slot);
-            cspace_free_slot(cspace, loadee_slot);
-            frame_free(loadee_page);
+            struct proc *p = proc_get(pid);
+            struct region * r = as_seek_region(p->as, loadee_vaddr);
+            if(r->accmode != perm_from_elf(flags)){
+                //do not map if different permissions
+                ZF_LOGE("failed to map frame");
+                cspace_delete(cspace, loadee_slot);
+                cspace_free_slot(cspace, loadee_slot);
+                frame_free(loadee_page);
+            }
+            
         }
 
         //loader
@@ -391,8 +408,8 @@ size_t offset, size_t segment_size, size_t file_size,  uintptr_t dst, seL4_CapRi
         if (pos < file_size) {
         size_t cpy_bytes = MIN(nbytes, file_size - pos);
         u->len = cpy_bytes;
-        printf("cpy_bytes: %d, minus %d\n", cpy_bytes, file_size - pos);
-        assert(VOP_READ(vn, u) >= cpy_bytes);
+        //printf("cpy_bytes: %d, minus %d\n", cpy_bytes, file_size - pos);
+        assert((size_t)VOP_READ(vn, u) >= cpy_bytes);
         
             memcpy((void *) (loader_vaddr + (dst % PAGE_SIZE_4K)), shared_buf, cpy_bytes);
         }
@@ -430,7 +447,7 @@ int elf_load_fs(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr 
     char elf_chunk[PAGE_SIZE_4K];
     size_t bytes_read = VOP_READ(vn, u);
     assert(bytes_read == PAGE_SIZE_4K);
-    sos_copyout(elf_chunk, bytes_read);
+    sos_copyout((seL4_Word)elf_chunk, bytes_read);
     free(u);
 
     
@@ -448,18 +465,18 @@ int elf_load_fs(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr 
         size_t segment_size = elf_getProgramHeaderMemorySize(elf_chunk, i);
         uintptr_t vaddr = elf_getProgramHeaderVaddr(elf_chunk, i);
         seL4_Word flags = elf_getProgramHeaderFlags(elf_chunk, i);
-        printf("segment %d, %lx->%lx, offset: %d, file_size %d, segment_size %d\n", i, vaddr, vaddr+segment_size, offset, file_size, segment_size);
+        //printf("segment %d, %lx->%lx, offset: %d, file_size %d, segment_size %d\n", i, vaddr, vaddr+segment_size, offset, file_size, segment_size);
         /* Copy it across into the vspace. */
         ZF_LOGD(" * Loading segment %p-->%p\n", (void *) vaddr, (void *)(vaddr + segment_size));
         int err = load_segment_from_fs(pid, vn, cspace, loader_vspace, loadee_vspace,
                                            offset, segment_size, file_size, vaddr,
-                                           get_sel4_rights_from_elf(flags));
+                                           get_sel4_rights_from_elf(flags), flags);
         if (err) {
             ZF_LOGE("Elf loading failed!");
             return -1;
         }
 
-        as_define_region(curproc->as, vaddr, segment_size, READ | WRITE | EXEC);
+        as_define_region(curproc->as, vaddr, segment_size, perm_from_elf(flags));
     }
 
     return 0;

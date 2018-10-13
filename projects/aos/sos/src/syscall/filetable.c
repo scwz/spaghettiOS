@@ -12,6 +12,11 @@ struct filetable *fdt_create(void) {
     return fdt;
 }
 
-void fdt_destroy(void) {
-
+void fdt_destroy(struct filetable * fdt) {
+    for (int i = 0; i < PROCESS_MAX_FILES; i++) {
+        if(fdt->openfiles[i]){
+            free(fdt->openfiles[i]);
+        }
+    }
+    free(fdt);
 }
