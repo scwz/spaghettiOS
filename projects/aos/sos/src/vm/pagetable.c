@@ -229,7 +229,7 @@ void vm_fault(pid_t pid) {
     struct region *reg = as_seek_region(as, faultaddress);
     seL4_MessageInfo_t reply_msg = seL4_MessageInfo_new(0, 0, 0, 1); 
 
-    if (reg != NULL) {
+    if (reg != NULL && (reg->accmode & READ || reg->accmode & WRITE)) {
         //as->stack->vbase = PAGE_ALIGN_4K(faultaddress);
         seL4_Word * pte = page_lookup(as->pt, PAGE_ALIGN_4K(faultaddress));
         
