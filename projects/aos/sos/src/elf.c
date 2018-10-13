@@ -281,6 +281,7 @@ int elf_load(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr loa
 
         /* Copy it across into the vspace. */
         ZF_LOGD(" * Loading segment %p-->%p\n", (void *) vaddr, (void *)(vaddr + segment_size));
+        printf(" * Loading segment %p-->%p, f_size %d\n", (void *) vaddr, (void *)(vaddr + segment_size), file_size);
         int err = load_segment_into_vspace(pid, cspace, loader_vspace, loadee_vspace,
                                            source_addr, segment_size, file_size, vaddr,
                                            get_sel4_rights_from_elf(flags));
@@ -304,7 +305,7 @@ size_t offset, size_t segment_size, size_t file_size,  uintptr_t dst, seL4_CapRi
     assert(u);
     uio_init(u, UIO_READ, PAGE_SIZE_4K, offset);
     /* We work a page at a time in the destination vspace. */
-    unsigned int pos = 0;
+    size_t pos = 0;
     seL4_Error err = seL4_NoError;
     while (pos < segment_size) {
         seL4_Word loadee_vaddr = (ROUND_DOWN(dst, PAGE_SIZE_4K));
@@ -387,9 +388,12 @@ size_t offset, size_t segment_size, size_t file_size,  uintptr_t dst, seL4_CapRi
         
         assert(vn);
         size_t nbytes = PAGE_SIZE_4K - (dst % PAGE_SIZE_4K);
-        size_t cpy_bytes = MIN(nbytes, file_size - pos);
-        assert(VOP_READ(vn, u) >= cpy_bytes);
         if (pos < file_size) {
+        size_t cpy_bytes = MIN(nbytes, file_size - pos);
+        u->len = cpy_bytes;
+        printf("cpy_bytes: %d, minus %d\n", cpy_bytes, file_size - pos);
+        assert(VOP_READ(vn, u) >= cpy_bytes);
+        
             memcpy((void *) (loader_vaddr + (dst % PAGE_SIZE_4K)), shared_buf, cpy_bytes);
         }
 
@@ -411,20 +415,21 @@ size_t offset, size_t segment_size, size_t file_size,  uintptr_t dst, seL4_CapRi
 }
 
 int elf_load_fs(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr loadee_vspace, char *path){
-    struct proc *curproc = proc_get(pid);
     struct vnode * vn;
-    if(VOP_LOOKUP(root, path, &vn, 0)){
+    if(vfs_lookup(path, &vn, 0)){
         return -1;
     }
+    VOP_EACHOPEN(vn, FM_READ | FM_WRITE | FM_EXEC);
+    struct proc *curproc = proc_get(pid);
     assert(vn);
-
+    printf("lookup completed\n");
     struct uio * u = malloc(sizeof(struct uio));
     uio_init(u, UIO_READ, PAGE_SIZE_4K, 0);
 
     //first read
     char elf_chunk[PAGE_SIZE_4K];
     size_t bytes_read = VOP_READ(vn, u);
-    assert(bytes_read);
+    assert(bytes_read == PAGE_SIZE_4K);
     sos_copyout(elf_chunk, bytes_read);
     free(u);
 
@@ -443,7 +448,7 @@ int elf_load_fs(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr 
         size_t segment_size = elf_getProgramHeaderMemorySize(elf_chunk, i);
         uintptr_t vaddr = elf_getProgramHeaderVaddr(elf_chunk, i);
         seL4_Word flags = elf_getProgramHeaderFlags(elf_chunk, i);
-
+        printf("segment %d, %lx->%lx, offset: %d, file_size %d, segment_size %d\n", i, vaddr, vaddr+segment_size, offset, file_size, segment_size);
         /* Copy it across into the vspace. */
         ZF_LOGD(" * Loading segment %p-->%p\n", (void *) vaddr, (void *)(vaddr + segment_size));
         int err = load_segment_from_fs(pid, vn, cspace, loader_vspace, loadee_vspace,

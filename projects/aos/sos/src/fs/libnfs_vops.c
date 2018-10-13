@@ -264,8 +264,10 @@ vnfs_read(struct vnode *v, struct uio *uio)
 	printf("uio: %lu\n", uio->len);
 	if(nfs_pread_async(nfs, vnode_dat->nfsfh, uio->offset, uio->len, nfs_read_cb, d)){
 		free(d);
+		printf("working2?:\n");
 		return -1;
 	}
+	printf("working?:\n");
 	d->co = get_running();
 	yield(NULL);
 	int ret = d->ret;
