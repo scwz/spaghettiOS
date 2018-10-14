@@ -438,10 +438,20 @@ int elf_load_fs(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr 
     if(vfs_lookup(path, &vn, 0)){
         return -1;
     }
+    printf("lookup completed\n");
+    sos_stat_t buf;
+    if(VOP_STAT(vn, &buf)){
+        printf("file doesn't exist\n");
+        return -1;
+    }
+    if(!(buf.st_fmode & FM_EXEC)){
+        printf("file is not executable\n");
+        return -1;
+    }
     VOP_EACHOPEN(vn, FM_READ | FM_EXEC);
     struct proc *curproc = proc_get(pid);
     assert(vn);
-    printf("lookup completed\n");
+    
     struct uio * u = malloc(sizeof(struct uio));
     uio_init(u, UIO_READ, PAGE_SIZE_4K, 0);
 

@@ -237,10 +237,10 @@ pid_t proc_start(char* app_name)
         as_destroy(new->as);
         fdt_destroy(new->fdt);
         procs[pid] = NULL;
-        cspace_destroy(&new->cspace);
         ut_free(new->vspace_ut, seL4_PGDBits);
         ut_free(new->ipc_buffer_ut, seL4_PageBits);
         cspace_delete(&new->cspace, user_ep);
+        cspace_destroy(&new->cspace);
         free(new);
         ZF_LOGE("Failed to mint user ep");
         return false;
@@ -252,10 +252,10 @@ pid_t proc_start(char* app_name)
         as_destroy(new->as);
         fdt_destroy(new->fdt);
         procs[pid] = NULL;
-        cspace_destroy(&new->cspace);
         ut_free(new->vspace_ut, seL4_PGDBits);
         ut_free(new->ipc_buffer_ut, seL4_PageBits);
         cspace_delete(&new->cspace, user_ep);
+        cspace_destroy(&new->cspace);
         free(new);
         ZF_LOGE("Failed to alloc tcb ut");
         return false;
@@ -272,10 +272,10 @@ pid_t proc_start(char* app_name)
         as_destroy(new->as);
         fdt_destroy(new->fdt);
         procs[pid] = NULL;
-        cspace_destroy(&new->cspace);
         ut_free(new->vspace_ut, seL4_PGDBits);
         ut_free(new->ipc_buffer_ut, seL4_PageBits);
         cspace_delete(&new->cspace, user_ep);
+        cspace_destroy(&new->cspace);
         free(new);
     }
 
@@ -286,10 +286,10 @@ pid_t proc_start(char* app_name)
         as_destroy(new->as);
         fdt_destroy(new->fdt);
         procs[pid] = NULL;
-        cspace_destroy(&new->cspace);
         ut_free(new->vspace_ut, seL4_PGDBits);
         ut_free(new->ipc_buffer_ut, seL4_PageBits);
         cspace_delete(&new->cspace, user_ep);
+        cspace_destroy(&new->cspace);
         free(new);
         return false;
     }
@@ -308,7 +308,7 @@ pid_t proc_start(char* app_name)
     }*/
 
     /* set up the stack */
-    seL4_Word sp = PROCESS_STACK_TOP;
+    
     
     /* load the elf image from the cpio file */
     //err = elf_load(new->pid, cspace, seL4_CapInitThreadVSpace, new->vspace, elf_base);
@@ -318,14 +318,15 @@ pid_t proc_start(char* app_name)
         as_destroy(new->as);
         fdt_destroy(new->fdt);
         procs[pid] = NULL;
-        cspace_destroy(&new->cspace);
         ut_free(new->vspace_ut, seL4_PGDBits);
         ut_free(new->ipc_buffer_ut, seL4_PageBits);
         cspace_delete(&new->cspace, user_ep);
+        cspace_destroy(&new->cspace);
         free(new);
         return false;
     }
-    
+
+    seL4_Word sp = PROCESS_STACK_TOP;
     // setup/create region for stack
     as_define_stack(new->as);
     as_define_heap(new->as);
@@ -342,10 +343,10 @@ pid_t proc_start(char* app_name)
         as_destroy(new->as);
         fdt_destroy(new->fdt);
         procs[pid] = NULL;
-        cspace_destroy(&new->cspace);
         ut_free(new->vspace_ut, seL4_PGDBits);
         ut_free(new->ipc_buffer_ut, seL4_PageBits);
         cspace_delete(&new->cspace, user_ep);
+        cspace_destroy(&new->cspace);
         free(new);
         return false;
     }

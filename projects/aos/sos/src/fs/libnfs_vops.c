@@ -6,6 +6,7 @@
 #include "../network.h"
 #include <sos.h>
 #include "../picoro/picoro.h"
+#include <fcntl.h>
 
 struct vnode_nfs_data {
 	char * path;
@@ -107,12 +108,11 @@ void nfs_open_cb(int status, UNUSED struct nfs_context *nfs, void *data, void *p
 
 	if (status < 0) {
 		printf("open call failed with \"%s\"\n", (char *)data);
-		exit(10);
 	}
 
 	nfsfh = data;
 	vnode_data->nfsfh = nfsfh;
-	d->ret = 0;
+	d->ret = status;
 	resume(d->co, NULL);
 }
 
@@ -346,7 +346,7 @@ static int vnfs_lookup(struct vnode *dir, char *pathname, struct vnode **result,
 		struct vnode * new;
 		VOP_CREAT(d->vn, d->path, FM_READ | FM_WRITE, FM_READ | FM_WRITE, &new);
 		d->vn = new;
-		int flags= (FM_READ | FM_WRITE) << 6 | (FM_READ | FM_WRITE) << 3 | (FM_READ | FM_WRITE) ;
+		int flags= O_RDWR ;
 		if (nfs_create_async(nfs, d->path, flags, flags, nfs_create_cb, d)){
 			VOP_RECLAIM(new);
 			free(d);
