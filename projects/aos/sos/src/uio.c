@@ -1,12 +1,12 @@
 #include "uio.h"
-#include "vm/shared_buf.h"
 
 //uio only works in kernel, use sharebuffer commands in userland
-void uio_init(struct uio * u, enum uio_rw rw, size_t len, size_t offset)
+void uio_init(struct uio * u, enum uio_rw rw, size_t len, size_t offset, pid_t pid)
 {
 	u->uio_rw = rw;
     u->len = len;
     u->offset = offset;
+    u->pid = pid;
 }
 
 size_t
@@ -18,9 +18,9 @@ uiomove(void *ptr, size_t n, struct uio *u)
     }
 
     if (u->uio_rw == UIO_READ) {
-        sos_copyin(ptr, n);
+        sos_copyin(u->pid, ptr, n);
     } else {
-        sos_copyout(ptr, n);
+        sos_copyout(u->pid, ptr, n);
     }
     return n;
 }

@@ -7,7 +7,7 @@
 int syscall_proc_create(struct proc *curproc) {
     size_t nbytes = seL4_GetMR(1);
     char path[nbytes];
-    sos_copyout(path, nbytes);
+    sos_copyout(curproc->pid, path, nbytes);
     path[nbytes] = '\0';
 
     pid_t pid = proc_start(path);

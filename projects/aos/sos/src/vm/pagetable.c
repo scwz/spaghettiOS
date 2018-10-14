@@ -276,7 +276,7 @@ void vm_fault(pid_t pid) {
             err = pagein(entry, vaddr);
             //printf("err %d\n", err);
             frame_info->user_cap = slot;
-            frame_info->pid = 0; //hardcoded atm;
+            frame_info->pid = pid; //hardcoded atm;
             frame_info->user_vaddr = PAGE_ALIGN_4K(faultaddress);
             ZF_LOGE_IFERR(err, "failed to map frame");
             //seL4_Recv(1, 1);
@@ -293,7 +293,7 @@ void vm_fault(pid_t pid) {
                             seL4_ARM_Default_VMAttributes, page, true);
             
             ZF_LOGE_IFERR(err, "failed to map frame");
-            frame_info->pid = 0; //hardcoded atm;
+            frame_info->pid = pid; //hardcoded atm;
             frame_info->user_vaddr = PAGE_ALIGN_4K(faultaddress);
             frame_info->user_cap = slot;
             //seL4_Recv(1, 1);

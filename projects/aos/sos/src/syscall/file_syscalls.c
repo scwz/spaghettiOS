@@ -30,7 +30,7 @@ int syscall_write(struct proc *curproc) {
     
     struct vnode * vn = curproc->fdt->openfiles[fd]->vn; 
     struct uio * u = malloc(sizeof(struct uio));
-    uio_init(u, UIO_WRITE, nbyte, curproc->fdt->openfiles[fd]->offset);
+    uio_init(u, UIO_WRITE, nbyte, curproc->fdt->openfiles[fd]->offset, curproc->pid);
     size_t bytes_written = VOP_WRITE(vn, u);
     curproc->fdt->openfiles[fd]->offset += bytes_written;
     free(u);
@@ -56,7 +56,7 @@ int syscall_read(struct proc *curproc) {
     struct vnode *vn = curproc->fdt->openfiles[fd]->vn; 
     assert(vn);
     struct uio *u = malloc(sizeof(struct uio));
-    uio_init(u, UIO_READ, nbyte, curproc->fdt->openfiles[fd]->offset);
+    uio_init(u, UIO_READ, nbyte, curproc->fdt->openfiles[fd]->offset, curproc->pid);
     size_t bytes_read = VOP_READ(vn, u);
     //printf("bytes_read %s, %d\n", shared_buf, bytes_read);
     curproc->fdt->openfiles[fd]->offset += bytes_read;
@@ -71,7 +71,7 @@ int syscall_open(struct proc *curproc) {
     size_t size = seL4_GetMR(2);
     struct vnode *res;
     char path[size];
-    sos_copyout((seL4_Word) path, size);
+    sos_copyout(curproc->pid, (seL4_Word) path, size);
     //printf("OPENING %s\n", path);
     if(vfs_lookup(path, &res, 1)){
         seL4_SetMR(0, 1);
@@ -121,14 +121,14 @@ int syscall_getdirent(struct proc *curproc){
     int pos = seL4_GetMR(1);
     size_t nbyte = seL4_GetMR(2);
     char path[nbyte];
-    sos_copyout((seL4_Word) path, nbyte);
+    sos_copyout(curproc->pid, (seL4_Word) path, nbyte);
     struct  vnode * res;
     if (vfs_lookup("", &res, 1)){
         seL4_SetMR(0, 0);
         return 1;
     }
     struct uio *u = malloc(sizeof(struct uio));
-    uio_init(u, UIO_READ, pos, 0);
+    uio_init(u, UIO_READ, pos, 0, curproc->pid);
     size_t bytes = VOP_GETDIRENTRY(res, u);
     seL4_SetMR(0, bytes);
     free(u);
@@ -138,7 +138,7 @@ int syscall_getdirent(struct proc *curproc){
 int syscall_stat(struct proc *curproc){
     size_t nbyte = seL4_GetMR(1);
     char path[nbyte];
-    sos_copyout((seL4_Word) path, nbyte);
+    sos_copyout(curproc->pid, (seL4_Word) path, nbyte);
     //printf("stat path %d\n", path);
     sos_stat_t buf;
     struct vnode * res;
@@ -150,7 +150,7 @@ int syscall_stat(struct proc *curproc){
         seL4_SetMR(0, -1);
         return 1;
     }
-    sos_copyin((seL4_Word) &buf, sizeof(buf));
+    sos_copyin(curproc->pid, (seL4_Word) &buf, sizeof(buf));
     seL4_SetMR(0, 0);
     return 1;
 }

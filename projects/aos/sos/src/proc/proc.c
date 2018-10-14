@@ -331,7 +331,7 @@ pid_t proc_start(char* app_name)
     as_define_stack(new->as);
     as_define_heap(new->as);
 
-    as_define_region(new->as, PROCESS_SHARED_BUF_TOP - PAGE_SIZE_4K * SHARED_BUF_PAGES, PAGE_SIZE_4K * SHARED_BUF_PAGES, READ | WRITE);
+    as_define_region(new->as, PROCESS_SHARED_BUF_TOP - PAGE_SIZE_4K * SHARE_BUF_SIZE, PAGE_SIZE_4K * SHARE_BUF_SIZE, READ | WRITE);
     //map buffer
     sos_map_buf(new->pid);
 
@@ -470,7 +470,7 @@ pid_t proc_start_init(char* app_name)
     as_define_stack(new->as);
     as_define_heap(new->as);
 
-    as_define_region(new->as, PROCESS_SHARED_BUF_TOP - PAGE_SIZE_4K * SHARED_BUF_PAGES, PAGE_SIZE_4K * SHARED_BUF_PAGES, READ | WRITE);
+    as_define_region(new->as, PROCESS_SHARED_BUF_TOP - PAGE_SIZE_4K * SHARE_BUF_SIZE, PAGE_SIZE_4K * SHARE_BUF_SIZE, READ | WRITE);
     //map buffer
     sos_map_buf(new->pid);
 

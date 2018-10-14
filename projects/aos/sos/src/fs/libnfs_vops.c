@@ -65,7 +65,7 @@ void nfs_read_cb(int status, UNUSED struct nfs_context *nfs, void *data, void *p
 	}
 
 	printf("read successful with %d bytes of data\n", status);
-	d->ret = sos_copyin((seL4_Word) data, status);
+	d->ret = sos_copyin(d->u->pid, (seL4_Word) data, status);
 	resume(d->co, NULL);
 }
 
@@ -78,7 +78,6 @@ void nfs_write_cb(int status, UNUSED struct nfs_context *nfs, void *data, void *
 		exit(10);
 	}
 	printf("write successful with %d bytes of data\n", status);
-	
 	d->ret = status;
 	resume(d->co, NULL);
 }
@@ -230,13 +229,16 @@ static
 int
 vnfs_write(struct vnode *v, struct uio *uio)
 {
+	struct proc * p = proc_get(uio->pid);
 	struct nfs_data * d = malloc(sizeof(struct nfs_data));
 	struct vnode_nfs_data * vnode_dat = v->vn_data;
+	d->u = uio;
 	//printf("nfs %d, vnode_dat %d, offset %d, len %d, shared_buf %x, nfs_write_cb %x, d %x\n", nfs, vnode_dat->nfsfh,uio->offset, uio->len, shared_buf, nfs_write_cb, d);
 	if(uio->len > 1 << 14){
 		uio->len = 1 << 14;
 	}
-	if(nfs_pwrite_async(nfs, vnode_dat->nfsfh,uio->offset, uio->len, shared_buf, nfs_write_cb, d)){
+	share_buf_check_len(&uio->len);
+	if(nfs_pwrite_async(nfs, vnode_dat->nfsfh,uio->offset, uio->len, p->shared_buf, nfs_write_cb, d)){
 		printf("fail\n");
 		free(d);
 		return -1;
@@ -254,6 +256,7 @@ vnfs_read(struct vnode *v, struct uio *uio)
 {
 	struct nfs_data * d = malloc(sizeof(struct nfs_data));
 	struct vnode_nfs_data * vnode_dat = v->vn_data;
+	d->u = uio;
 	if(nfs_pread_async(nfs, vnode_dat->nfsfh, uio->offset, uio->len, nfs_read_cb, d)){
 		free(d);
 		return -1;
@@ -271,7 +274,7 @@ static int vnfs_getdirent(struct vnode *dir, struct uio *u){
 	size_t i = 0;
 	char * name = find_device_pos(dir, &i, u);
 	if(name){
-		size_t bytes_written = sos_copyin((seL4_Word) name, strlen(name) + 1);
+		size_t bytes_written = sos_copyin(u->pid, (seL4_Word) name, strlen(name) + 1);
 		assert(bytes_written == strlen(name)+1);
 		return strlen(name)+1;
 	}
@@ -291,7 +294,7 @@ static int vnfs_getdirent(struct vnode *dir, struct uio *u){
 		return 0;
 	}
 	size_t pathlen = strlen(d->path)+1;
-	size_t bytes_written = sos_copyin((seL4_Word)d->path, pathlen);
+	size_t bytes_written = sos_copyin(u->pid, (seL4_Word)d->path, pathlen);
 	assert(bytes_written == pathlen);
 	free(d->path);
 	free(d);

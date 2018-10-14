@@ -317,7 +317,7 @@ size_t offset, size_t segment_size, size_t file_size,  uintptr_t dst, seL4_CapRi
     assert(file_size <= segment_size);
     struct uio * u = malloc(sizeof(struct uio));
     assert(u);
-    uio_init(u, UIO_READ, PAGE_SIZE_4K, offset);
+    uio_init(u, UIO_READ, PAGE_SIZE_4K, offset, 0);
     /* We work a page at a time in the destination vspace. */
     size_t pos = 0;
     seL4_Error err = seL4_NoError;
@@ -351,7 +351,7 @@ size_t offset, size_t segment_size, size_t file_size,  uintptr_t dst, seL4_CapRi
 
         loadee_frame_info->user_cap = loadee_slot;
         loadee_frame_info->user_vaddr = loadee_vaddr;
-        loadee_frame_info->pid = 0; // hardcode
+        loadee_frame_info->pid = 1;
 
         if(err && err != seL4_DeleteFirst){
             ZF_LOGE("failed to map frame");
@@ -413,7 +413,7 @@ size_t offset, size_t segment_size, size_t file_size,  uintptr_t dst, seL4_CapRi
         //printf("cpy_bytes: %d, minus %d\n", cpy_bytes, file_size - pos);
         assert((size_t)VOP_READ(vn, u) >= cpy_bytes);
         
-            memcpy((void *) (loader_vaddr + (dst % PAGE_SIZE_4K)), shared_buf, cpy_bytes);
+            memcpy((void *) (loader_vaddr + (dst % PAGE_SIZE_4K)), shared_buf_begin, cpy_bytes);
         }
 
         /* Note that we don't need to explicitly zero frames as seL4 gives us zero'd frames */
@@ -453,13 +453,13 @@ int elf_load_fs(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr 
     assert(vn);
     
     struct uio * u = malloc(sizeof(struct uio));
-    uio_init(u, UIO_READ, PAGE_SIZE_4K, 0);
+    uio_init(u, UIO_READ, PAGE_SIZE_4K, 0, 0);
 
     //first read
     char elf_chunk[PAGE_SIZE_4K];
     size_t bytes_read = VOP_READ(vn, u);
     assert(bytes_read == PAGE_SIZE_4K);
-    sos_copyout((seL4_Word)elf_chunk, bytes_read);
+    sos_copyout(0, (seL4_Word)elf_chunk, bytes_read);
     free(u);
 
     int num_headers = elf_getNumProgramHeaders(elf_chunk);

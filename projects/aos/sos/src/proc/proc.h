@@ -47,6 +47,8 @@ struct proc {
     struct proc_wait_node * wait_list;
 
     struct filetable *fdt;
+
+    void* shared_buf;
 };
 
 bool proc_bootstrap(cspace_t *cspace, seL4_CPtr ep);

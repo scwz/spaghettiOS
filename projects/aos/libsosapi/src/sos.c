@@ -17,9 +17,6 @@
 
 #include <sel4/sel4.h>
 
-#define SHARE_BUF             (0xD0000000)
-#define SHARE_BUF_SIZE        256
-
 static void check_len(size_t * len){
     if(*len > 4096 * SHARE_BUF_SIZE){
         *len = 4096 * SHARE_BUF_SIZE;

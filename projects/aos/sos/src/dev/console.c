@@ -73,10 +73,11 @@ int console_read(struct uio *uio) {
 
 	msg[i] = '\0'; 
 	printf("msg: %s\n", msg);
-	sos_copyin(msg, i);
+	sos_copyin(uio->pid, msg, i);
 	return i;
 }
 
 int console_write(struct uio *uio) {
-	return serial_send(serial, shared_buf, uio->len);
+    struct proc * p = proc_get(uio->pid);
+	return serial_send(serial, p->shared_buf, uio->len);
 }

@@ -54,6 +54,10 @@ typedef int fmode_t;
 #define ST_SPECIAL 2    /* special (console) file */
 typedef int st_type_t;
 
+/* shared buffer */
+#define SHARE_BUF             (0xD0000000)
+#define SHARE_BUF_SIZE        256
+
 
 typedef struct {
     st_type_t st_type;    /* file type */
