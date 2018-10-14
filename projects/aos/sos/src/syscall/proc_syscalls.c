@@ -18,8 +18,7 @@ int syscall_proc_create(struct proc *curproc) {
 
 int syscall_proc_delete(struct proc *curproc) {
     pid_t pid = seL4_GetMR(1);
-
-    seL4_SetMR(0, -1);
+    seL4_SetMR(0, proc_destroy(pid));
     return 1;
 }
 
