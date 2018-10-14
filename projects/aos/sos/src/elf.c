@@ -52,6 +52,8 @@ static int perm_from_elf(unsigned long permissions){
     return p;
 }
 
+static uintptr_t vsyscall_table;
+static uint64_t entry_point;
 /*
  * Load an elf segment into the given vspace.
  *
@@ -275,7 +277,6 @@ int elf_load(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr loa
         ZF_LOGE("Invalid elf file");
         return -1;
     }
-
     int num_headers = elf_getNumProgramHeaders(elf_file);
     for (int i = 0; i < num_headers; i++) {
 
@@ -304,7 +305,8 @@ int elf_load(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr loa
 
         as_define_region(curproc->as, vaddr, segment_size, perm_from_elf(flags));
     }
-
+    vsyscall_table = *((uintptr_t *) elf_getSectionNamed(elf_file, "__vsyscall", NULL));
+    entry_point = elf_getEntryPoint(elf_file);
     return 0;
 }
 
@@ -436,7 +438,7 @@ int elf_load_fs(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr 
     if(vfs_lookup(path, &vn, 0)){
         return -1;
     }
-    VOP_EACHOPEN(vn, FM_READ | FM_WRITE | FM_EXEC);
+    VOP_EACHOPEN(vn, FM_READ | FM_EXEC);
     struct proc *curproc = proc_get(pid);
     assert(vn);
     printf("lookup completed\n");
@@ -450,7 +452,6 @@ int elf_load_fs(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr 
     sos_copyout((seL4_Word)elf_chunk, bytes_read);
     free(u);
 
-    
     int num_headers = elf_getNumProgramHeaders(elf_chunk);
     for (int i = 0; i < num_headers; i++) {
 
@@ -478,6 +479,15 @@ int elf_load_fs(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr 
 
         as_define_region(curproc->as, vaddr, segment_size, perm_from_elf(flags));
     }
-
+    entry_point = elf_getEntryPoint(elf_chunk);
+    vsyscall_table = (uintptr_t) NULL;
     return 0;
+}
+
+uintptr_t get_last_vsyscall_table(void){
+    return vsyscall_table;
+}
+
+uint64_t get_last_entry_point(void){
+    return entry_point;
 }

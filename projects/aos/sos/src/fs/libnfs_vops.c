@@ -9,7 +9,7 @@
 
 struct vnode_nfs_data {
 	char * path;
-	struct vnode * dev_list;
+	struct device_entry * dev_list;
 	struct vnode * next;
 	struct nfsfh *  nfsfh;
 };
@@ -41,7 +41,7 @@ void nfs_dirent_cb(int status, struct nfs_context *nfs, void *data, void *privat
 	printf("opendir successful\n");
 	size_t i = d->i;
 	while((nfsdirent = nfs_readdir(nfs, nfsdir)) != NULL && i <= d->u->len) {
-		printf("i %d, Inode:%d Name:%s\n", i,   (int)nfsdirent->inode, nfsdirent->name);
+		//printf("i %d, Inode:%d Name:%s\n", i,   (int)nfsdirent->inode, nfsdirent->name);
 		if(i == d->u->len){
 			d->path = malloc(strlen(nfsdirent->name));
 			strcpy(d->path, nfsdirent->name);
@@ -54,10 +54,9 @@ void nfs_dirent_cb(int status, struct nfs_context *nfs, void *data, void *privat
 	resume(d->co, NULL);
 }
 
-void nfs_read_cb(int status, struct nfs_context *nfs, void *data, void *private_data)
+void nfs_read_cb(int status, UNUSED struct nfs_context *nfs, void *data, void *private_data)
 {
 	struct nfs_data *d = private_data;
-	int i;
 
 	if (status < 0) {
 		printf("read failed with \"%s\"\n", (char *)data);
@@ -65,15 +64,13 @@ void nfs_read_cb(int status, struct nfs_context *nfs, void *data, void *private_
 	}
 
 	printf("read successful with %d bytes of data\n", status);
-	sos_copyin(data, status);
-	d->ret = status;
+	d->ret = sos_copyin((seL4_Word) data, status);
 	resume(d->co, NULL);
 }
 
-void nfs_write_cb(int status, struct nfs_context *nfs, void *data, void *private_data)
+void nfs_write_cb(int status, UNUSED struct nfs_context *nfs, void *data, void *private_data)
 {
 	struct nfs_data *d = private_data;
-	char *read_data;
 
 	if (status < 0) {
 		printf("write failed with \"%s\"\n", (char *)data);
@@ -85,25 +82,24 @@ void nfs_write_cb(int status, struct nfs_context *nfs, void *data, void *private
 	resume(d->co, NULL);
 }
 
-void nfs_close_cb(int status, struct nfs_context *nfs, void *data, void *private_data)
+void nfs_close_cb(int status, UNUSED struct nfs_context *nfs, void *data, void *private_data)
 {
-	printf("CLOSE\n");
 	struct nfs_data *d = private_data;
 	struct vnode_nfs_data * vnode_data = d->vn->vn_data;
-	struct nfsfh *nfsfh;
+	//struct nfsfh *nfsfh;
 
 	if (status < 0) {
 		printf("close call failed with \"%s\"\n", (char *)data);
 		exit(10);
 	}
 
-	nfsfh = data;
+	//nfsfh = data;
 	vnode_data->nfsfh = NULL;
 	d->ret = 0;
 	resume(d->co, NULL);
 }
 
-void nfs_open_cb(int status, struct nfs_context *nfs, void *data, void *private_data)
+void nfs_open_cb(int status, UNUSED struct nfs_context *nfs, void *data, void *private_data)
 {
 	struct nfs_data *d = private_data;
 	struct vnode_nfs_data * vnode_data = d->vn->vn_data;
@@ -120,7 +116,7 @@ void nfs_open_cb(int status, struct nfs_context *nfs, void *data, void *private_
 	resume(d->co, NULL);
 }
 
-void nfs_stat64_cb(int status, struct nfs_context *nfs, void *data, void *private_data)
+void nfs_stat64_cb(int status, UNUSED struct nfs_context *nfs, void *data, void *private_data)
 {
 	struct nfs_data *d = private_data;
 	struct nfs_stat_64 *st;
@@ -135,8 +131,8 @@ void nfs_stat64_cb(int status, struct nfs_context *nfs, void *data, void *privat
 		buf->st_size = st->nfs_size;
 		buf->st_type = 0;
 		
-		printf("Mode %04o, Size: %x, a_time %x, c_time %x\n", 
-			(unsigned int) st->nfs_mode, st->nfs_size , st->nfs_atime, st->nfs_ctime);
+		//printf("Mode %04o, Size: %x, a_time %x, c_time %x\n", 
+		//	(unsigned int) st->nfs_mode, st->nfs_size , st->nfs_atime, st->nfs_ctime);
 		
 		d->ret = 0;
 	}
@@ -155,12 +151,10 @@ void nfs_lookup_cb(int status, struct nfs_context *nfs, void *data, void *privat
 	}
 	bool found = false;
 	struct vnode * result = NULL;
-	printf("opendir successful\n");
 	while((nfsdirent = nfs_readdir(nfs, nfsdir)) != NULL) {
-		printf("Inode:%d Name:%s\n", (int)nfsdirent->inode, nfsdirent->name);
+		//printf("Inode:%d Name:%s\n", (int)nfsdirent->inode, nfsdirent->name);
 		if(!strcmp(nfsdirent->name, d->path)){
 			VOP_CREAT(d->vn, d->path, FM_READ | FM_WRITE, FM_READ | FM_WRITE, &result);
-			printf("MAKING %s\n", d->path);
 			d->vn = result;
 			found = true;
 			break;
@@ -173,11 +167,15 @@ void nfs_lookup_cb(int status, struct nfs_context *nfs, void *data, void *privat
 	
 }
 
-void nfs_create_cb(int status, struct nfs_context *nfs, void *data, void *private_data)
+void nfs_create_cb(int status, UNUSED struct nfs_context *nfs, void *data, void *private_data)
 {
 	struct nfs_data *d = private_data;
 	struct vnode_nfs_data * vnode_dat = d->vn->vn_data;
 	vnode_dat->nfsfh = data;
+	if (status < 0) {
+		printf("create failed with \"%s\"\n", (char *)data);
+		exit(10);
+	}
 	VOP_INCREF(d->vn);
 	
 	d->ret = 0;
@@ -214,16 +212,13 @@ static char * find_device_pos(struct vnode *dir, size_t * i, struct uio * u){
 
 static int vnfs_eachopen(struct vnode *v, int flags)
 {
-	printf("OPEN1\n");
 	struct nfs_data * d = malloc(sizeof(struct nfs_data));
 	VOP_INCREF(v);
 	struct vnode_nfs_data * data = v->vn_data;
 	d->vn = v;
-	printf("OPEN2\n");
 	if(nfs_open_async(nfs, data->path, flags, nfs_open_cb, d)){
 		return -1;
 	}
-	printf("OPEN3\n");
 	d->co = get_running();
 	yield(NULL);
 	int ret = d->ret;
@@ -235,11 +230,9 @@ static
 int
 vnfs_write(struct vnode *v, struct uio *uio)
 {
-	printf("WRITE CALLED\n");
 	struct nfs_data * d = malloc(sizeof(struct nfs_data));
-	printf("WRITE CALLED\n");
 	struct vnode_nfs_data * vnode_dat = v->vn_data;
-	printf("nfs %d, vnode_dat %d, offset %d, len %d, shared_buf %x, nfs_write_cb %x, d %x\n", nfs, vnode_dat->nfsfh,uio->offset, uio->len, shared_buf, nfs_write_cb, d);
+	//printf("nfs %d, vnode_dat %d, offset %d, len %d, shared_buf %x, nfs_write_cb %x, d %x\n", nfs, vnode_dat->nfsfh,uio->offset, uio->len, shared_buf, nfs_write_cb, d);
 	if(uio->len > 1 << 14){
 		uio->len = 1 << 14;
 	}
@@ -261,13 +254,10 @@ vnfs_read(struct vnode *v, struct uio *uio)
 {
 	struct nfs_data * d = malloc(sizeof(struct nfs_data));
 	struct vnode_nfs_data * vnode_dat = v->vn_data;
-	printf("uio: %lu\n", uio->len);
 	if(nfs_pread_async(nfs, vnode_dat->nfsfh, uio->offset, uio->len, nfs_read_cb, d)){
 		free(d);
-		printf("working2?:\n");
 		return -1;
 	}
-	printf("working?:\n");
 	d->co = get_running();
 	yield(NULL);
 	int ret = d->ret;
@@ -281,7 +271,8 @@ static int vnfs_getdirent(struct vnode *dir, struct uio *u){
 	size_t i = 0;
 	char * name = find_device_pos(dir, &i, u);
 	if(name){
-		sos_copyin(name, strlen(name) + 1);
+		size_t bytes_written = sos_copyin((seL4_Word) name, strlen(name) + 1);
+		assert(bytes_written == strlen(name)+1);
 		return strlen(name)+1;
 	}
 	struct nfs_data * d = malloc(sizeof(struct nfs_data));
@@ -300,7 +291,8 @@ static int vnfs_getdirent(struct vnode *dir, struct uio *u){
 		return 0;
 	}
 	size_t pathlen = strlen(d->path)+1;
-	sos_copyin(d->path, pathlen);
+	size_t bytes_written = sos_copyin((seL4_Word)d->path, pathlen);
+	assert(bytes_written == pathlen);
 	free(d->path);
 	free(d);
 	return pathlen;
@@ -364,26 +356,24 @@ static int vnfs_lookup(struct vnode *dir, char *pathname, struct vnode **result,
 		yield(NULL);
 		VOP_RECLAIM(d->vn); //close the new vnode
 		ret = d->ret;
-	} else if (ret){
-		free(d->path);
 	}
+	free(d->path);
 	*result = d->vn;
 	free(d);
 	return ret;
 }
 
-static int vnfs_lookparent(struct vnode *dir, char *pathname, struct vnode **result, char *buf, size_t len){
-    return 0;
-}
-
-static int vnfs_creat(struct vnode *dir, const char *name, int excl, int mode, struct vnode **result){
+static int vnfs_creat(struct vnode *dir, const char *name, UNUSED int excl, UNUSED int mode, struct vnode **result){
 	*result = nfs_create_vnode();
-	
+
+	char * new_name = malloc(strlen(name) + 1);
+	strcpy(new_name, name);
+
 	struct vnode_nfs_data * vnode_data = dir->vn_data;
 	struct vnode *tmp = vnode_data->next;
 	vnode_data->next = *result;
 	vnode_data = (*result)->vn_data;
-	vnode_data->path = name;
+	vnode_data->path = new_name;
 	vnode_data->next = tmp;
 	return 0;
 }
@@ -416,7 +406,7 @@ static const struct vnode_ops nfs_vnode_ops = {
 	.vop_stat = vnfs_stat,
 	.vop_lookup = vnfs_lookup,
 	.vop_reclaim = vnfs_reclaim,
-	.vop_lookparent = vnfs_lookparent,
+	//.vop_lookparent = vnfs_lookparent,
 };
 
 struct vnode * nfs_create_vnode()
@@ -461,8 +451,7 @@ struct vnode * nfs_bootstrap(){
 	return v;
 }
 
-int nfs_get_statbuf(struct vnode * dir, char * path, struct stat_buf_t * statbuf){
-	printf("hello\n");
+int nfs_get_statbuf(struct vnode * dir, char * path, sos_stat_t * statbuf){
 	struct vnode * dev = find_device_name(dir, path);
 	if(dev != NULL){
 		VOP_STAT(dev, statbuf);
@@ -473,7 +462,6 @@ int nfs_get_statbuf(struct vnode * dir, char * path, struct stat_buf_t * statbuf
 	}
 	struct nfs_data * d = malloc(sizeof(struct nfs_data));
 	d->statbuf = statbuf;
-	printf("hello\n");
     if(nfs_stat64_async(nfs, path, nfs_stat64_cb, d)){
 		free(d);
 		return -1;

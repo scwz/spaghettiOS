@@ -27,7 +27,7 @@ static int stack_write(seL4_Word *mapped_stack, int index, uintptr_t val)
 
 /* set up System V ABI compliant stack, so that the process can
  * start up and initialise the C library */
-static uintptr_t init_process_stack(struct proc *proc, seL4_CPtr local_vspace, char *elf_file)
+static uintptr_t init_process_stack(struct proc *proc, seL4_CPtr local_vspace)
 {
     /* Create a stack frame */
     proc->stack_ut = alloc_retype(cspace, &proc->stack, seL4_ARM_SmallPageObject, seL4_PageBits);
@@ -44,7 +44,7 @@ static uintptr_t init_process_stack(struct proc *proc, seL4_CPtr local_vspace, c
     uintptr_t local_stack_bottom = SOS_SCRATCH - PAGE_SIZE_4K;
 
     /* find the vsyscall table */
-    uintptr_t sysinfo = *((uintptr_t *) elf_getSectionNamed(elf_file, "__vsyscall", NULL));
+    uintptr_t sysinfo = get_last_vsyscall_table();
     if (sysinfo == 0) {
         ZF_LOGE("could not find syscall table for c library");
         return 0;
@@ -298,16 +298,17 @@ pid_t proc_start(char* app_name)
     NAME_THREAD(new->tcb, app_name);
 
     /* parse the cpio image */
+    /*
     ZF_LOGI( "\nStarting \"%s\"...\n", app_name);
     unsigned long elf_size;
     char* elf_base = cpio_get_file(_cpio_archive, app_name, &elf_size);
     if (elf_base == NULL) {
         ZF_LOGE("Unable to locate cpio header for %s", app_name);
         return false;
-    }
+    }*/
 
     /* set up the stack */
-    seL4_Word sp = init_process_stack(new, seL4_CapInitThreadVSpace, elf_base);
+    seL4_Word sp = PROCESS_STACK_TOP;
     
     /* load the elf image from the cpio file */
     //err = elf_load(new->pid, cspace, seL4_CapInitThreadVSpace, new->vspace, elf_base);
@@ -353,7 +354,7 @@ pid_t proc_start(char* app_name)
     
     /* Start the new process */
     seL4_UserContext context = {
-        .pc = elf_getEntryPoint(elf_base),
+        .pc = get_last_entry_point(),
         .sp = sp,
     };
     printf("Starting %s at %p\n", app_name, (void *) context.pc);
@@ -453,9 +454,6 @@ pid_t proc_start_init(char* app_name)
         return false;
     }
 
-    /* set up the stack */
-    seL4_Word sp = init_process_stack(new, seL4_CapInitThreadVSpace, elf_base);
-    
     /* load the elf image from the cpio file */
     err = elf_load(new->pid, cspace, seL4_CapInitThreadVSpace, new->vspace, elf_base);
     //err = elf_load_fs(new->pid, cspace, seL4_CapInitThreadVSpace, new->vspace, app_name);
@@ -463,6 +461,9 @@ pid_t proc_start_init(char* app_name)
         ZF_LOGE("Failed to load elf image");
         return false;
     }
+
+    /* set up the stack */
+    seL4_Word sp = init_process_stack(new, seL4_CapInitThreadVSpace);
     
     // setup/create region for stack
     as_define_stack(new->as);
@@ -484,7 +485,7 @@ pid_t proc_start_init(char* app_name)
     
     /* Start the new process */
     seL4_UserContext context = {
-        .pc = elf_getEntryPoint(elf_base),
+        .pc = get_last_entry_point(),
         .sp = sp,
     };
     printf("Starting %s at %p\n", app_name, (void *) context.pc);

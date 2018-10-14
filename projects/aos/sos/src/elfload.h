@@ -18,5 +18,9 @@
 
 int elf_load(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr loadee_vspace, char *elf_file);
 
-// cannot use before vfs_boostrap and frametable bootstrap
+// cannot use for init process
 int elf_load_fs(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr loadee_vspace, char *path);
+
+uintptr_t get_last_vsyscall_table(void);
+
+uint64_t get_last_entry_point(void);
