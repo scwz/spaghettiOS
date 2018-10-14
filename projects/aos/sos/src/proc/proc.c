@@ -12,6 +12,8 @@
 #include "proc.h"
 #include "../vm/vmem_layout.h"
 
+#define SET_PID_BADGE(pid) ((TTY_EP_BADGE & 0x7FFFFFF) | (pid << 20))
+
 struct proc *procs[MAX_PROCESSES];
 
 extern char _cpio_archive[];
@@ -161,7 +163,7 @@ bool proc_bootstrap(cspace_t *cs, seL4_CPtr pep) {
  */
 pid_t proc_start(char* app_name)
 {
-    proc_start_init(app_name);
+    return proc_start_init(app_name);
 #if 0
     struct proc *new = proc_create(app_name);
     seL4_Word err;
@@ -175,7 +177,7 @@ pid_t proc_start(char* app_name)
     }
 
     /* now mutate the cap, thereby setting the badge */
-    err = cspace_mint(&new->cspace, user_ep, cspace, ep, seL4_AllRights, TTY_EP_BADGE);
+    err = cspace_mint(&new->cspace, user_ep, cspace, ep, seL4_AllRights, SET_PID_BADGE(new->pid));
     if (err) {
         ZF_LOGE("Failed to mint user ep");
         return false;
@@ -291,7 +293,7 @@ pid_t proc_start_init(char* app_name)
     }
 
     /* now mutate the cap, thereby setting the badge */
-    err = cspace_mint(&new->cspace, user_ep, cspace, ep, seL4_AllRights, TTY_EP_BADGE);
+    err = cspace_mint(&new->cspace, user_ep, cspace, ep, seL4_AllRights, SET_PID_BADGE(new->pid));
     if (err) {
         ZF_LOGE("Failed to mint user ep");
         return false;
