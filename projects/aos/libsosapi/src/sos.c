@@ -141,7 +141,6 @@ pid_t sos_my_id(void)
     seL4_Call(SOS_IPC_EP_CAP, tag);
 
     return seL4_GetMR(0);
-
 }
 
 int sos_process_status(sos_process_t *processes, unsigned max)
