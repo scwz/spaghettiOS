@@ -56,7 +56,7 @@ struct proc {
 
 bool proc_bootstrap(cspace_t *cspace, seL4_CPtr ep);
 pid_t proc_start(char *app_name);
-struct proc *proc_create(void);
+struct proc *proc_create(char *app_name);
 
 int proc_destroy(pid_t pid);
 int proc_wait_list_add(pid_t pid, pid_t pid_to_add);

@@ -189,7 +189,7 @@ seL4_Word frame_alloc(seL4_Word *vaddr) {
         while(frame_table[clock_curr].ref_bit){
             //printf("clock_curr: %ld\n", clock_curr);
             if(!frame_table[clock_curr].important || frame_table[clock_curr].pid <= MAX_PROCESSES){
-                frame_table[clock_curr].ref_bit = false;
+                frame_table[clock_curr].ref_bit = 0;
                 if(frame_table[clock_curr].user_cap != seL4_CapNull){
                     seL4_ARM_Page_Unmap(frame_table[clock_curr].user_cap);
                 }

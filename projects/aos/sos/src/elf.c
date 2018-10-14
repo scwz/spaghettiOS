@@ -199,7 +199,7 @@ static int load_segment_into_vspace(pid_t pid, cspace_t *cspace, seL4_CPtr loade
 
         loadee_frame_info->user_cap = loadee_slot;
         loadee_frame_info->user_vaddr = loadee_vaddr;
-        loadee_frame_info->pid = 0; // hardcode
+        loadee_frame_info->pid = pid; // hardcode
 
         if(err && err != seL4_DeleteFirst){
             ZF_LOGE("failed to map frame");
