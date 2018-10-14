@@ -1,4 +1,5 @@
 
+#include <string.h>
 #include "proc_syscalls.h"
 
 #include "../proc/proc.h"
@@ -28,7 +29,23 @@ int syscall_proc_my_id(struct proc *curproc) {
 }
 
 int syscall_proc_status(struct proc *curproc) {
-    seL4_SetMR(0, -1);
+    unsigned max = seL4_GetMR(1);
+    sos_process_t *processes = malloc(sizeof(sos_process_t) * max);
+    struct proc *curr;
+    size_t nactive = 0;
+
+    for (pid_t id = 0; id < max; id++) {
+        if ((curr = proc_get(id)) != NULL) {
+            processes[nactive].pid = id;
+            processes[nactive].stime = curr->stime;
+            processes[nactive].size = curr->size;
+            strcpy(processes[nactive].command, curr->name);
+            nactive++;
+        }
+    }
+    sos_copyin(curproc->pid, processes, nactive * sizeof(sos_process_t));
+    free(processes);
+    seL4_SetMR(0, nactive);
     return 1;
 }
 

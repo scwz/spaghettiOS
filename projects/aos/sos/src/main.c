@@ -134,7 +134,7 @@ NORETURN void syscall_loop(seL4_CPtr ep)
          * see what the message is about */
         seL4_Word label = seL4_MessageInfo_get_label(message);
 
-        pid_t pid = 0; // since idk how to get the pid from the ep atm
+        pid_t pid = badge >> 21; // since idk how to get the pid from the ep atm
 
         if (badge & IRQ_EP_BADGE) {
             /* It's a notification from our bound notification
@@ -153,10 +153,12 @@ NORETURN void syscall_loop(seL4_CPtr ep)
             }
         } else if (label == seL4_Fault_VMFault) {
             /* it's a vm fault */
+            printf("pid %ld\n", badge >> 21);
             resume(coroutine((void *(*)(void *))vm_fault), (void *)(seL4_Word)pid);
         } else if (label == seL4_Fault_NullFault) {
             /* It's not a fault or an interrupt, it must be an IPC
              * message from tty_test! */
+            printf("pid %ld\n", badge >> 21);
             resume(coroutine((void *(*)(void *))handle_syscall), (void *)(seL4_Word)pid);
         } else {
 #if 0

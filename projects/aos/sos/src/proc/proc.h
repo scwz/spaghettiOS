@@ -28,7 +28,10 @@ struct proc_wait_node {
 
 /* the one process we start */
 struct proc {
+    char *name;
     pid_t pid;
+    unsigned stime;
+    unsigned size;
     ut_t *tcb_ut;
     seL4_CPtr tcb;
     ut_t *vspace_ut;

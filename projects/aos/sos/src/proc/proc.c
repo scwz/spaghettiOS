@@ -1,4 +1,5 @@
 #include <cpio/cpio.h>
+#include <clock/clock.h>
 
 #include <aos/debug.h>
 
@@ -163,6 +164,7 @@ pid_t proc_start(char* app_name)
     pid_t pid = find_next_pid();
     procs[pid] = new;
 
+    new->name = app_name;
     new->as = as_create();
     new->fdt = fdt_create();
     new->pid = pid;
@@ -370,6 +372,7 @@ pid_t proc_start_init(char* app_name)
     pid_t pid = find_next_pid();
     procs[pid] = new;
 
+    new->name = app_name;
     new->as = as_create();
     new->fdt = fdt_create();
     new->pid = pid;
@@ -497,6 +500,8 @@ pid_t proc_start_init(char* app_name)
 
 struct proc *proc_create(void) {
     struct proc *new = malloc(sizeof(struct proc));
+    new->stime = get_time(); 
+    new->size = 0;
     return new;
 }
 
