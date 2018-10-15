@@ -13,7 +13,7 @@
 #include "proc.h"
 #include "../vm/vmem_layout.h"
 
-#define SET_PID_BADGE(pid) ((TTY_EP_BADGE & 0x7FFFFFF) | (pid << 20))
+#define SET_PID_BADGE(pid) (TTY_EP_BADGE | (pid << 20))
 
 struct proc *procs[MAX_PROCESSES];
 
@@ -380,7 +380,6 @@ struct proc *proc_create(char *app_name) {
     new->size = 0;
     pid_t pid = find_next_pid();
 
-    new->name = malloc(sizeof(char));
     strcpy(new->name, app_name);
     new->as = as_create();
     new->fdt = fdt_create();

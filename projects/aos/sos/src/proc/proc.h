@@ -28,7 +28,7 @@ struct proc_wait_node {
 
 /* the one process we start */
 struct proc {
-    char *name;
+    char name[N_NAME];
     pid_t pid;
     unsigned stime;
     unsigned size;
