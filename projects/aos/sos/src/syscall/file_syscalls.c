@@ -123,7 +123,7 @@ int syscall_getdirent(struct proc *curproc){
     char path[nbyte];
     sos_copyout(curproc->pid, (seL4_Word) path, nbyte);
     struct  vnode * res;
-    if (vfs_lookup("", &res, 1)){
+    if (vfs_lookup("", &res, 0)){
         seL4_SetMR(0, 0);
         return 1;
     }

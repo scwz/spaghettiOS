@@ -421,6 +421,7 @@ static int proc_wait_wakeup(pid_t pid){
     struct proc_wait_node* tmp;
     pid_t * waker = malloc(sizeof(pid_t));
     *waker = pid;
+    printf("wakeup_curr %p\n", curr);
     while(curr != NULL){
         printf("owner: %d, wake: %d\n", curr->owner, curr->pid_to_wake);
         struct proc * wake_proc = proc_get(curr->pid_to_wake);
@@ -437,9 +438,7 @@ static int proc_wait_wakeup(pid_t pid){
 
 int proc_destroy(pid_t pid){
     struct proc * p = proc_get(pid);
-    if(proc_wait_wakeup(pid)){
-        return -1;
-    }
+    proc_wait_wakeup(pid);
     page_table_destroy(p->as->pt, cspace);
     as_destroy(p->as);
     fdt_destroy(p->fdt, pid);
@@ -453,6 +452,7 @@ int proc_destroy(pid_t pid){
 }
 
 int proc_wait_list_add(pid_t pid, pid_t pid_to_add){
+    printf("add\n");
     struct proc_wait_node* node = malloc(sizeof(struct proc_wait_node));
     if(node == NULL){
         return -1;

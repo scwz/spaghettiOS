@@ -42,7 +42,7 @@ void nfs_dirent_cb(int status, struct nfs_context *nfs, void *data, void *privat
 	printf("opendir successful\n");
 	size_t i = d->i;
 	while((nfsdirent = nfs_readdir(nfs, nfsdir)) != NULL && i <= d->u->len) {
-		//printf("i %d, Inode:%d Name:%s\n", i,   (int)nfsdirent->inode, nfsdirent->name);
+		printf("i %d, Inode:%d Name:%s\n", i,   (int)nfsdirent->inode, nfsdirent->name);
 		if(i == d->u->len){
 			d->path = malloc(strlen(nfsdirent->name));
 			strcpy(d->path, nfsdirent->name);
@@ -151,7 +151,7 @@ void nfs_lookup_cb(int status, struct nfs_context *nfs, void *data, void *privat
 	bool found = false;
 	struct vnode * result = NULL;
 	while((nfsdirent = nfs_readdir(nfs, nfsdir)) != NULL) {
-		//printf("Inode:%d Name:%s\n", (int)nfsdirent->inode, nfsdirent->name);
+		printf("Inode:%d Name:%s\n", (int)nfsdirent->inode, nfsdirent->name);
 		if(!strcmp(nfsdirent->name, d->path)){
 			VOP_CREAT(d->vn, d->path, FM_READ | FM_WRITE, FM_READ | FM_WRITE, &result);
 			d->vn = result;
@@ -270,7 +270,7 @@ vnfs_read(struct vnode *v, struct uio *uio)
 
 static int vnfs_getdirent(struct vnode *dir, struct uio *u){
 	assert(dir);
-	
+	printf("dirent\n");
 	size_t i = 0;
 	char * name = find_device_pos(dir, &i, u);
 	if(name){

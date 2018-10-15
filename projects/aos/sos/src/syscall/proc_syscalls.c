@@ -64,17 +64,20 @@ int syscall_proc_wait(struct proc *curproc) {
         return 1;
     }
     curproc->state = WAITING;
-    curproc->wake_co = get_running();
+    
     if(pid >= 1){
-        proc_wait_list_add(curproc->pid, pid);  
+        proc_wait_list_add(pid, curproc->pid);  
     } else {
         for(pid_t id = 1; id < MAX_PROCESSES; id++){
             struct proc * curr = proc_get(id);
-            proc_wait_list_add(curr->pid, pid);
+            proc_wait_list_add(id, curproc->pid);
         }
     }
+    curproc->wake_co = get_running();
     struct proc_wait_node * node = yield(NULL);
-    curproc = node->pid_to_wake;
+   
+    curproc = proc_get(node->pid_to_wake);
+    printf("rerunning again %d\n",curproc->pid);
     curproc->state = RUNNING;
     seL4_SetMR(0, node->owner);
     return 1;
