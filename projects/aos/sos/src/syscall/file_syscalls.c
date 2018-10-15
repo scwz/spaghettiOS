@@ -122,6 +122,7 @@ int syscall_getdirent(struct proc *curproc){
     size_t nbyte = seL4_GetMR(2);
     char path[nbyte];
     sos_copyout(curproc->pid, (seL4_Word) path, nbyte);
+    printf("stat path %s\n", path);
     struct  vnode * res;
     if (vfs_lookup("", &res, 0)){
         seL4_SetMR(0, 0);
@@ -132,6 +133,7 @@ int syscall_getdirent(struct proc *curproc){
     size_t bytes = VOP_GETDIRENTRY(res, u);
     seL4_SetMR(0, bytes);
     free(u);
+    printf("end dirent\n");
     return 1;
 }
 
@@ -139,10 +141,10 @@ int syscall_stat(struct proc *curproc){
     size_t nbyte = seL4_GetMR(1);
     char path[nbyte];
     sos_copyout(curproc->pid, (seL4_Word) path, nbyte);
-    //printf("stat path %d\n", path);
+    printf("stat path %s\n", path);
     sos_stat_t buf;
     struct vnode * res;
-    if (vfs_lookup("", &res, 1)){
+    if (vfs_lookup("", &res, 0)){
         seL4_SetMR(0, -1);
         return 1;
     }

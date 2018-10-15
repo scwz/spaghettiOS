@@ -35,6 +35,7 @@ static int dev_getdirent(){
 }
 
 static int dev_stat(struct vnode * v, void * buf){
+	printf("dev_stat\n");
 	sos_stat_t *s = buf;
 	s->st_fmode = FM_READ | FM_WRITE;
 	s->st_atime = 0;
