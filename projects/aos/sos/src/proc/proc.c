@@ -151,7 +151,14 @@ static pid_t find_next_pid(void) {
 bool proc_bootstrap(cspace_t *cs, seL4_CPtr pep) {
     cspace = cs;
     ep = pep;
-
+    struct proc *kernel = malloc(sizeof(struct proc));
+    kernel->stime = get_time() / NS_IN_MS; 
+    strcpy(kernel->name, "sos");
+    kernel->pid = 0;
+    kernel->wait_list = NULL;
+    kernel->fdt = NULL;
+    kernel->shared_buf = shared_buf_begin;
+    procs[0] = kernel;
     proc_start_init("sosh");
     return true;
 }
@@ -164,10 +171,10 @@ bool proc_bootstrap(cspace_t *cs, seL4_CPtr pep) {
  */
 pid_t proc_start(char* app_name)
 {
-    return proc_start_init(app_name);
-#if 0
+    return proc_start_init("sosh");
     struct proc *new = proc_create(app_name);
     seL4_Word err;
+
     /* allocate a new slot in the target cspace which we will mint a badged endpoint cap into --
      * the badge is used to identify the process, which will come in handy when you have multiple
      * processes. */
@@ -210,19 +217,6 @@ pid_t proc_start(char* app_name)
 
     /* Provide a name for the thread -- Helpful for debugging */
     NAME_THREAD(new->tcb, app_name);
-
-    /* parse the cpio image */
-    /*
-    ZF_LOGI( "\nStarting \"%s\"...\n", app_name);
-    unsigned long elf_size;
-    char* elf_base = cpio_get_file(_cpio_archive, app_name, &elf_size);
-    if (elf_base == NULL) {
-        ZF_LOGE("Unable to locate cpio header for %s", app_name);
-        return false;
-    }*/
-
-    /* set up the stack */
-    seL4_Word sp = init_process_stack(new, seL4_CapInitThreadVSpace);
     
     /* load the elf image from the cpio file */
     //err = elf_load(new->pid, cspace, seL4_CapInitThreadVSpace, new->vspace, elf_base);
@@ -230,7 +224,7 @@ pid_t proc_start(char* app_name)
     if (err) {
         ZF_LOGE("Failed to load elf image");
         as_destroy(new->as);
-        fdt_destroy(new->fdt);
+        fdt_destroy(new->fdt, new->pid);
         procs[new->pid] = NULL;
         ut_free(new->vspace_ut, seL4_PGDBits);
         ut_free(new->ipc_buffer_ut, seL4_PageBits);
@@ -255,7 +249,7 @@ pid_t proc_start(char* app_name)
     if (err != 0) {
         ZF_LOGE("Unable to map IPC buffer for user app");
         as_destroy(new->as);
-        fdt_destroy(new->fdt);
+        fdt_destroy(new->fdt, new->pid);
         procs[new->pid] = NULL;
         ut_free(new->vspace_ut, seL4_PGDBits);
         ut_free(new->ipc_buffer_ut, seL4_PageBits);
@@ -270,13 +264,12 @@ pid_t proc_start(char* app_name)
     /* Start the new process */
     seL4_UserContext context = {
         .pc = get_last_entry_point(),
-        .sp = sp,
+        .sp = PROCESS_STACK_TOP,
     };
     printf("Starting %s at %p\n", app_name, (void *) context.pc);
     err = seL4_TCB_WriteRegisters(new->tcb, 1, 0, 2, &context);
     ZF_LOGE_IF(err, "Failed to write registers");
     return new->pid;
-#endif
 }
 
 pid_t proc_start_init(char* app_name)
@@ -284,7 +277,6 @@ pid_t proc_start_init(char* app_name)
     struct proc *new = proc_create(app_name);
     seL4_Word err;
 
-    printf("pid: %d\n", new->pid);
     /* allocate a new slot in the target cspace which we will mint a badged endpoint cap into --
      * the badge is used to identify the process, which will come in handy when you have multiple
      * processes. */
@@ -439,7 +431,7 @@ int proc_destroy(pid_t pid){
     }
     page_table_destroy(p->as->pt, cspace);
     as_destroy(p->as);
-    fdt_destroy(p->fdt);
+    fdt_destroy(p->fdt, pid);
     procs[pid] = NULL;
     cspace_destroy(&p->cspace);
     ut_free(p->vspace_ut, seL4_PGDBits);

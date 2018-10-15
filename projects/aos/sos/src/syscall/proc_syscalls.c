@@ -51,7 +51,8 @@ int syscall_proc_status(struct proc *curproc) {
 
 int syscall_proc_wait(struct proc *curproc) {
     pid_t pid = seL4_GetMR(1);
-
+    
+    yield();
     seL4_SetMR(0, -1);
     return 1;
 }

@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <sos.h>
+#include "../vfs/vnode.h"
 
 struct open_file {
     struct vnode *vn;
@@ -16,4 +17,4 @@ struct filetable {
 };
 
 struct filetable *fdt_create(void);
-void fdt_destroy(struct filetable * fdt);
+void fdt_destroy(struct filetable * fdt, pid_t pid);

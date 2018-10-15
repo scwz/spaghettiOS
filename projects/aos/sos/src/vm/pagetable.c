@@ -228,7 +228,7 @@ void vm_fault(pid_t pid) {
     int err = cspace_save_reply_cap(cspace, reply);
     struct region *reg = as_seek_region(as, faultaddress);
     seL4_MessageInfo_t reply_msg = seL4_MessageInfo_new(0, 0, 0, 1); 
-    
+    printf("vm_fault %lx\n", faultaddress);
     if (reg != NULL && (reg->accmode & READ || reg->accmode & WRITE)) {
         //as->stack->vbase = PAGE_ALIGN_4K(faultaddress);
         seL4_Word * pte = page_lookup(as->pt, PAGE_ALIGN_4K(faultaddress));

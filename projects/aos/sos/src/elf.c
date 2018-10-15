@@ -418,7 +418,7 @@ int elf_load_fs(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr 
         as_define_region(curproc->as, vaddr, segment_size, perm_from_elf(flags));
     }
     entry_point = elf_getEntryPoint(elf_chunk);
-    vsyscall_table = (uintptr_t) NULL;
+    //vsyscall_table = (uintptr_t) NULL;
     return 0;
 }
 
