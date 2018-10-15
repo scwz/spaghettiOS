@@ -26,14 +26,14 @@ static int pagefile_open(){
     if(VOP_LOOKUP(root, "pagefile", &pf_vnode, 1)){
         return -1;
     }
-    if(VOP_EACHOPEN(pf_vnode, FM_READ | FM_WRITE)){
+    if(VOP_EACHOPEN(pf_vnode, FM_READ | FM_WRITE, 0)){
         return -1;
     }
     return 0;
 }
 
 static int pagefile_close(){
-    VOP_RECLAIM(pf_vnode);
+    VOP_RECLAIM(pf_vnode, 0);
     return 0;
 }
 

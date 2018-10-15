@@ -3,10 +3,10 @@
 
 struct device{
     void * data;
-    int (*open)(struct vnode * vn, int flags);
+    int (*open)(struct vnode * vn, int flags, pid_t pid);
     int (*write)( struct uio *uio);
     int (*read)( struct uio *uio);
-    int (*close)(struct vnode * vn);
+    int (*close)(struct vnode * vn, pid_t pid);
 };
 
 

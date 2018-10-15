@@ -100,77 +100,6 @@ static int load_segment_into_vspace(pid_t pid, cspace_t *cspace, seL4_CPtr loade
     unsigned int pos = 0;
     seL4_Error err = seL4_NoError;
     while (pos < segment_size) {
-        #if 0
-        uintptr_t loadee_vaddr = (ROUND_DOWN(dst, PAGE_SIZE_4K));
-        uintptr_t loader_vaddr = ROUND_DOWN(SOS_ELF_VMEM + dst, PAGE_SIZE_4K);
-
-        /* create slot for the frame to load the data into */
-        seL4_CPtr loadee_frame = cspace_alloc_slot(cspace);
-        if (loadee_frame == seL4_CapNull) {
-            ZF_LOGD("Failed to alloc slot");
-            return -1;
-        }
-
-        /* allocate the untyped for the loadees address space */
-        ut_t *ut = ut_alloc_4k_untyped(NULL);
-        if (ut == NULL) {
-            ZF_LOGD("Failed to alloc untyped");
-            return -1;
-        }
-
-        /* retype it */
-        err = cspace_untyped_retype(cspace, ut->cap, loadee_frame, seL4_ARM_SmallPageObject, seL4_PageBits);
-        if (err != seL4_NoError) {
-            ZF_LOGD("Failed to untyped reypte");
-            return -1;
-        }
-
-        /* map the frame into the loadee address space */
-        err = map_frame(cspace, loadee_frame, loadee, loadee_vaddr, permissions,
-                        seL4_ARM_Default_VMAttributes);
-
-        /* A frame has already been mapped at this address. This occurs when segments overlap in
-         * the same frame, which is permitted by the standard. That's fine as we
-         * leave all the frames mapped in, and this one is already mapped. Give back
-         * the ut we allocated and continue on to do the write.
-         *
-         * Note that while the standard permits segments to overlap, this should not occur if the segments
-         * have different permissions - you should check this and return an error if this case is detected. */
-        bool already_mapped = (err == seL4_DeleteFirst);
-
-        if (already_mapped) {
-            cspace_delete(cspace, loadee_frame);
-            cspace_free_slot(cspace, loadee_frame);
-            ut_free(ut, seL4_PageBits);
-        } else if (err != seL4_NoError) {
-            ZF_LOGE("Failed to map into loadee at %p, error %u", (void *) loadee_vaddr, err);
-            return -1;
-        } else {
-
-            /* allocate a slot to map the frame into the loader address space */
-            seL4_CPtr loader_frame = cspace_alloc_slot(cspace);
-            if (loader_frame == seL4_CapNull) {
-                ZF_LOGD("Failed to alloc slot");
-                return -1;
-            }
-
-            /* copy the frame cap into the loader slot */
-            err = cspace_copy(cspace, loader_frame, cspace, loadee_frame, seL4_AllRights);
-            if (err != seL4_NoError) {
-                ZF_LOGD("Failed to copy frame cap, cptr %lx", loader_frame);
-                return -1;
-            }
-
-            /* map the frame into the loader address space */
-            err = map_frame(cspace, loader_frame, loader, loader_vaddr, seL4_AllRights,
-                            seL4_ARM_Default_VMAttributes);
-            if (err) {
-                ZF_LOGD("Failed to map into loader at %p", (void *) loader_vaddr);
-                return -1;
-            }
-        }
-
-        #else
 
         seL4_Word loadee_vaddr = (ROUND_DOWN(dst, PAGE_SIZE_4K));
         seL4_Word loader_vaddr = ROUND_DOWN(SOS_ELF_VMEM + dst, PAGE_SIZE_4K);
@@ -199,7 +128,7 @@ static int load_segment_into_vspace(pid_t pid, cspace_t *cspace, seL4_CPtr loade
 
         loadee_frame_info->user_cap = loadee_slot;
         loadee_frame_info->user_vaddr = loadee_vaddr;
-        loadee_frame_info->pid = pid; // hardcode
+        loadee_frame_info->pid = pid;
 
         if(err && err != seL4_DeleteFirst){
             ZF_LOGE("failed to map frame");
@@ -245,7 +174,6 @@ static int load_segment_into_vspace(pid_t pid, cspace_t *cspace, seL4_CPtr loade
             cspace_free_slot(cspace, loader_slot);
             return err;
         }
-        #endif 
         /* finally copy the data */
         
         size_t nbytes = PAGE_SIZE_4K - (dst % PAGE_SIZE_4K);
@@ -448,7 +376,7 @@ int elf_load_fs(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr 
         printf("file is not executable\n");
         return -1;
     }
-    VOP_EACHOPEN(vn, FM_READ | FM_EXEC);
+    VOP_EACHOPEN(vn, FM_READ | FM_EXEC, 0);
     struct proc *curproc = proc_get(pid);
     assert(vn);
     

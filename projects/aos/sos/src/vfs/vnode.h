@@ -20,13 +20,13 @@ struct vnode {
 struct vnode_ops {
     unsigned long vop_magic;        /* should always be VOP_MAGIC */
     
-    int (*vop_eachopen)(struct vnode *object, int flags_from_open);
-    int (*vop_reclaim)(struct vnode *vnode);
+    int (*vop_eachopen)(struct vnode *object, int flags_from_open, pid_t pid);
+    int (*vop_reclaim)(struct vnode *vnode, pid_t pid);
 
     int (*vop_read)(struct vnode *file, struct uio *uio);
     int (*vop_getdirentry)(struct vnode *dir, struct uio *uio);
     int (*vop_write)(struct vnode *file, struct uio *uio);
-    int (*vop_stat)(struct vnode *object, void * statbuf); // statbuf is a placeholder for struct stat *statbuf
+    int (*vop_stat)(struct vnode *object, void * statbuf);
 
     int (*vop_creat)(struct vnode *dir, const char *name, int excl, int mode, struct vnode **result);
 
@@ -35,15 +35,15 @@ struct vnode_ops {
 };
 
 void vnode_incref(struct vnode *);
-void vnode_decref(struct vnode *);
+void vnode_decref(struct vnode *, pid_t pid);
 
-#define VOP_INCREF(vn) 			vnode_incref(vn)
-#define VOP_DECREF(vn) 			vnode_decref(vn)
+#define VOP_INCREF(vn) 			        vnode_incref(vn)
+#define VOP_DECREF(vn, pid) 			vnode_decref(vn, pid)
 
 #define __VOP(vn, sym) (vnode_check(vn, #sym), (vn)->vn_ops->vop_##sym)
 
-#define VOP_EACHOPEN(vn, flags)             (__VOP(vn, eachopen)(vn, flags))
-#define VOP_RECLAIM(vn)                     (__VOP(vn, reclaim)(vn))
+#define VOP_EACHOPEN(vn, flags, pid)        (__VOP(vn, eachopen)(vn, flags, pid))
+#define VOP_RECLAIM(vn, pid)                (__VOP(vn, reclaim)(vn, pid))
 
 #define VOP_READ(vn, uio)                   (__VOP(vn, read)(vn, uio))
 #define VOP_GETDIRENTRY(vn, uio)            (__VOP(vn, getdirentry)(vn, uio))

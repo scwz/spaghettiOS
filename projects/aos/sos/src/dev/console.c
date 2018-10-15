@@ -34,23 +34,23 @@ int console_init(void) {
     return 0;
 }
 
-int console_open(struct vnode * vn,int flags) {
+int console_open(struct vnode * vn,int flags, pid_t pid) {
     struct device * d = vn->vn_data;
     struct console * c = d->data;
     printf("flags %x, c->reader = %d\n", flags, c->reader);
-    if(flags  & FM_READ){
+    if(flags & FM_READ){
         if(c->reader != NULL){
             return -1;
         }
-        c->reader = proc_get(0); // PLACEHOLDER
+        c->reader = proc_get(pid); // PLACEHOLDER
     }
     return 0;
 }
 
-int console_close(struct vnode * vn) {
+int console_close(struct vnode * vn, pid_t pid) {
     struct device * d = vn->vn_data;
     struct console * c = d->data;
-    if(c->reader == proc_get(0)){
+    if(c->reader == proc_get(pid)){
         c->reader = NULL;
     }
     return 0;

@@ -29,7 +29,7 @@ vnode_incref(struct vnode *vn)
 }
 
 void
-vnode_decref(struct vnode *vn)
+vnode_decref(struct vnode *vn, pid_t pid)
 {
 	bool destroy;
 	int result;
@@ -45,7 +45,7 @@ vnode_decref(struct vnode *vn)
 	}
 
 	if (destroy) {
-		result = VOP_RECLAIM(vn);
+		result = VOP_RECLAIM(vn, pid);
 		if (result != 0) {
 			// XXX: lame.
 			ZF_LOGE("vfs: Warning: VOP_RECLAIM FAILED");

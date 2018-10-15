@@ -72,12 +72,12 @@ int syscall_open(struct proc *curproc) {
     struct vnode *res;
     char path[size];
     sos_copyout(curproc->pid, (seL4_Word) path, size);
-    //printf("OPENING %s\n", path);
+    printf("OPENING %s\n", path);
     if(vfs_lookup(path, &res, 1)){
         seL4_SetMR(0, 1);
         return 1;
     } 
-    if(VOP_EACHOPEN(res, mode)){
+    if(VOP_EACHOPEN(res, mode, curproc->pid)){
         seL4_SetMR(0, 1);
         return 1;
     }
@@ -108,7 +108,7 @@ int syscall_close(struct proc *curproc) {
     
     struct open_file *of = curproc->fdt->openfiles[fd];
     //printf("CLOSING %d, %x\n", fd, of);
-    VOP_RECLAIM(of->vn);
+    VOP_RECLAIM(of->vn, curproc->pid);
     free(of);
     curproc->fdt->openfiles[fd] = NULL;
 

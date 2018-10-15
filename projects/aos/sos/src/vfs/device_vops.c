@@ -4,11 +4,11 @@
 #include <sos.h>
 #include <time.h>
 
-static int dev_eachopen(struct vnode *v, int flags)
+static int dev_eachopen(struct vnode *v, int flags, pid_t pid)
 {
 	struct device *d = v->vn_data;
 
-    return d->open(v, flags);
+    return d->open(v, flags, pid);
 }
 
 static
@@ -52,9 +52,9 @@ static int dev_lookparent(){
     return 0;
 }
 
-static int dev_reclaim(struct vnode *v){
+static int dev_reclaim(struct vnode *v, pid_t pid){
 	struct device *d = v->vn_data;
-    return d->close(v);
+    return d->close(v, pid);
 }
 
 static const struct vnode_ops dev_vnode_ops = {

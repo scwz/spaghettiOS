@@ -138,7 +138,7 @@ static uintptr_t init_process_stack(struct proc *proc, seL4_CPtr local_vspace)
 static pid_t find_next_pid(void) {
     pid_t pid = curr_pid;
     do {
-        if (procs[pid] == NULL) {
+        if (pid && procs[pid] == NULL) {
             curr_pid = (pid + 1 % MAX_PROCESSES);
             return pid;
         }
@@ -284,6 +284,7 @@ pid_t proc_start_init(char* app_name)
     struct proc *new = proc_create(app_name);
     seL4_Word err;
 
+    printf("pid: %d\n", new->pid);
     /* allocate a new slot in the target cspace which we will mint a badged endpoint cap into --
      * the badge is used to identify the process, which will come in handy when you have multiple
      * processes. */

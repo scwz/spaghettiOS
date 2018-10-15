@@ -209,7 +209,7 @@ static char * find_device_pos(struct vnode *dir, size_t * i, struct uio * u){
 	return NULL;
 }
 
-static int vnfs_eachopen(struct vnode *v, int flags)
+static int vnfs_eachopen(struct vnode *v, int flags, UNUSED pid_t pid)
 {
 	struct nfs_data * d = malloc(sizeof(struct nfs_data));
 	VOP_INCREF(v);
@@ -351,13 +351,13 @@ static int vnfs_lookup(struct vnode *dir, char *pathname, struct vnode **result,
 		d->vn = new;
 		int flags= O_RDWR ;
 		if (nfs_create_async(nfs, d->path, flags, flags, nfs_create_cb, d)){
-			VOP_RECLAIM(new);
+			VOP_RECLAIM(new, 0); //safe, pid not used in files
 			free(d);
 			return -1;
 		}
 		d->co = get_running();
 		yield(NULL);
-		VOP_RECLAIM(d->vn); //close the new vnode
+		VOP_RECLAIM(d->vn, 0); //close the new vnode
 		ret = d->ret;
 	}
 	free(d->path);
@@ -381,7 +381,7 @@ static int vnfs_creat(struct vnode *dir, const char *name, UNUSED int excl, UNUS
 	return 0;
 }
 
-static int vnfs_reclaim(struct vnode *v){
+static int vnfs_reclaim(struct vnode *v, UNUSED pid_t pid){
 	struct nfs_data * d = malloc(sizeof(struct nfs_data));
 	struct vnode_nfs_data * vnode_dat = v->vn_data;
 	d->vn = v;

@@ -228,7 +228,7 @@ void vm_fault(pid_t pid) {
     int err = cspace_save_reply_cap(cspace, reply);
     struct region *reg = as_seek_region(as, faultaddress);
     seL4_MessageInfo_t reply_msg = seL4_MessageInfo_new(0, 0, 0, 1); 
-
+    
     if (reg != NULL && (reg->accmode & READ || reg->accmode & WRITE)) {
         //as->stack->vbase = PAGE_ALIGN_4K(faultaddress);
         seL4_Word * pte = page_lookup(as->pt, PAGE_ALIGN_4K(faultaddress));
@@ -249,11 +249,12 @@ void vm_fault(pid_t pid) {
             entry = page_entry_number(*pte);
             bits = page_get_bits(*pte);
         }
-        //printf("===vm fault at %llx: entry %llx bits: %llx!\n", faultaddress, pte, bits);
+        printf("===vm fault at %llx: entry %llx bits: %llx!\n", faultaddress, pte, bits);
         //remap a deref'd page
         if(!bits){
             frame_info = get_frame(entry);
             assert(frame_info->ref_bit == 0);
+            assert(frame_info->pid = pid);
             slot = frame_info->user_cap;
             seL4_Error err = seL4_ARM_Page_Map(slot, curproc->vspace, 
                                 PAGE_ALIGN_4K(faultaddress), seL4_AllRights,
@@ -274,6 +275,7 @@ void vm_fault(pid_t pid) {
             ZF_LOGE_IFERR(err, "failed to map frame");
             //printf("err %d\n", err);
             err = pagein(entry, vaddr);
+            sos_copyin(pid, shared_buf_begin, PAGE_SIZE_4K);
             //printf("err %d\n", err);
             frame_info->user_cap = slot;
             frame_info->pid = pid; //hardcoded atm;
@@ -293,7 +295,7 @@ void vm_fault(pid_t pid) {
                             seL4_ARM_Default_VMAttributes, page, true);
             
             ZF_LOGE_IFERR(err, "failed to map frame");
-            frame_info->pid = pid; //hardcoded atm;
+            frame_info->pid = pid;
             frame_info->user_vaddr = PAGE_ALIGN_4K(faultaddress);
             frame_info->user_cap = slot;
             //seL4_Recv(1, 1);
