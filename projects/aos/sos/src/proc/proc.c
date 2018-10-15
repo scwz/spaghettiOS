@@ -12,6 +12,7 @@
 #include "../syscall/filetable.h"
 #include "proc.h"
 #include "../vm/vmem_layout.h"
+#include "../picoro/picoro.h"
 
 #define SET_PID_BADGE(pid) (TTY_EP_BADGE | (pid << 20))
 
@@ -158,6 +159,7 @@ bool proc_bootstrap(cspace_t *cs, seL4_CPtr pep) {
     kernel->wait_list = NULL;
     kernel->fdt = NULL;
     kernel->shared_buf = shared_buf_begin;
+    kernel->state = KERNEL;
     procs[0] = kernel;
     proc_start_init("sosh");
     return true;
@@ -361,6 +363,7 @@ pid_t proc_start_init(char* app_name)
         .pc = get_last_entry_point(),
         .sp = sp,
     };
+    new->state = RUNNING;
     printf("Starting %s at %p\n", app_name, (void *) context.pc);
     err = seL4_TCB_WriteRegisters(new->tcb, 1, 0, 2, &context);
     ZF_LOGE_IF(err, "Failed to write registers");
@@ -377,6 +380,7 @@ struct proc *proc_create(char *app_name) {
     new->as = as_create();
     new->fdt = fdt_create();
     new->pid = pid;
+    new->wait_list = NULL;
 
     procs[pid] = new;
 
@@ -415,12 +419,19 @@ struct proc *proc_create(char *app_name) {
 static int proc_wait_wakeup(pid_t pid){
     struct proc_wait_node* curr = procs[pid]->wait_list;
     struct proc_wait_node* tmp;
+    pid_t * waker = malloc(sizeof(pid_t));
+    *waker = pid;
     while(curr != NULL){
-        //wakeup(curr->pid)
+        printf("owner: %d, wake: %d\n", curr->owner, curr->pid_to_wake);
+        struct proc * wake_proc = proc_get(curr->pid_to_wake);
+        if(wake_proc->state == WAITING){
+            resume(wake_proc->wake_co, curr);
+        }
         tmp = curr;
         curr = curr->next;
         free(tmp);
     }
+    free(waker);
     return 0;
 }
 
@@ -446,7 +457,8 @@ int proc_wait_list_add(pid_t pid, pid_t pid_to_add){
     if(node == NULL){
         return -1;
     }
-    node->pid = pid_to_add;
+    node->owner = pid;
+    node->pid_to_wake = pid_to_add;
     node->next = procs[pid]->wait_list;
     procs[pid]->wait_list = node;
     return 0;

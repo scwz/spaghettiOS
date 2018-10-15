@@ -14,6 +14,7 @@
 #include "../ut/ut.h"
 #include "../syscall/filetable.h"
 #include "../vfs/vnode.h"
+#include "../picoro/picoro.h"
 
 #define TTY_NAME             "sosh"
 #define TTY_PRIORITY         (0)
@@ -22,10 +23,18 @@
 #define MAX_PROCESSES 32
 
 struct proc_wait_node {
-    pid_t pid;
+    pid_t owner;
+    pid_t pid_to_wake;
     struct proc_wait_node * next;
 };
 
+enum proc_state
+{
+    KERNEL,
+    RUNNING,
+    WAITING,
+    ZOMBIE,
+};
 /* the one process we start */
 struct proc {
     char name[N_NAME];
@@ -50,6 +59,9 @@ struct proc {
     struct proc_wait_node * wait_list;
 
     struct filetable *fdt;
+    coro wake_co; 
+    enum proc_state state;
+    
 
     void* shared_buf;
 };

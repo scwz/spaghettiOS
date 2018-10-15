@@ -237,7 +237,7 @@ void frame_free(seL4_Word page) {
         ZF_LOGE("Page is already free");
         return;
     }
-    assert(!frame_table[page].important);
+    //assert(!frame_table[page].important);
     frame_table[page].next_free_page = next_free_page;
     
     seL4_ARM_Page_Unmap(frame_table[page].cap);

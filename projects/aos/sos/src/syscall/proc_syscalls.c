@@ -19,7 +19,15 @@ int syscall_proc_create(struct proc *curproc) {
 
 int syscall_proc_delete(struct proc *curproc) {
     pid_t pid = seL4_GetMR(1);
+    if(pid == 0 || pid >= MAX_PROCESSES){
+        seL4_SetMR(0, -1);
+    }
+    if(pid == curproc->pid){
+        proc_destroy(pid);
+        yield(NULL);
+    }
     seL4_SetMR(0, proc_destroy(pid));
+    
     return 1;
 }
 
@@ -29,12 +37,12 @@ int syscall_proc_my_id(struct proc *curproc) {
 }
 
 int syscall_proc_status(struct proc *curproc) {
-    unsigned max = seL4_GetMR(1);
+    unsigned int max = seL4_GetMR(1);
     sos_process_t *processes = malloc(sizeof(sos_process_t) * max);
     struct proc *curr;
     size_t nactive = 0;
 
-    for (pid_t id = 0; id < max; id++) {
+    for (pid_t id = 1; id < max; id++) {
         if ((curr = proc_get(id)) != NULL) {
             processes[nactive].pid = id;
             processes[nactive].stime = curr->stime;
@@ -51,9 +59,24 @@ int syscall_proc_status(struct proc *curproc) {
 
 int syscall_proc_wait(struct proc *curproc) {
     pid_t pid = seL4_GetMR(1);
-    
-    yield();
-    seL4_SetMR(0, -1);
+    if(pid < -1 || pid == 0 || pid >= MAX_PROCESSES){
+        seL4_SetMR(0, -1);
+        return 1;
+    }
+    curproc->state = WAITING;
+    curproc->wake_co = get_running();
+    if(pid >= 1){
+        proc_wait_list_add(curproc->pid, pid);  
+    } else {
+        for(pid_t id = 1; id < MAX_PROCESSES; id++){
+            struct proc * curr = proc_get(id);
+            proc_wait_list_add(curr->pid, pid);
+        }
+    }
+    struct proc_wait_node * node = yield(NULL);
+    curproc = node->pid_to_wake;
+    curproc->state = RUNNING;
+    seL4_SetMR(0, node->owner);
     return 1;
 }
 

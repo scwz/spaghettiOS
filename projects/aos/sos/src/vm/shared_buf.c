@@ -40,7 +40,7 @@ void sos_map_buf(pid_t pid){
         seL4_CPtr slot = cspace_alloc_slot(cs);
         cspace_copy(cs, slot, cs, fte->cap, seL4_AllRights);
         sos_map_frame(cs, curproc->as->pt, slot, curproc->vspace, 
-        reg->vbase + i*PAGE_SIZE_4K, seL4_AllRights, seL4_ARM_Default_VMAttributes, page, true);
+        reg->vbase + i*PAGE_SIZE_4K, seL4_AllRights, seL4_ARM_Default_VMAttributes, page, false);
         //printf("mapping vaddr: %lx, kernel vaddr: %lx\n", reg->vbase + i*PAGE_SIZE_4K, curproc->shared_buf + i*PAGE_SIZE_4K);
     }
 }

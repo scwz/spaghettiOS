@@ -15,7 +15,7 @@ struct filetable *fdt_create(void) {
 void fdt_destroy(struct filetable * fdt, pid_t pid) {
     for (int i = 0; i < PROCESS_MAX_FILES; i++) {
         if(fdt->openfiles[i]){
-            struct vnode * vn = fdt->openfiles[i];
+            struct vnode * vn = fdt->openfiles[i]->vn;
             VOP_RECLAIM(vn, pid);
             free(fdt->openfiles[i]);
         }

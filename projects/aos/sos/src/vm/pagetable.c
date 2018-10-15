@@ -35,6 +35,10 @@ struct page_table * page_table_init(void) {
     assert(sizeof(struct pgd) == PAGE_SIZE_4K);
     frame_alloc_important((seL4_Word *) &page_table);
     frame_alloc_important((seL4_Word *) &(page_table->pgd));
+    assert(sizeof(struct pud) == PAGE_SIZE_4K);
+    assert(sizeof(struct pd) == PAGE_SIZE_4K);
+    assert(sizeof(struct pt) == PAGE_SIZE_4K);
+    printf("page_table %p\n", page_table);
     return page_table;
 }
 
@@ -102,12 +106,12 @@ int page_table_insert(struct page_table * page_table, seL4_Word vaddr, seL4_Word
             return -1;
         }
         for(unsigned int i = 0; i < PAGE_INDEX_SIZE; i++){
-            page_update_entry((seL4_Word *) &pt->page[i], P_INVALID, 0);
+            page_update_entry((seL4_Word *) &(pt->page[i]), P_INVALID, 0);
         }
         pgd->pud[ind.l1]->pd[ind.l2]->pt[ind.l3] = pt;
     }
     pt->page[ind.l4] = page_num;
-    //printf("PAGETABLE, ADDR: %lx, l1: %lx l2: %lx l3:%lx l4:%lx, PAGENUM: %ld\n", vaddr, ind.l1, ind.l2, ind.l3, ind.l4, page_num);
+    //printf("PAGETABLE, ADDR: %lx, l1: %lx l2: %lx l3:%lx l4:%lx, PAGENUM: %ld, addr: %p\n", vaddr, ind.l1, ind.l2, ind.l3, ind.l4, page_num, pt);
     return 0;
 }
 
@@ -146,10 +150,15 @@ void page_table_destroy(struct page_table * page_table, cspace_t * cspace){
             for(unsigned int j = 0; j < PAGE_INDEX_SIZE; j++){
                 if(pgd->pud[i]->pd[j] != NULL){
                     for(unsigned int k = 0; k < PAGE_INDEX_SIZE; k++){
+                        
+                        //printf("%ld\n",vaddr_to_page_num( &(pgd->pud[i]->pd[j])));
                         if(pgd->pud[i]->pd[j]->pt[k] != NULL){
                             for(unsigned int l = 0; l < PAGE_INDEX_SIZE; l++){
                                 seL4_Word * pte = &(pgd->pud[i]->pd[j]->pt[k]->page[l]);
+                                //printf("%p\n",&( pgd->pud[i]->pd[j]->pt[k]->page[l]));
+                                //printf("i %u, j %u, k %u, l %u\n", i, j, k, l);
                                 seL4_Word entry = page_entry_number(*pte);
+                                //printf("%ld\n", entry);
                                 seL4_Word bits = page_get_bits(*pte);
                                 if(P_INVALID & bits){
                                     continue;
@@ -159,31 +168,34 @@ void page_table_destroy(struct page_table * page_table, cspace_t * cspace){
                                     frame_free(entry);
                                 }
                             }
-                            frame_free(vaddr_to_page_num((seL4_Word) &(pgd->pud[i]->pd[j]->pt[k])));
+                            //printf("this %ld, vaddr%p\n",vaddr_to_page_num((seL4_Word) &(pgd->pud[i]->pd[j]->pt[k])), &(pgd->pud[i]->pd[j]->pt[k]));
+                            //printf("next %ld, vaddr%p\n", vaddr_to_page_num((seL4_Word) &(pgd->pud[i]->pd[j]->pt[k+1])), &(pgd->pud[i]->pd[j]->pt[k+1]));
+                            frame_free(vaddr_to_page_num((seL4_Word) pgd->pud[i]->pd[j]->pt[k]));
                         }
                     }
-                    frame_free(vaddr_to_page_num((seL4_Word) &(pgd->pud[i]->pd[j])));
+                    frame_free(vaddr_to_page_num((seL4_Word) pgd->pud[i]->pd[j]));
                 }
             }
-            frame_free(vaddr_to_page_num((seL4_Word) &(pgd->pud[i])));
+            frame_free(vaddr_to_page_num((seL4_Word) pgd->pud[i]));
         }
     }
     struct seL4_page_objects_frame* frame;
     struct seL4_page_objects_frame* tmpframe;
     frame = page_table->seL4_pages;
     while (frame!= NULL ){
-        for(int i = 0; i < 253; i++){
+        for(int i = 0; i < frame->size; i++){
+            printf("i %d\n", i);
             struct seL4_page_objects object = frame->page_objects[i];
+            ut_free(object.ut, PAGE_BITS_4K);
             cspace_delete(cspace, object.cap);
             cspace_free_slot(cspace, object.cap);
-            ut_free(object.ut, PAGE_BITS_4K);
         }
         tmpframe = frame;
         frame = (struct seL4_page_objects_frame*) frame->nextframe;
-        frame_free(vaddr_to_page_num((seL4_Word) &(tmpframe)));
+        frame_free(vaddr_to_page_num((seL4_Word) tmpframe));
     }
-    frame_free(vaddr_to_page_num((seL4_Word) &(page_table->pgd)));
-    frame_free(vaddr_to_page_num((seL4_Word) &(page_table)));
+    frame_free(vaddr_to_page_num((seL4_Word) pgd));
+    frame_free(vaddr_to_page_num((seL4_Word) page_table));
 }
 
 void save_seL4_info(struct page_table* page_table, ut_t * ut, seL4_CPtr slot){
