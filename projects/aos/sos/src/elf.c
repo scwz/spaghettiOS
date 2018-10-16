@@ -222,7 +222,7 @@ int elf_load(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr loa
 
         /* Copy it across into the vspace. */
         ZF_LOGD(" * Loading segment %p-->%p\n", (void *) vaddr, (void *)(vaddr + segment_size));
-        //printf(" * Loading segment %p-->%p, f_size %d\n", (void *) vaddr, (void *)(vaddr + segment_size), file_size);
+        printf(" * Loading segment %p-->%p, f_size %d\n", (void *) vaddr, (void *)(vaddr + segment_size), file_size);
         int err = load_segment_into_vspace(pid, cspace, loader_vspace, loadee_vspace,
                                            source_addr, segment_size, file_size, vaddr,
                                            get_sel4_rights_from_elf(flags), flags);
@@ -279,7 +279,7 @@ size_t offset, size_t segment_size, size_t file_size,  uintptr_t dst, seL4_CapRi
 
         loadee_frame_info->user_cap = loadee_slot;
         loadee_frame_info->user_vaddr = loadee_vaddr;
-        loadee_frame_info->pid = 1;
+        loadee_frame_info->pid = pid;
 
         if(err && err != seL4_DeleteFirst){
             ZF_LOGE("failed to map frame");
@@ -336,12 +336,13 @@ size_t offset, size_t segment_size, size_t file_size,  uintptr_t dst, seL4_CapRi
         assert(vn);
         size_t nbytes = PAGE_SIZE_4K - (dst % PAGE_SIZE_4K);
         if (pos < file_size) {
-        size_t cpy_bytes = MIN(nbytes, file_size - pos);
-        u->len = cpy_bytes;
-        //printf("cpy_bytes: %d, minus %d\n", cpy_bytes, file_size - pos);
-        assert((size_t)VOP_READ(vn, u) >= cpy_bytes);
-        
-            memcpy((void *) (loader_vaddr + (dst % PAGE_SIZE_4K)), shared_buf_begin, cpy_bytes);
+            size_t cpy_bytes = MIN(nbytes, file_size - pos);
+            u->len = cpy_bytes;
+            //printf("cpy_bytes: %d, minus %d\n", cpy_bytes, file_size - pos);
+            assert((size_t)VOP_READ(vn, u) >= cpy_bytes);
+            
+            //memcpy((void *) (loader_vaddr + (dst % PAGE_SIZE_4K)), shared_buf_begin, cpy_bytes);
+            sos_copyout(0, (loader_vaddr + (dst % PAGE_SIZE_4K)), cpy_bytes);
         }
 
         /* Note that we don't need to explicitly zero frames as seL4 gives us zero'd frames */
@@ -386,10 +387,15 @@ int elf_load_fs(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr 
     //first read
     char elf_chunk[PAGE_SIZE_4K];
     size_t bytes_read = VOP_READ(vn, u);
-    assert(bytes_read == PAGE_SIZE_4K);
+    assert(bytes_read >= PAGE_SIZE_4K);
     sos_copyout(0, (seL4_Word)elf_chunk, bytes_read);
     free(u);
 
+    if (elf_chunk == NULL || elf_checkFile(elf_chunk)) {
+        ZF_LOGE("Invalid elf file");
+        return -1;
+    }
+    
     int num_headers = elf_getNumProgramHeaders(elf_chunk);
     for (int i = 0; i < num_headers; i++) {
 
@@ -397,14 +403,13 @@ int elf_load_fs(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr 
         if (elf_getProgramHeaderType(elf_chunk, i) != PT_LOAD) {
             continue;
         }
-
         /* Fetch information about this segment. */
         size_t offset = elf_getProgramHeaderOffset(elf_chunk, i);
         size_t file_size = elf_getProgramHeaderFileSize(elf_chunk, i);
         size_t segment_size = elf_getProgramHeaderMemorySize(elf_chunk, i);
         uintptr_t vaddr = elf_getProgramHeaderVaddr(elf_chunk, i);
         seL4_Word flags = elf_getProgramHeaderFlags(elf_chunk, i);
-        //printf("segment %d, %lx->%lx, offset: %d, file_size %d, segment_size %d\n", i, vaddr, vaddr+segment_size, offset, file_size, segment_size);
+        printf("segment %d, %lx->%lx, offset: %d, file_size %d, segment_size %d\n", i, vaddr, vaddr+segment_size, offset, file_size, segment_size);
         /* Copy it across into the vspace. */
         ZF_LOGD(" * Loading segment %p-->%p\n", (void *) vaddr, (void *)(vaddr + segment_size));
         int err = load_segment_from_fs(pid, vn, cspace, loader_vspace, loadee_vspace,
@@ -418,7 +423,7 @@ int elf_load_fs(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr 
         as_define_region(curproc->as, vaddr, segment_size, perm_from_elf(flags));
     }
     entry_point = elf_getEntryPoint(elf_chunk);
-    //vsyscall_table = (uintptr_t) NULL;
+    //vsyscall_table = *((uintptr_t *) elf_getSectionNamed(elf_chunk, "__vsyscall", NULL));
     return 0;
 }
 

@@ -10,8 +10,10 @@ int syscall_proc_create(struct proc *curproc) {
     char path[nbytes];
     sos_copyout(curproc->pid, path, nbytes);
     path[nbytes] = '\0';
-
     pid_t pid = proc_start(path);
+    if(pid >= 2){
+        add_child(curproc->pid, pid);
+    }
     seL4_SetMR(0, pid);
 
     return 1;
@@ -66,12 +68,9 @@ int syscall_proc_wait(struct proc *curproc) {
     curproc->state = WAITING;
     
     if(pid >= 1){
-        proc_wait_list_add(pid, curproc->pid);  
+        proc_wait_list_add(pid, curproc->pid);
     } else {
-        for(pid_t id = 1; id < MAX_PROCESSES; id++){
-            struct proc * curr = proc_get(id);
-            proc_wait_list_add(id, curproc->pid);
-        }
+        wait_all_child(curproc->pid);
     }
     curproc->wake_co = get_running();
     struct proc_wait_node * node = yield(NULL);

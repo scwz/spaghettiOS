@@ -173,7 +173,7 @@ bool proc_bootstrap(cspace_t *cs, seL4_CPtr pep) {
  */
 pid_t proc_start(char* app_name)
 {
-    return proc_start_init("sosh");
+    return proc_start_init(app_name);
     struct proc *new = proc_create(app_name);
     seL4_Word err;
 
@@ -219,24 +219,18 @@ pid_t proc_start(char* app_name)
 
     /* Provide a name for the thread -- Helpful for debugging */
     NAME_THREAD(new->tcb, app_name);
-    
+    /* parse the cpio image */
+    ZF_LOGI( "\nStarting \"%s\"...\n", app_name);
+
     /* load the elf image from the cpio file */
-    //err = elf_load(new->pid, cspace, seL4_CapInitThreadVSpace, new->vspace, elf_base);
     err = elf_load_fs(new->pid, cspace, seL4_CapInitThreadVSpace, new->vspace, app_name);
     if (err) {
         ZF_LOGE("Failed to load elf image");
-        as_destroy(new->as);
-        fdt_destroy(new->fdt, new->pid);
-        procs[new->pid] = NULL;
-        ut_free(new->vspace_ut, seL4_PGDBits);
-        ut_free(new->ipc_buffer_ut, seL4_PageBits);
-        cspace_delete(&new->cspace, user_ep);
-        cspace_destroy(&new->cspace);
-        free(new);
         return false;
     }
 
-    //seL4_Word sp = PROCESS_STACK_TOP;
+    /* set up the stack */
+    seL4_Word sp = init_process_stack(new, seL4_CapInitThreadVSpace);
     // setup/create region for stack
     as_define_stack(new->as);
     as_define_heap(new->as);
@@ -250,14 +244,6 @@ pid_t proc_start(char* app_name)
                     seL4_AllRights, seL4_ARM_Default_VMAttributes);
     if (err != 0) {
         ZF_LOGE("Unable to map IPC buffer for user app");
-        as_destroy(new->as);
-        fdt_destroy(new->fdt, new->pid);
-        procs[new->pid] = NULL;
-        ut_free(new->vspace_ut, seL4_PGDBits);
-        ut_free(new->ipc_buffer_ut, seL4_PageBits);
-        cspace_delete(&new->cspace, user_ep);
-        cspace_destroy(&new->cspace);
-        free(new);
         return false;
     }
     // setup region for ipc buffer
@@ -266,8 +252,9 @@ pid_t proc_start(char* app_name)
     /* Start the new process */
     seL4_UserContext context = {
         .pc = get_last_entry_point(),
-        .sp = PROCESS_STACK_TOP,
+        .sp = sp,
     };
+    new->state = RUNNING;
     printf("Starting %s at %p\n", app_name, (void *) context.pc);
     err = seL4_TCB_WriteRegisters(new->tcb, 1, 0, 2, &context);
     ZF_LOGE_IF(err, "Failed to write registers");
@@ -381,6 +368,7 @@ struct proc *proc_create(char *app_name) {
     new->fdt = fdt_create();
     new->pid = pid;
     new->wait_list = NULL;
+    new->child_list = NULL;
 
     procs[pid] = new;
 
@@ -421,11 +409,10 @@ static int proc_wait_wakeup(pid_t pid){
     struct proc_wait_node* tmp;
     pid_t * waker = malloc(sizeof(pid_t));
     *waker = pid;
-    printf("wakeup_curr %p\n", curr);
     while(curr != NULL){
-        printf("owner: %d, wake: %d\n", curr->owner, curr->pid_to_wake);
         struct proc * wake_proc = proc_get(curr->pid_to_wake);
-        if(wake_proc->state == WAITING){
+        if(wake_proc && wake_proc->state == WAITING){
+            printf("owner: %d, wake: %d\n", curr->owner, curr->pid_to_wake);
             resume(wake_proc->wake_co, curr);
         }
         tmp = curr;
@@ -436,23 +423,70 @@ static int proc_wait_wakeup(pid_t pid){
     return 0;
 }
 
+static int destroy_child_list(pid_t pid){
+    struct proc_child_node* curr = procs[pid]->child_list;
+    struct proc_child_node* tmp;
+    while(curr != NULL){
+        proc_wait_list_add(curr->child, 1); // add init as parent
+        tmp = curr;
+        curr = curr->next;
+        free(tmp);
+    }
+    return 0;
+}
+
+int add_child(pid_t parent, pid_t child){
+    struct proc_child_node* node = malloc(sizeof(struct proc_wait_node));
+    if(node == NULL){
+        return -1;
+    }
+    node->child = child;
+    node->next = procs[parent]->child_list;
+    procs[parent]->child_list = node;
+    return 0;
+}
+
+int wait_all_child(pid_t parent){
+    struct proc_child_node* curr = procs[parent]->child_list;
+    while(curr != NULL){
+        proc_wait_list_add(parent, curr->child); // add init as parent
+        curr = curr->next;
+    }
+    return 0;
+}
+
 int proc_destroy(pid_t pid){
     struct proc * p = proc_get(pid);
+    if(p == NULL){
+        return -1;
+    }
+    p->state = ZOMBIE;
     proc_wait_wakeup(pid);
-    page_table_destroy(p->as->pt, cspace);
-    as_destroy(p->as);
-    fdt_destroy(p->fdt, pid);
-    procs[pid] = NULL;
+    destroy_child_list(pid);
+    if(p->as->pt){
+        page_table_destroy(p->as->pt, cspace);
+    }
+    if(p->as){
+        as_destroy(p->as);
+    }
+    if(p->fdt){
+        fdt_destroy(p->fdt, pid);
+    }
+    if(p->vspace_ut){
+        ut_free(p->vspace_ut, seL4_PGDBits);
+    }
+    if(p->ipc_buffer_ut){
+        ut_free(p->ipc_buffer_ut, seL4_PageBits);
+    }
     cspace_destroy(&p->cspace);
-    ut_free(p->vspace_ut, seL4_PGDBits);
-    ut_free(p->ipc_buffer_ut, seL4_PageBits);
+    procs[pid] = NULL;
+    
     //cspace_delete(&p->cspace, user_ep);
     free(p);
     return 0;
 }
 
 int proc_wait_list_add(pid_t pid, pid_t pid_to_add){
-    printf("add\n");
     struct proc_wait_node* node = malloc(sizeof(struct proc_wait_node));
     if(node == NULL){
         return -1;

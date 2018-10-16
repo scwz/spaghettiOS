@@ -28,6 +28,11 @@ struct proc_wait_node {
     struct proc_wait_node * next;
 };
 
+struct proc_child_node {
+    pid_t child;
+    struct proc_child_node * next;
+};
+
 enum proc_state
 {
     KERNEL,
@@ -57,6 +62,7 @@ struct proc {
     seL4_CPtr stack;
 
     struct proc_wait_node * wait_list;
+    struct proc_child_node * child_list;
 
     struct filetable *fdt;
     coro wake_co; 
@@ -72,5 +78,8 @@ struct proc *proc_create(char *app_name);
 
 int proc_destroy(pid_t pid);
 int proc_wait_list_add(pid_t pid, pid_t pid_to_add);
+
+int add_child(pid_t parent, pid_t child);
+int wait_all_child(pid_t parent);
 
 struct proc *proc_get(pid_t pid);
