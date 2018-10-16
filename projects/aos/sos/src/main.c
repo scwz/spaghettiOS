@@ -326,7 +326,16 @@ int main(void)
 
     /* test print */
     printf("SOS Started!\n");
-
+    printf("                                    _       .     .      \n\
+   ____ \\,___,   ___    ___.   ___  /      _/_   _/_   `\n\
+  (     |    \\  /   ` .'   ` .'   ` |,---.  |     |    |\n\
+  `--.  |    | |    | |    | |----' |'   `  |     |    |\n\
+ \\___.' |`---' `.__/|  `---| `.___, /    |  \\__/  \\__/ /\n\
+   ___  \\  _____       \\___/                            \n\
+ .'   `.  (                                             \n\
+ |     |   `--.                                         \n\
+ |     |      |                                         \n\
+  `.__.' \\___.'                                         \n");
     /* allocate a bigger stack and switch to it -- we'll also have a guard page, which makes it much
      * easier to detect stack overruns */
     seL4_Word vaddr = SOS_STACK;
@@ -344,5 +353,3 @@ int main(void)
 
     UNREACHABLE();
 }
-
-
