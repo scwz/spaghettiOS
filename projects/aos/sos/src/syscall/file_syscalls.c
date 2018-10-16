@@ -14,9 +14,11 @@ int syscall_write(struct proc *curproc) {
     size_t nbyte = seL4_GetMR(2);
     int fd = seL4_GetMR(1);
     //printf("write %d %d\n", fd, nbyte);
+#if 0
     if(fd < 4){ //send stdin etc. to console (make sure to open console)
         fd = 4;
     }
+#endif
     if(curproc->fdt->openfiles[fd] == NULL || nbyte <= 0){
         seL4_SetMR(0, 0);
         return 1;
@@ -41,9 +43,11 @@ int syscall_write(struct proc *curproc) {
 int syscall_read(struct proc *curproc) {
     size_t nbyte = seL4_GetMR(2);
     int fd = seL4_GetMR(1);
+#if 0
     if(fd < 4){ //send stdin etc. to console (make sure to open console)
         fd = 4;
     }
+#endif
     if(curproc->fdt->openfiles[fd] == NULL || nbyte <= 0){
         seL4_SetMR(0, 0);
         return 1;
@@ -82,7 +86,7 @@ int syscall_open(struct proc *curproc) {
         return 1;
     }
     bool full = true;
-    for(unsigned int i = 4; i < PROCESS_MAX_FILES; i ++){
+    for(unsigned int i = 0; i < PROCESS_MAX_FILES; i ++){
         if(curproc->fdt->openfiles[i] == NULL){
             curproc->fdt->openfiles[i] = malloc(sizeof(struct open_file));
             curproc->fdt->openfiles[i]->vn = res;
