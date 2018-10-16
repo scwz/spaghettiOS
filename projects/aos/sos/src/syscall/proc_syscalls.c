@@ -24,10 +24,6 @@ int syscall_proc_delete(struct proc *curproc) {
     if(pid == 0 || pid >= MAX_PROCESSES){
         seL4_SetMR(0, -1);
     }
-    if(pid == curproc->pid){
-        proc_destroy(pid);
-        yield(NULL);
-    }
     seL4_SetMR(0, proc_destroy(pid));
     
     return 1;
