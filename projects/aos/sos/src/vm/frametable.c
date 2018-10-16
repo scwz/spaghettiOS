@@ -232,7 +232,7 @@ void frame_free(seL4_Word page) {
         //printf("%ld\n", page);
     }
     assert(frame_table[page].cap != seL4_CapNull);
-    //printf("freeing page %ld\n", page);
+    printf("freeing page %ld\n", page);
     if(frame_table[page].cap == seL4_CapNull){
         ZF_LOGE("Page is already free");
         return;
@@ -243,7 +243,10 @@ void frame_free(seL4_Word page) {
     seL4_ARM_Page_Unmap(frame_table[page].cap);
     cspace_delete(cspace, frame_table[page].cap);
     cspace_free_slot(cspace, frame_table[page].cap);
-
+    if(frame_table[page].user_cap){
+        seL4_ARM_Page_Unmap(frame_table[page].user_cap);
+    }
+    
     cspace_delete(cspace, frame_table[page].user_cap);
     cspace_free_slot(cspace, frame_table[page].user_cap);
     

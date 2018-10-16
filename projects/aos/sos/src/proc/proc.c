@@ -498,6 +498,9 @@ int proc_destroy(pid_t pid){
     if(p->ipc_buffer_ut){
         ut_free(p->ipc_buffer_ut, seL4_PageBits);
     }
+    cspace_delete(cspace, p->vspace);
+    cspace_delete(cspace, p->ipc_buffer);
+    cspace_delete(cspace, p->stack);
     cspace_destroy(&p->cspace);
     procs[pid] = NULL;
     
