@@ -13,6 +13,7 @@
 #include "proc.h"
 #include "../vm/vmem_layout.h"
 #include "../picoro/picoro.h"
+#include "../vfs/vfs.h"
 
 #define SET_PID_BADGE(pid) (TTY_EP_BADGE | (pid << 20))
 
@@ -388,21 +389,21 @@ struct proc *proc_create(char *app_name) {
     new->vspace_ut = alloc_retype(cspace, &new->vspace, seL4_ARM_PageGlobalDirectoryObject,
                                               seL4_PGDBits);
     if (new->vspace_ut == NULL) {
-        return false;
+        return NULL;
     }
 
     /* assign the vspace to an asid pool */
     seL4_Word err = seL4_ARM_ASIDPool_Assign(seL4_CapInitThreadASIDPool, new->vspace);
     if (err != seL4_NoError) {
         ZF_LOGE("Failed to assign asid pool");
-        return false;
+        return NULL;
     }
 
     /* Create a simple 1 level CSpace */
     err = cspace_create_one_level(cspace, &new->cspace);
     if (err != CSPACE_NOERROR) {
         ZF_LOGE("Failed to create cspace");
-        return false;
+        return NULL;
     }
 
     /* Create an IPC buffer */
@@ -410,8 +411,27 @@ struct proc *proc_create(char *app_name) {
                                                   seL4_PageBits);
     if (new->ipc_buffer_ut == NULL) {
         ZF_LOGE("Failed to alloc ipc buffer ut");
-        return false;
+        return NULL;
     }
+
+    // stdout
+    struct vnode *res;
+    vfs_lookup("console", &res, 1);
+    VOP_EACHOPEN(res, FM_WRITE, new->pid);
+    new->fdt->openfiles[1] = malloc(sizeof(struct open_file));
+    new->fdt->openfiles[1]->vn = res;
+    new->fdt->openfiles[1]->refcnt = 1;
+    new->fdt->openfiles[1]->offset = 0;
+    new->fdt->openfiles[1]->flags = FM_WRITE;
+
+    // stderr
+    vfs_lookup("console", &res, 1);
+    VOP_EACHOPEN(res, FM_WRITE, new->pid);
+    new->fdt->openfiles[2] = malloc(sizeof(struct open_file));
+    new->fdt->openfiles[2]->vn = res;
+    new->fdt->openfiles[2]->refcnt = 1;
+    new->fdt->openfiles[2]->offset = 0;
+    new->fdt->openfiles[2]->flags = FM_WRITE;
 
     return new;
 }
