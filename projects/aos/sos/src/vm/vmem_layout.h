@@ -24,6 +24,8 @@
 #define SOS_ELF_VMEM         (0xD0000000)
 #define SOS_UT_TABLE         (0x8000000000)
 #define SOS_FRAME_TABLE      (0x80000000000)
+#define MMAP_BOT             (0xF0000000)
+#define MMAP_TOP             (0x1000000000)
 
 /* Constants for how SOS will layout the address space of any processes it loads up */
 #define PROCESS_STACK_TOP   (0x9000000000)

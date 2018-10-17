@@ -390,12 +390,11 @@ int elf_load_fs(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr 
     assert(bytes_read >= PAGE_SIZE_4K);
     sos_copyout(KERNEL_PROC, (seL4_Word)elf_chunk, bytes_read);
     free(u);
-
     if (elf_chunk == NULL || elf_checkFile(elf_chunk)) {
         ZF_LOGE("Invalid elf file");
         return -1;
     }
-    
+
     int num_headers = elf_getNumProgramHeaders(elf_chunk);
     for (int i = 0; i < num_headers; i++) {
 

@@ -48,6 +48,7 @@
 #include "syscall/vm_syscalls.h"
 #include "syscall/time_syscalls.h"
 #include "syscall/proc_syscalls.h"
+#include "sys/morecore.h"
 
 #include <aos/vsyscall.h>
 
@@ -226,6 +227,7 @@ void init_muslc(void)
     muslcsys_install_syscall(__NR_exit_group, sys_exit_group);
     muslcsys_install_syscall(__NR_ioctl, sys_ioctl);
     muslcsys_install_syscall(__NR_mmap, sys_mmap);
+    muslcsys_install_syscall(__NR_munmap, sys_munmap);
     muslcsys_install_syscall(__NR_brk,  sys_brk);
     muslcsys_install_syscall(__NR_clock_gettime, sys_clock_gettime);
     muslcsys_install_syscall(__NR_nanosleep, sys_nanosleep);
@@ -276,6 +278,7 @@ NORETURN void *main_continued(UNUSED void *arg)
     start_timer(&cspace, badge_irq_ntfn(ntfn, IRQ_BADGE_TIMER), timer_vaddr);
 
     frame_table_init(&cspace);
+    morecore_bootstrap(&cspace);
     vm_bootstrap(&cspace);
     shared_buf_init(&cspace);
     vfs_bootstrap();
@@ -284,6 +287,8 @@ NORETURN void *main_continued(UNUSED void *arg)
     /* Start the user application */
     printf("Start first process\n");
     bool success = proc_bootstrap(&cspace, ipc_ep);
+    void *addr = malloc(1146881);
+    printf("MALLOC TEST: addr %p\n", addr);
     ZF_LOGF_IF(!success, "Failed to start first process");
     printf("\nSOS entering syscall loop\n");
     syscall_loop(ipc_ep);

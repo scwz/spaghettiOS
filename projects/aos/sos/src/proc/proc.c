@@ -163,6 +163,8 @@ bool proc_bootstrap(cspace_t *cs, seL4_CPtr pep) {
     kernel->shared_buf = shared_buf_begin;
     kernel->protected_proc = true;
     kernel->state = RUNNING;
+    kernel->as = as_create(); // for mmap
+    kernel->vspace = seL4_CapInitThreadVSpace;
     procs[0] = kernel;
     proc_start_init("sosh");
     return true;
