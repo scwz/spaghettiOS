@@ -150,12 +150,18 @@ void sos_sys_usleep(int msec);
 
 long sos_sys_brk(uintptr_t newbrk);
 
+void *sos_sys_mmap(void *addr, size_t length, int prot, int flags,
+                  int fd, size_t offset);
+
+int sos_sys_munmap(void *addr, size_t length);
+
 
 /*************************************************************************/
 /*                                   */
 /* Optional (bonus) system calls                     */
 /*                                   */
 /*************************************************************************/
+
 
 int sos_share_vm(void *adr, size_t size, int writable);
 /* Make VM region ["adr","adr"+"size") sharable by other processes.

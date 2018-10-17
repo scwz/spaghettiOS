@@ -342,7 +342,7 @@ size_t offset, size_t segment_size, size_t file_size,  uintptr_t dst, seL4_CapRi
             assert((size_t)VOP_READ(vn, u) >= cpy_bytes);
             
             //memcpy((void *) (loader_vaddr + (dst % PAGE_SIZE_4K)), shared_buf_begin, cpy_bytes);
-            sos_copyout(0, (loader_vaddr + (dst % PAGE_SIZE_4K)), cpy_bytes);
+            sos_copyout(KERNEL_PROC, (loader_vaddr + (dst % PAGE_SIZE_4K)), cpy_bytes);
         }
 
         /* Note that we don't need to explicitly zero frames as seL4 gives us zero'd frames */
@@ -364,12 +364,12 @@ size_t offset, size_t segment_size, size_t file_size,  uintptr_t dst, seL4_CapRi
 
 int elf_load_fs(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr loadee_vspace, char *path){
     struct vnode * vn;
-    if(vfs_lookup(path, &vn, 0)){
+    if(vfs_lookup(path, &vn, 0, KERNEL_PROC)){
         return -1;
     }
     printf("lookup completed\n");
     sos_stat_t buf;
-    if(VOP_STAT(vn, &buf)){
+    if(VOP_STAT(vn, &buf, KERNEL_PROC)){
         printf("file doesn't exist\n");
         return -1;
     }
@@ -377,18 +377,18 @@ int elf_load_fs(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr 
         printf("file is not executable\n");
         return -1;
     }
-    VOP_EACHOPEN(vn, FM_READ | FM_EXEC, 0);
+    VOP_EACHOPEN(vn, FM_READ | FM_EXEC, KERNEL_PROC);
     struct proc *curproc = proc_get(pid);
     assert(vn);
     
     struct uio * u = malloc(sizeof(struct uio));
-    uio_init(u, UIO_READ, PAGE_SIZE_4K, 0, 0);
+    uio_init(u, UIO_READ, PAGE_SIZE_4K, 0, KERNEL_PROC);
 
     //first read
     char elf_chunk[PAGE_SIZE_4K];
     size_t bytes_read = VOP_READ(vn, u);
     assert(bytes_read >= PAGE_SIZE_4K);
-    sos_copyout(0, (seL4_Word)elf_chunk, bytes_read);
+    sos_copyout(KERNEL_PROC, (seL4_Word)elf_chunk, bytes_read);
     free(u);
 
     if (elf_chunk == NULL || elf_checkFile(elf_chunk)) {

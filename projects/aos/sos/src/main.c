@@ -126,6 +126,8 @@ void handle_syscall(pid_t pid)
 NORETURN void syscall_loop(seL4_CPtr ep)
 {
     while (1) {
+        reap();
+
         seL4_Word badge = 0;
         /* Block on ep, waiting for an IPC sent over ep, or
          * a notification from our bound notification object */
@@ -135,7 +137,6 @@ NORETURN void syscall_loop(seL4_CPtr ep)
         seL4_Word label = seL4_MessageInfo_get_label(message);
 
         pid_t pid = badge >> 20;
-        
         if (badge & IRQ_EP_BADGE) {
             /* It's a notification from our bound notification
              * object! */
@@ -153,7 +154,7 @@ NORETURN void syscall_loop(seL4_CPtr ep)
             }
         } else if (label == seL4_Fault_VMFault) {
             /* it's a vm fault */
-            printf("syscall pid: %d\n", pid);
+            
             resume(coroutine((void *(*)(void *))vm_fault), (void *)(seL4_Word)pid);
         } else if (label == seL4_Fault_NullFault) {
             /* It's not a fault or an interrupt, it must be an IPC
@@ -350,6 +351,5 @@ int main(void)
     }
 
     utils_run_on_stack((void *) vaddr, main_continued, NULL);
-
     UNREACHABLE();
 }

@@ -23,6 +23,7 @@ extern char _cpio_archive[];
 static cspace_t *cspace;
 static seL4_CPtr ep; //endpoint
 static pid_t curr_pid = 0;
+static struct proc_reap_node * reap_list = NULL;
 
 static pid_t proc_start_init(char* app_name);
 
@@ -156,11 +157,12 @@ bool proc_bootstrap(cspace_t *cs, seL4_CPtr pep) {
     struct proc *kernel = malloc(sizeof(struct proc));
     kernel->stime = get_time() / NS_IN_MS; 
     strcpy(kernel->name, "sos");
-    kernel->pid = 0;
+    kernel->pid = KERNEL_PROC;
     kernel->wait_list = NULL;
     kernel->fdt = NULL;
     kernel->shared_buf = shared_buf_begin;
-    kernel->state = KERNEL;
+    kernel->protected_proc = true;
+    kernel->state = RUNNING;
     procs[0] = kernel;
     proc_start_init("sosh");
     return true;
@@ -370,7 +372,9 @@ struct proc *proc_create(char *app_name) {
     new->pid = pid;
     new->wait_list = NULL;
     new->child_list = NULL;
-
+    new->coro_count = 0;
+    new->protected_proc = false;
+    if(pid == INIT_PROC || pid == KERNEL_PROC) new->protected_proc = true;
     procs[pid] = new;
 
     /* Create a VSpace */
@@ -404,7 +408,7 @@ struct proc *proc_create(char *app_name) {
 
     // stdout
     struct vnode *res;
-    vfs_lookup("console", &res, 1);
+    vfs_lookup("console", &res, 0, pid);
     VOP_EACHOPEN(res, FM_WRITE, new->pid);
     new->fdt->openfiles[1] = malloc(sizeof(struct open_file));
     new->fdt->openfiles[1]->vn = res;
@@ -413,7 +417,7 @@ struct proc *proc_create(char *app_name) {
     new->fdt->openfiles[1]->flags = FM_WRITE;
 
     // stderr
-    vfs_lookup("console", &res, 1);
+    vfs_lookup("console", &res, 0, pid);
     VOP_EACHOPEN(res, FM_WRITE, new->pid);
     new->fdt->openfiles[2] = malloc(sizeof(struct open_file));
     new->fdt->openfiles[2]->vn = res;
@@ -447,7 +451,12 @@ static int destroy_child_list(pid_t pid){
     struct proc_child_node* curr = procs[pid]->child_list;
     struct proc_child_node* tmp;
     while(curr != NULL){
-        proc_wait_list_add(curr->child, 1); // add init as parent
+        struct proc * curproc = proc_get(curr->child);
+        //reparent orphans
+        if(curproc != NULL){
+            proc_wait_list_add(curr->child, 1);
+            add_child(1, curr->child);
+        }
         tmp = curr;
         curr = curr->next;
         free(tmp);
@@ -475,22 +484,61 @@ int wait_all_child(pid_t parent){
     return 0;
 }
 
-int proc_destroy(pid_t pid){
+//add to end of the list
+static int add_reap_list(pid_t pid){
+    struct proc_reap_node* node = malloc(sizeof(struct proc_wait_node));
+    if(node == NULL){
+        return -1;
+    }
+    node->pid = pid;
+    node->next = NULL;
+    struct proc_reap_node* curr = reap_list;
+    if(curr == NULL){
+        reap_list = node;
+        return 0;
+    }
+    while(curr->next != NULL){
+        curr = curr->next;
+    }
+    curr->next = node;
+    return 0;
+}
+
+int zombiefy(pid_t pid){
     struct proc * p = proc_get(pid);
-    if(p == NULL){
+    if(p == NULL || p->state == ZOMBIE){
+        ZF_LOGE("Proc already destroyed");
+        return -1;
+    }
+    if(p->protected_proc){
+        ZF_LOGE("proc cannot be deleted");
         return -1;
     }
     p->state = ZOMBIE;
-    proc_wait_wakeup(pid);
+    assert(add_reap_list(pid) == 0);
+    seL4_TCB_Suspend(p->tcb);
+    return 0;
+}
+
+static int proc_destroy(pid_t pid){
+    struct proc * p = proc_get(pid);
+    assert(p->state == ZOMBIE);
+    if(p->coro_count != 0){
+        return -1;
+    }
+    if(p->fdt){
+        fdt_destroy(p->fdt, pid);
+    }
+    if(p->coro_count != 0){
+        return -1;
+    }
     destroy_child_list(pid);
+    proc_wait_wakeup(pid);
     if(p->as->pt){
         page_table_destroy(p->as->pt, cspace);
     }
     if(p->as){
         as_destroy(p->as);
-    }
-    if(p->fdt){
-        fdt_destroy(p->fdt, pid);
     }
     if(p->vspace_ut){
         ut_free(p->vspace_ut, seL4_PGDBits);
@@ -498,18 +546,25 @@ int proc_destroy(pid_t pid){
     if(p->ipc_buffer_ut){
         ut_free(p->ipc_buffer_ut, seL4_PageBits);
     }
-
-    seL4_TCB_Suspend(p->tcb);
     cspace_delete(cspace, p->tcb);
     cspace_delete(cspace, p->vspace);
     cspace_delete(cspace, p->ipc_buffer);
     cspace_delete(cspace, p->stack);
     cspace_destroy(&p->cspace);
     procs[pid] = NULL;
-    
     //cspace_delete(&p->cspace, user_ep);
     free(p);
     return 0;
+}
+
+//only try reap head
+void reap(void){
+    if(reap_list == NULL) return;
+    struct proc_reap_node * head = reap_list;
+    if(proc_destroy(head->pid) == 0){
+        reap_list = head->next;
+        free(head);
+    }
 }
 
 int proc_wait_list_add(pid_t pid, pid_t pid_to_add){

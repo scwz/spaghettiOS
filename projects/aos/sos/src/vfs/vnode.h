@@ -26,11 +26,11 @@ struct vnode_ops {
     int (*vop_read)(struct vnode *file, struct uio *uio);
     int (*vop_getdirentry)(struct vnode *dir, struct uio *uio);
     int (*vop_write)(struct vnode *file, struct uio *uio);
-    int (*vop_stat)(struct vnode *object, void * statbuf);
+    int (*vop_stat)(struct vnode *object, void * statbuf, pid_t pid);
 
-    int (*vop_creat)(struct vnode *dir, const char *name, int excl, int mode, struct vnode **result);
+    int (*vop_creat)(struct vnode *dir, const char *name, int excl, int mode, struct vnode **result, pid_t pid);
 
-    int (*vop_lookup)(struct vnode *dir, char *pathname, struct vnode **result, bool create);
+    int (*vop_lookup)(struct vnode *dir, char *pathname, struct vnode **result, bool create, pid_t pid);
     int (*vop_lookparent)(struct vnode *dir, char *pathname, struct vnode **result, char *buf, size_t len);
 };
 
@@ -46,13 +46,13 @@ void vnode_decref(struct vnode *, pid_t pid);
 #define VOP_RECLAIM(vn, pid)                (__VOP(vn, reclaim)(vn, pid))
 
 #define VOP_READ(vn, uio)                   (__VOP(vn, read)(vn, uio))
-#define VOP_GETDIRENTRY(vn, uio)            (__VOP(vn, getdirentry)(vn, uio))
+#define VOP_GETDIRENTRY(vn, uio)       (__VOP(vn, getdirentry)(vn, uio))
 #define VOP_WRITE(vn, uio)                  (__VOP(vn, write)(vn, uio))
-#define VOP_STAT(vn, ptr)                   (__VOP(vn, stat)(vn, ptr))
+#define VOP_STAT(vn, ptr, pid)              (__VOP(vn, stat)(vn, ptr, pid))
 
-#define VOP_CREAT(vn,nm,excl,mode,res)      (__VOP(vn, creat)(vn,nm,excl,mode,res)) 
+#define VOP_CREAT(vn,nm,excl,mode,res,pid)  (__VOP(vn, creat)(vn,nm,excl,mode,res,pid)) 
 
-#define VOP_LOOKUP(vn, name, res, create)   (__VOP(vn, lookup)(vn, name, res, create))
+#define VOP_LOOKUP(vn,name,res,create,pid)  (__VOP(vn, lookup)(vn, name, res, create, pid))
 #define VOP_LOOKPARENT(vn,name,res,bf,ln)   (__VOP(vn, lookparent)(vn,name,res,bf,ln))
 
 void vnode_check(struct vnode *, const char *op);

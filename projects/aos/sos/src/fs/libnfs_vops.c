@@ -153,7 +153,7 @@ void nfs_lookup_cb(int status, struct nfs_context *nfs, void *data, void *privat
 	while((nfsdirent = nfs_readdir(nfs, nfsdir)) != NULL) {
 		//printf("Inode:%d Name:%s\n", (int)nfsdirent->inode, nfsdirent->name);
 		if(!strcmp(nfsdirent->name, d->path)){
-			VOP_CREAT(d->vn, d->path, FM_READ | FM_WRITE, FM_READ | FM_WRITE, &result);
+			VOP_CREAT(d->vn, d->path, FM_READ | FM_WRITE, FM_READ | FM_WRITE, &result, 0); //stub pid for now
 			d->vn = result;
 			found = true;
 			break;
@@ -211,17 +211,24 @@ static char * find_device_pos(struct vnode *dir, size_t * i, struct uio * u){
 
 static int vnfs_eachopen(struct vnode *v, int flags, UNUSED pid_t pid)
 {
+	struct proc * curproc = proc_get(pid);
+	if(curproc->state == ZOMBIE){
+		return 0;
+	}
+	curproc->coro_count++;
 	struct nfs_data * d = malloc(sizeof(struct nfs_data));
 	VOP_INCREF(v);
 	struct vnode_nfs_data * data = v->vn_data;
 	d->vn = v;
 	if(nfs_open_async(nfs, data->path, flags, nfs_open_cb, d)){
+		curproc->coro_count--;
 		return -1;
 	}
 	d->co = get_running();
 	yield(NULL);
 	int ret = d->ret;
 	free(d);
+	curproc->coro_count--;
 	return ret;
 }
 
@@ -229,24 +236,31 @@ static
 int
 vnfs_write(struct vnode *v, struct uio *uio)
 {
+	struct proc * curproc = proc_get(uio->pid);
+	if(curproc->state == ZOMBIE){
+		return 0;
+	}
+	curproc->coro_count++;
 	struct proc * p = proc_get(uio->pid);
 	struct nfs_data * d = malloc(sizeof(struct nfs_data));
 	struct vnode_nfs_data * vnode_dat = v->vn_data;
 	d->u = uio;
 	//printf("nfs %d, vnode_dat %d, offset %d, len %d, shared_buf %x, nfs_write_cb %x, d %x\n", nfs, vnode_dat->nfsfh,uio->offset, uio->len, shared_buf, nfs_write_cb, d);
-	if(uio->len > 1 << 14){
+	if(uio->len > 1 << 14){ // prevent malloc from failing
 		uio->len = 1 << 14;
 	}
 	share_buf_check_len(&uio->len);
 	if(nfs_pwrite_async(nfs, vnode_dat->nfsfh,uio->offset, uio->len, p->shared_buf, nfs_write_cb, d)){
 		printf("fail\n");
 		free(d);
+		curproc->coro_count--;
 		return -1;
 	}
 	d->co = get_running();
 	yield(NULL);
 	int ret = d->ret;
 	free(d);
+	curproc->coro_count--;
 	return ret;
 }
 
@@ -254,21 +268,33 @@ static
 int
 vnfs_read(struct vnode *v, struct uio *uio)
 {
+	struct proc * curproc = proc_get(uio->pid);
+	if(curproc->state == ZOMBIE){
+		return 0;
+	}
+	curproc->coro_count++;
 	struct nfs_data * d = malloc(sizeof(struct nfs_data));
 	struct vnode_nfs_data * vnode_dat = v->vn_data;
 	d->u = uio;
 	if(nfs_pread_async(nfs, vnode_dat->nfsfh, uio->offset, uio->len, nfs_read_cb, d)){
 		free(d);
+		curproc->coro_count--;
 		return -1;
 	}
 	d->co = get_running();
 	yield(NULL);
 	int ret = d->ret;
 	free(d);
+	curproc->coro_count--;
 	return ret;
 }
 
 static int vnfs_getdirent(struct vnode *dir, struct uio *u){
+	struct proc * curproc = proc_get(u->pid);
+	if(curproc->state == ZOMBIE){
+		return 0;
+	}
+	curproc->coro_count++;
 	assert(dir);
 	printf("dirent\n");
 	size_t i = 0;
@@ -276,6 +302,7 @@ static int vnfs_getdirent(struct vnode *dir, struct uio *u){
 	if(name){
 		size_t bytes_written = sos_copyin(u->pid, (seL4_Word) name, strlen(name) + 1);
 		assert(bytes_written == strlen(name)+1);
+		curproc->coro_count--;
 		return strlen(name)+1;
 	}
 	struct nfs_data * d = malloc(sizeof(struct nfs_data));
@@ -283,6 +310,7 @@ static int vnfs_getdirent(struct vnode *dir, struct uio *u){
 	d->i = i;
 	if(nfs_opendir_async(nfs, "", nfs_dirent_cb, d)){
 		free(d);
+		curproc->coro_count--;
 		return -1;
 	}
     d->co = get_running();
@@ -291,6 +319,7 @@ static int vnfs_getdirent(struct vnode *dir, struct uio *u){
 	int ret = d->ret;
 	if(ret){
 		free(d);
+		curproc->coro_count--;
 		return 0;
 	}
 	size_t pathlen = strlen(d->path)+1;
@@ -298,31 +327,45 @@ static int vnfs_getdirent(struct vnode *dir, struct uio *u){
 	assert(bytes_written == pathlen);
 	free(d->path);
 	free(d);
+	curproc->coro_count--;
 	return pathlen;
 }
 
-static int vnfs_stat(struct vnode *v, void * statbuf){
+static int vnfs_stat(struct vnode *v, void * statbuf, pid_t pid){
+	struct proc * curproc = proc_get(pid);
+	if(curproc->state == ZOMBIE){
+		return 0;
+	}
+	curproc->coro_count++;
 	struct nfs_data * d = malloc(sizeof(struct nfs_data));
 	struct vnode_nfs_data * vnode_dat= v->vn_data;
 	d->statbuf = statbuf;
     if(nfs_stat64_async(nfs, vnode_dat->path, nfs_stat64_cb, d)){
 		free(d);
+		curproc->coro_count--;
 		return -1;
 	}
 	d->co = get_running();
 	yield(NULL);
 	int ret = d->ret;
 	free(d);
+	curproc->coro_count--;
 	return ret;
 }
 
-static int vnfs_lookup(struct vnode *dir, char *pathname, struct vnode **result, bool create){
+static int vnfs_lookup(struct vnode *dir, char *pathname, struct vnode **result, bool create, pid_t pid){
+	struct proc * curproc = proc_get(pid);
+	if(curproc->state == ZOMBIE){
+		return 0;
+	}
+	curproc->coro_count++;
 	struct vnode * curr = dir;
 	*result = NULL;
 	while(curr != NULL){
 		struct vnode_nfs_data * vnode_data = curr->vn_data;
 		if(!strcmp(pathname, vnode_data->path)){
 			*result = curr;
+			curproc->coro_count--;
 			return 0;
 		}
 		curr = vnode_data->next;
@@ -331,6 +374,7 @@ static int vnfs_lookup(struct vnode *dir, char *pathname, struct vnode **result,
 	*result = find_device_name(dir, pathname);
 	if(*result){
 		*result = curr;
+		curproc->coro_count--;
 		return 0;
 	}
 	d->path = malloc(strlen(pathname));
@@ -339,6 +383,7 @@ static int vnfs_lookup(struct vnode *dir, char *pathname, struct vnode **result,
     if(nfs_opendir_async(nfs, "", nfs_lookup_cb, d)){
 		free(d);
 		free(d->path);
+		curproc->coro_count--;
 		return -1;
 	}
 	d->co = get_running();
@@ -347,12 +392,14 @@ static int vnfs_lookup(struct vnode *dir, char *pathname, struct vnode **result,
 	
 	if(ret && create){
 		struct vnode * new;
-		VOP_CREAT(d->vn, d->path, FM_READ | FM_WRITE, FM_READ | FM_WRITE, &new);
+		VOP_CREAT(d->vn, d->path, FM_READ | FM_WRITE, FM_READ | FM_WRITE, &new, 0); // stub pid
 		d->vn = new;
-		int flags= O_RDWR ;
-		if (nfs_create_async(nfs, d->path, flags, flags, nfs_create_cb, d)){
+		int flags= O_RDWR | O_CREAT;
+		int mode = (FM_READ | FM_WRITE) << 6 | (FM_READ | FM_WRITE) << 3 | (FM_READ | FM_WRITE);
+		if (nfs_create_async(nfs, d->path, flags, mode, nfs_create_cb, d)){
 			VOP_RECLAIM(new, 0); //safe, pid not used in files
 			free(d);
+			curproc->coro_count--;
 			return -1;
 		}
 		d->co = get_running();
@@ -363,10 +410,16 @@ static int vnfs_lookup(struct vnode *dir, char *pathname, struct vnode **result,
 	free(d->path);
 	*result = d->vn;
 	free(d);
+	curproc->coro_count--;
 	return ret;
 }
 
-static int vnfs_creat(struct vnode *dir, const char *name, UNUSED int excl, UNUSED int mode, struct vnode **result){
+static int vnfs_creat(struct vnode *dir, const char *name, UNUSED int excl, UNUSED int mode, struct vnode **result, pid_t pid){
+	struct proc * curproc = proc_get(pid);
+	if(curproc->state == ZOMBIE){
+		return 0;
+	}
+	curproc->coro_count++;
 	*result = nfs_create_vnode();
 
 	char * new_name = malloc(strlen(name) + 1);
@@ -378,21 +431,29 @@ static int vnfs_creat(struct vnode *dir, const char *name, UNUSED int excl, UNUS
 	vnode_data = (*result)->vn_data;
 	vnode_data->path = new_name;
 	vnode_data->next = tmp;
+	curproc->coro_count--;
 	return 0;
 }
 
-static int vnfs_reclaim(struct vnode *v, UNUSED pid_t pid){
+static int vnfs_reclaim(struct vnode *v, pid_t pid){
+	struct proc * curproc = proc_get(pid);
+	if(curproc->state == ZOMBIE){
+		return 0;
+	}
+	curproc->coro_count++;
 	struct nfs_data * d = malloc(sizeof(struct nfs_data));
 	struct vnode_nfs_data * vnode_dat = v->vn_data;
 	d->vn = v;
 	if( nfs_close_async(nfs, vnode_dat->nfsfh, nfs_close_cb, d)){
 		free(d);
+		curproc->coro_count--;
 		return -1;	
 	}
 	d->co = get_running();
 	yield(NULL);
 	int ret = d->ret;
 	free(d);
+	curproc->coro_count--;
 	return ret;
 }
 
@@ -454,10 +515,10 @@ struct vnode * nfs_bootstrap(){
 	return v;
 }
 
-int nfs_get_statbuf(struct vnode * dir, char * path, sos_stat_t * statbuf){
+int nfs_get_statbuf(struct vnode * dir, char * path, sos_stat_t * statbuf, pid_t pid){
 	struct vnode * dev = find_device_name(dir, path);
 	if(dev != NULL){
-		VOP_STAT(dev, statbuf);
+		VOP_STAT(dev, statbuf, pid);
 		return 0;
 	}
 	if(!strcmp(path, "..")){

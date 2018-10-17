@@ -103,6 +103,7 @@ int main(void)
     //test_m3();
 
     do {
+        /*
         int fd = open("console", 0xF);
         printf("print this please %d\n", fd);
         
@@ -110,10 +111,11 @@ int main(void)
         char c;
         //sos_sys_read(fd, &c, 1);
         sos_sys_usleep(100);
-        
+        */
+        int fd = sos_sys_open("outtest", FM_READ | FM_WRITE);
         while(1){
-            sos_sys_read(fd, &c, 1);
-            
+            //sos_sys_read(fd, &c, 1);
+            sos_sys_write(fd, "aaaaaaaaaaaaaaaaaaaaaaaa\n", 26);
         }
         //sos_read(msg, 10);
         //sos_write(msg, 10);

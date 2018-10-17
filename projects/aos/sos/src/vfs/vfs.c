@@ -20,7 +20,7 @@ static struct vnode * find_device(char * name){
     return NULL;
 }
 
-int vfs_lookup(char *path, struct vnode **retval, bool create) {
+int vfs_lookup(char *path, struct vnode **retval, bool create, pid_t pid) {
     printf("LOOKUP %s\n", path);
     struct vnode *startvn;
     int result;
@@ -34,7 +34,7 @@ int vfs_lookup(char *path, struct vnode **retval, bool create) {
     startvn = root;
 
     if(path[0] != '\0'){
-        result = VOP_LOOKUP(startvn, path, retval, create);
+        result = VOP_LOOKUP(startvn, path, retval, create, pid);
     } else {
         *retval = startvn;
     }

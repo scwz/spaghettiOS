@@ -22,6 +22,14 @@
 
 #define MAX_PROCESSES 32
 
+#define KERNEL_PROC 0
+#define INIT_PROC   1
+
+struct proc_reap_node {
+    pid_t pid;
+    struct proc_reap_node * next;
+};
+
 struct proc_wait_node {
     pid_t owner;
     pid_t pid_to_wake;
@@ -35,7 +43,6 @@ struct proc_child_node {
 
 enum proc_state
 {
-    KERNEL,
     RUNNING,
     WAITING,
     ZOMBIE,
@@ -51,6 +58,7 @@ struct proc {
     ut_t *vspace_ut;
     seL4_CPtr vspace;
 
+    int coro_count;
     struct addrspace *as;
 
     ut_t *ipc_buffer_ut;
@@ -68,6 +76,7 @@ struct proc {
     coro wake_co; 
     enum proc_state state;
     
+    bool protected_proc;
 
     void* shared_buf;
 };
@@ -76,7 +85,9 @@ bool proc_bootstrap(cspace_t *cspace, seL4_CPtr ep);
 pid_t proc_start(char *app_name);
 struct proc *proc_create(char *app_name);
 
-int proc_destroy(pid_t pid);
+int zombiefy(pid_t pid );
+void reap(void);
+
 int proc_wait_list_add(pid_t pid, pid_t pid_to_add);
 
 int add_child(pid_t parent, pid_t child);

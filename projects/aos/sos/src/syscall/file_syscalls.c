@@ -13,12 +13,6 @@
 int syscall_write(struct proc *curproc) {
     size_t nbyte = seL4_GetMR(2);
     int fd = seL4_GetMR(1);
-    //printf("write %d %d\n", fd, nbyte);
-#if 0
-    if(fd < 4){ //send stdin etc. to console (make sure to open console)
-        fd = 4;
-    }
-#endif
     if(curproc->fdt->openfiles[fd] == NULL || nbyte <= 0){
         seL4_SetMR(0, 0);
         return 1;
@@ -29,7 +23,6 @@ int syscall_write(struct proc *curproc) {
         seL4_SetMR(0, 0);
         return 1;
     }
-    
     struct vnode * vn = curproc->fdt->openfiles[fd]->vn; 
     struct uio * u = malloc(sizeof(struct uio));
     uio_init(u, UIO_WRITE, nbyte, curproc->fdt->openfiles[fd]->offset, curproc->pid);
@@ -43,11 +36,6 @@ int syscall_write(struct proc *curproc) {
 int syscall_read(struct proc *curproc) {
     size_t nbyte = seL4_GetMR(2);
     int fd = seL4_GetMR(1);
-#if 0
-    if(fd < 4){ //send stdin etc. to console (make sure to open console)
-        fd = 4;
-    }
-#endif
     if(curproc->fdt->openfiles[fd] == NULL || nbyte <= 0){
         seL4_SetMR(0, 0);
         return 1;
@@ -70,14 +58,13 @@ int syscall_read(struct proc *curproc) {
 }
 
 int syscall_open(struct proc *curproc) {
-
     fmode_t mode = seL4_GetMR(1);
     size_t size = seL4_GetMR(2);
     struct vnode *res;
     char path[size];
     sos_copyout(curproc->pid, (seL4_Word) path, size);
     printf("OPENING %s\n", path);
-    if(vfs_lookup(path, &res, 1)){
+    if(vfs_lookup(path, &res, 1, curproc->pid)){
         seL4_SetMR(0, 1);
         return 1;
     } 
@@ -109,13 +96,10 @@ int syscall_open(struct proc *curproc) {
 int syscall_close(struct proc *curproc) {
     
     int fd = seL4_GetMR(1);
-    
     struct open_file *of = curproc->fdt->openfiles[fd];
-    //printf("CLOSING %d, %x\n", fd, of);
     VOP_RECLAIM(of->vn, curproc->pid);
     free(of);
     curproc->fdt->openfiles[fd] = NULL;
-
     seL4_SetMR(0, 0);
     //printf("CLOSING\n");
     return 1;
@@ -128,7 +112,7 @@ int syscall_getdirent(struct proc *curproc){
     sos_copyout(curproc->pid, (seL4_Word) path, nbyte);
     printf("stat path %s\n", path);
     struct  vnode * res;
-    if (vfs_lookup("", &res, 0)){
+    if (vfs_lookup("", &res, 0, curproc->pid)){
         seL4_SetMR(0, 0);
         return 1;
     }
@@ -148,7 +132,7 @@ int syscall_stat(struct proc *curproc){
     printf("stat path %s\n", path);
     sos_stat_t buf;
     struct vnode * res;
-    if (vfs_lookup("", &res, 0)){
+    if (vfs_lookup("", &res, 0, curproc->pid)){
         seL4_SetMR(0, -1);
         return 1;
     }

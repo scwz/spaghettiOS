@@ -21,11 +21,12 @@ int syscall_proc_create(struct proc *curproc) {
 
 int syscall_proc_delete(struct proc *curproc) {
     pid_t pid = seL4_GetMR(1);
-    if(pid == 0 || pid >= MAX_PROCESSES){
+    printf("delet\n");
+    if(pid <= 0 || pid >= MAX_PROCESSES){ // invalid procs
         seL4_SetMR(0, -1);
     }
-    seL4_SetMR(0, proc_destroy(pid));
-    
+    int ret = zombiefy(pid);
+    seL4_SetMR(0, ret);
     return 1;
 }
 
@@ -57,12 +58,16 @@ int syscall_proc_status(struct proc *curproc) {
 
 int syscall_proc_wait(struct proc *curproc) {
     pid_t pid = seL4_GetMR(1);
-    if(pid < -1 || pid == 0 || pid >= MAX_PROCESSES){
+    if(pid < -1 || pid == KERNEL_PROC || pid >= MAX_PROCESSES){
         seL4_SetMR(0, -1);
         return 1;
     }
+    if(proc_get(pid) == NULL){
+        seL4_SetMR(0, -1);
+        return 1;
+    }
+
     curproc->state = WAITING;
-    
     if(pid >= 1){
         proc_wait_list_add(pid, curproc->pid);
     } else {
