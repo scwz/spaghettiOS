@@ -62,7 +62,7 @@ int syscall_proc_wait(struct proc *curproc) {
         seL4_SetMR(0, -1);
         return 1;
     }
-    if(proc_get(pid) == NULL){
+    if(proc_get(pid) == NULL || proc_get(pid)->state == ZOMBIE){
         seL4_SetMR(0, -1);
         return 1;
     }
