@@ -39,7 +39,7 @@ nfs_dirent_cb(int status, struct nfs_context *nfs, void *data, void *private_dat
 	while ((nfsdirent = nfs_readdir(nfs, nfsdir)) != NULL && i <= d->u->len) {
 		//printf("i %d, Inode:%d Name:%s\n", i,   (int)nfsdirent->inode, nfsdirent->name);
 		if (i == d->u->len) {
-			d->path = malloc(strlen(nfsdirent->name));
+			d->path = malloc(strlen(nfsdirent->name)+1);
 			strcpy(d->path, nfsdirent->name);
 			d->ret = 0;
 			break;
@@ -529,8 +529,14 @@ nfs_bootstrap()
 int 
 nfs_get_statbuf(struct vnode *dir, char *path, sos_stat_t *statbuf, pid_t pid)
 {
+	struct proc *curproc = proc_get(pid);
+	if (curproc->state == ZOMBIE) {
+		return 0;
+	}
+	curproc->coro_count++;
 	struct vnode *dev = find_device_name(dir, path);
 	if (dev != NULL) {
+		curproc->coro_count--;
 		VOP_STAT(dev, statbuf, pid);
 		return 0;
 	}
@@ -540,12 +546,14 @@ nfs_get_statbuf(struct vnode *dir, char *path, sos_stat_t *statbuf, pid_t pid)
 	struct nfs_data *d = malloc(sizeof(struct nfs_data));
 	d->statbuf = statbuf;
     if (nfs_stat64_async(nfs, path, nfs_stat64_cb, d)) {
+		curproc->coro_count--;
 		free(d);
 		return -1;
 	}
 	d->co = get_running();
 	yield(NULL);
 	int ret = d->ret;
+	curproc->coro_count--;
 	free(d);
 	return ret;
 }
