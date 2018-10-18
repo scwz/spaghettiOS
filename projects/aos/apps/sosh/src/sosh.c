@@ -198,6 +198,9 @@ static int exec(int argc, char **argv)
 
     if (bg == 0 && pid > 0) {
         in = open("console", FM_READ | FM_WRITE);
+        while(in < 0){
+            in = open("console", FM_READ | FM_WRITE);
+        }
         assert(in >= 0);
     }
     return 0;

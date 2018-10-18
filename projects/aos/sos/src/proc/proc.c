@@ -178,7 +178,6 @@ bool proc_bootstrap(cspace_t *cs, seL4_CPtr pep) {
  */
 pid_t proc_start(char* app_name)
 {
-    return proc_start_init(app_name);
     struct proc *new = proc_create(app_name);
     seL4_Word err;
 
@@ -224,8 +223,6 @@ pid_t proc_start(char* app_name)
 
     /* Provide a name for the thread -- Helpful for debugging */
     NAME_THREAD(new->tcb, app_name);
-    /* parse the cpio image */
-    ZF_LOGI( "\nStarting \"%s\"...\n", app_name);
 
     /* load the elf image from the cpio file */
     err = elf_load_fs(new->pid, cspace, seL4_CapInitThreadVSpace, new->vspace, app_name);
@@ -236,6 +233,7 @@ pid_t proc_start(char* app_name)
 
     /* set up the stack */
     seL4_Word sp = init_process_stack(new, seL4_CapInitThreadVSpace);
+    
     // setup/create region for stack
     as_define_stack(new->as);
     as_define_heap(new->as);
@@ -458,6 +456,7 @@ static int destroy_child_list(pid_t pid){
         if(curproc != NULL){
             proc_wait_list_add(curr->child, 1);
             add_child(1, curr->child);
+            printf("reparenting... %d\n", curr->child);
         }
         tmp = curr;
         curr = curr->next;
@@ -480,7 +479,7 @@ int add_child(pid_t parent, pid_t child){
 int wait_all_child(pid_t parent){
     struct proc_child_node* curr = procs[parent]->child_list;
     while(curr != NULL){
-        proc_wait_list_add(parent, curr->child); // add init as parent
+        proc_wait_list_add(parent, curr->child); // add all children
         curr = curr->next;
     }
     return 0;
@@ -518,6 +517,8 @@ int zombiefy(pid_t pid){
     }
     p->state = ZOMBIE;
     assert(add_reap_list(pid) == 0);
+    destroy_child_list(pid); //reparent immediately
+    proc_wait_wakeup(pid);
     seL4_TCB_Suspend(p->tcb);
     return 0;
 }
@@ -534,8 +535,6 @@ static int proc_destroy(pid_t pid){
     if(p->coro_count != 0){
         return -1;
     }
-    destroy_child_list(pid);
-    proc_wait_wakeup(pid);
     if(p->as->pt){
         page_table_destroy(p->as->pt, cspace);
     }
@@ -548,6 +547,7 @@ static int proc_destroy(pid_t pid){
     if(p->ipc_buffer_ut){
         ut_free(p->ipc_buffer_ut, seL4_PageBits);
     }
+    
     cspace_delete(cspace, p->tcb);
     cspace_delete(cspace, p->vspace);
     cspace_delete(cspace, p->ipc_buffer);

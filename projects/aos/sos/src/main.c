@@ -260,7 +260,7 @@ NORETURN void *main_continued(UNUSED void *arg)
     sos_ipc_init(&ipc_ep, &ntfn);
 
     /* run sos initialisation tests */
-    run_tests(&cspace);
+    //
 
     /* Map the timer device (NOTE: this is the same mapping you will use for your timer driver -
      * sos uses the watchdog timers on this page to implement reset infrastructure & network ticks,
@@ -287,7 +287,7 @@ NORETURN void *main_continued(UNUSED void *arg)
     /* Start the user application */
     printf("Start first process\n");
     bool success = proc_bootstrap(&cspace, ipc_ep);
-
+    //run_tests(&cspace);
     //mmap_tests();
     ZF_LOGF_IF(!success, "Failed to start first process");
     printf("\nSOS entering syscall loop\n");

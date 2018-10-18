@@ -86,6 +86,7 @@ long sys_mmap(va_list ap)
         ZF_LOGF("not implemented");
         return -ENOMEM;
     }
+    length += PAGE_SIZE_4K;
     seL4_Word addr = MMAP_BOT;
     while(addr < MMAP_TOP){
         //printf("ADDR: %lx\n", addr);
@@ -103,7 +104,7 @@ long sys_mmap(va_list ap)
     if(addr > MMAP_TOP || addr + length > MMAP_TOP) return -ENOMEM;
 
     struct region* reg = as_seek_region(kernel_proc->as, addr);
-    
+    printf("reg%lx, %lx\n", reg->vbase, reg->vtop);
     for(size_t i = 0; i < BYTES_TO_4K_PAGES(length); i++){
         seL4_Word vaddr;
         seL4_Word page = frame_alloc_important(&vaddr);

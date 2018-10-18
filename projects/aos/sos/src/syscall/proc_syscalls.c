@@ -14,14 +14,14 @@ int syscall_proc_create(struct proc *curproc) {
     if(pid >= 2){
         add_child(curproc->pid, pid);
     }
+    printf("proc create end %d\n", pid);
     seL4_SetMR(0, pid);
-
     return 1;
 }
 
 int syscall_proc_delete(struct proc *curproc) {
     pid_t pid = seL4_GetMR(1);
-    printf("delet\n");
+    printf("delete caller: %d, delete pid: %d\n", curproc->pid, pid);
     if(pid <= 0 || pid >= MAX_PROCESSES){ // invalid procs
         seL4_SetMR(0, -1);
     }
@@ -58,6 +58,7 @@ int syscall_proc_status(struct proc *curproc) {
 
 int syscall_proc_wait(struct proc *curproc) {
     pid_t pid = seL4_GetMR(1);
+    printf("WAIT caller: %d, WAIT pid: %d\n", curproc->pid, pid);
     if(pid < -1 || pid == KERNEL_PROC || pid >= MAX_PROCESSES){
         seL4_SetMR(0, -1);
         return 1;
