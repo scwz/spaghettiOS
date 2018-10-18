@@ -10,54 +10,52 @@
 #include "../fs/libnfs_vops.h"
 #include <sos.h>
 
-int 
-syscall_write(struct proc *curproc) 
+static int 
+syscall_readwrite(struct proc *curproc, int how) 
 {
     int fd = seL4_GetMR(1);
     size_t nbyte = seL4_GetMR(2);
+    size_t bytes_processed = 0;
     if (curproc->fdt->openfiles[fd] == NULL || nbyte <= 0) {
         seL4_SetMR(0, 0);
         return 1;
     }
-    
-    if (!(curproc->fdt->openfiles[fd]->flags & FM_WRITE)) {
+    if (!(curproc->fdt->openfiles[fd]->flags & how)) {
         seL4_SetMR(0, 0);
         return 1;
     }
+    
     struct vnode *vn = curproc->fdt->openfiles[fd]->vn; 
     struct uio *u = malloc(sizeof(struct uio));
-    uio_init(u, UIO_WRITE, nbyte, curproc->fdt->openfiles[fd]->offset, curproc->pid);
-    size_t bytes_written = VOP_WRITE(vn, u);
-    curproc->fdt->openfiles[fd]->offset += bytes_written;
+    if (how == FM_WRITE) {
+        uio_init(u, UIO_WRITE, nbyte, curproc->fdt->openfiles[fd]->offset, curproc->pid);
+        bytes_processed = VOP_WRITE(vn, u);
+    }
+    else if (how == FM_READ) { 
+        uio_init(u, UIO_READ, nbyte, curproc->fdt->openfiles[fd]->offset, curproc->pid);
+        bytes_processed = VOP_READ(vn, u);
+    }
+    else {
+        ZF_LOGE("Unknown flag encountered!");
+        seL4_SetMR(0, 0);
+        return 1;
+    }
+    curproc->fdt->openfiles[fd]->offset += bytes_processed;
     free(u);
-    seL4_SetMR(0, bytes_written);
+    seL4_SetMR(0, bytes_processed);
     return 1;
+}
+
+int 
+syscall_write(struct proc *curproc) 
+{
+    return syscall_readwrite(curproc, FM_WRITE);
 }
 
 int 
 syscall_read(struct proc *curproc) 
 {
-    int fd = seL4_GetMR(1);
-    size_t nbyte = seL4_GetMR(2);
-    if (curproc->fdt->openfiles[fd] == NULL || nbyte <= 0) {
-        seL4_SetMR(0, 0);
-        return 1;
-    }
-    
-    if (!(curproc->fdt->openfiles[fd]->flags & FM_READ)) {
-        seL4_SetMR(0, 0);
-        return 1;
-    }
-    struct vnode *vn = curproc->fdt->openfiles[fd]->vn; 
-    assert(vn);
-    struct uio *u = malloc(sizeof(struct uio));
-    uio_init(u, UIO_READ, nbyte, curproc->fdt->openfiles[fd]->offset, curproc->pid);
-    size_t bytes_read = VOP_READ(vn, u);
-    //printf("bytes_read %s, %d\n", curproc->shared_buf, bytes_read);
-    curproc->fdt->openfiles[fd]->offset += bytes_read;
-    free(u);
-    seL4_SetMR(0, bytes_read);
-    return 1;
+    return syscall_readwrite(curproc, FM_READ);
 }
 
 int
@@ -72,7 +70,6 @@ syscall_open(struct proc *curproc)
     if (vfs_open(path, mode, &res, curproc->pid)) {
         seL4_SetMR(0, 1);
         return 1;
-
     }
 
     bool full = true;
@@ -86,7 +83,6 @@ syscall_open(struct proc *curproc)
             seL4_SetMR(0, 0);
             seL4_SetMR(1, i);
             full = false;
-            //printf("i: %d, flags %d\n", i, mode);
             break;
         }
     } 
@@ -116,7 +112,6 @@ syscall_getdirent(struct proc *curproc)
     size_t nbyte = seL4_GetMR(2);
     char path[nbyte];
     sos_copyout(curproc->pid, (seL4_Word) path, nbyte);
-    //printf("stat path %s\n", path);
     struct vnode *res;
     if (vfs_lookup("", &res, 0, curproc->pid)){
         seL4_SetMR(0, 0);
@@ -136,7 +131,6 @@ syscall_stat(struct proc *curproc)
     size_t nbyte = seL4_GetMR(1);
     char path[nbyte];
     sos_copyout(curproc->pid, (seL4_Word) path, nbyte);
-    //printf("stat path %s\n", path);
     sos_stat_t buf;
     struct vnode *res;
     if (vfs_lookup("", &res, 0, curproc->pid)){
