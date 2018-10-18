@@ -42,6 +42,7 @@ vfs_lookup(char *path, struct vnode **retval, bool create, pid_t pid)
     } 
     else {
         *retval = startvn;
+        result = 0;
     }
     printf("vn : %lx \n", *retval);
     return result;

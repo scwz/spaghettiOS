@@ -529,6 +529,7 @@ nfs_bootstrap()
 int 
 nfs_get_statbuf(struct vnode *dir, char *path, sos_stat_t *statbuf, pid_t pid)
 {
+	printf("statbuf\n");
 	struct proc *curproc = proc_get(pid);
 	if (curproc->state == ZOMBIE) {
 		return 0;
