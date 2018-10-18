@@ -1,0 +1,8 @@
+If you wish to automatically copy executable files to your NFS directory, 
+please add the following lines of code to the Makefile of your application.
+
+add_custom_command(
+    TARGET <YOUR_APP>
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:<YOUR_APP> "/var/tftpboot/$ENV{USER}"
+)
