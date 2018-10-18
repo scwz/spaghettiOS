@@ -16,11 +16,6 @@ project(sosh C)
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -u __vsyscall_ptr")
 
 add_executable(sosh EXCLUDE_FROM_ALL src/benchmark.c src/sosh.c)
-add_custom_command(
-    TARGET sosh
-    POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:sosh> "/var/tftpboot/$ENV{USER}"
-)
 target_include_directories(sosh PRIVATE include)
 target_link_libraries(sosh muslc sel4 sosapi utils)
 
