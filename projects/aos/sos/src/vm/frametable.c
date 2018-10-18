@@ -232,7 +232,7 @@ void frame_free(seL4_Word page) {
         //printf("%ld\n", page);
     }
     assert(frame_table[page].cap != seL4_CapNull);
-    printf("freeing page %ld\n", page);
+    //printf("freeing page %ld\n", page);
     if(frame_table[page].cap == seL4_CapNull){
         ZF_LOGE("Page is already free");
         return;

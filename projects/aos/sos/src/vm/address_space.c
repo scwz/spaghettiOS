@@ -35,6 +35,14 @@ static bool valid_new_region(struct addrspace *as, struct region* new_region){
            new_region->vtop <= curr_region->vtop){
             return false;
         }
+        if(new_region->vtop >= curr_region->vtop &&
+           new_region->vbase <= curr_region->vbase){
+               return false;
+           }
+        if(new_region->vtop <= curr_region->vtop &&
+           new_region->vbase >= curr_region->vbase){
+               return false;
+           }
         curr_region = curr_region->next;
     }
     return true;

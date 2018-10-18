@@ -88,14 +88,19 @@ long sys_mmap(va_list ap)
     }
     seL4_Word addr = MMAP_BOT;
     while(addr < MMAP_TOP){
-        struct region * reg = as_seek_region(kernel_proc->as, MMAP_BOT);
+        //printf("ADDR: %lx\n", addr);
+        struct region * reg = as_seek_region(kernel_proc->as, addr);
+        // if address is free try to define region
         if(reg == NULL){
-            break;
+            if(!as_define_region(kernel_proc->as, addr, length, READ | WRITE)){
+                break;
+            }
+            //if it fails, its because theres something in the top half or in the middle, try add the length
+            addr += PAGE_ALIGN_4K(length);
         }
         addr = PAGE_ALIGN_4K(reg->vtop) + PAGE_SIZE_4K;
     }
     if(addr > MMAP_TOP || addr + length > MMAP_TOP) return -ENOMEM;
-    if(as_define_region(kernel_proc->as, addr, length, READ | WRITE)) return -ENOMEM;
 
     struct region* reg = as_seek_region(kernel_proc->as, addr);
     
@@ -132,7 +137,7 @@ long sys_munmap(va_list ap){
             entry = page_entry_number(*pte);
             bits = page_get_bits(*pte);
         }
-        printf("Munmapping: %lx; pte %ld, bits %lx, entry %lx\n", reg->vbase + i * PAGE_SIZE_4K, *pte);
+        //printf("Munmapping: %lx; pte %ld, bits %lx, entry %lx\n", reg->vbase + i * PAGE_SIZE_4K, *pte);
         if(!bits){
             frame_free(entry);
         }
@@ -141,6 +146,7 @@ long sys_munmap(va_list ap){
         }
         page_update_entry(pte, P_INVALID, 0);
     }
+    as_destroy_region(kernel_proc->as, addr);
 }
 
 long sys_madvise(UNUSED va_list ap) {
@@ -149,4 +155,23 @@ long sys_madvise(UNUSED va_list ap) {
 
 void morecore_bootstrap(cspace_t * cs){
     cspace = cs;
+}
+
+void mmap_tests(void ){
+    //MMAP TESTS
+    void *addr = malloc(1146881);
+    COMPILER_MEMORY_FENCE();
+    free(addr);
+    printf("MALLOC TEST1: addr %p\n", addr);
+    COMPILER_MEMORY_FENCE();
+    addr = malloc(1146881);
+    COMPILER_MEMORY_FENCE();
+    free(addr);
+    printf("MALLOC TEST2: addr %p\n", addr);
+    void* addr2 = malloc(1146881);
+    addr = malloc(1146881);
+    printf("MALLOC TEST3: addr %p\n", addr);
+    free(addr2);
+    free(addr);
+    printf("MALLOC TEST4: addr %p\n", addr);
 }
