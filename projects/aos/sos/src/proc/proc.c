@@ -478,7 +478,9 @@ int add_child(pid_t parent, pid_t child){
 int wait_all_child(pid_t parent){
     struct proc_child_node* curr = procs[parent]->child_list;
     while(curr != NULL){
-        proc_wait_list_add(parent, curr->child); // add init as parent
+        if (proc_get(curr->child) != NULL) {
+            proc_wait_list_add(parent, curr->child); // add init as parent
+        }
         curr = curr->next;
     }
     return 0;

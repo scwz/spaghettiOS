@@ -30,8 +30,9 @@ static uint64_t start_tick = 0;
 static uint64_t last_tick = 0;
 
 /* taken from projects/aos/sos/src/network.c */
-static seL4_CPtr init_irq(cspace_t *cspace, int irq_number, int edge_triggered,
-                          seL4_CPtr ntfn) {
+static seL4_CPtr 
+init_irq(cspace_t *cspace, int irq_number, int edge_triggered, seL4_CPtr ntfn) 
+{
     seL4_CPtr irq_handler = cspace_alloc_slot(cspace);
     ZF_LOGF_IF(irq_handler == seL4_CapNull, "Failed to alloc slot for irq handler!");
     seL4_Error error = cspace_irq_control_get(cspace, irq_handler, seL4_CapIRQControl, irq_number, edge_triggered);
@@ -42,7 +43,8 @@ static seL4_CPtr init_irq(cspace_t *cspace, int irq_number, int edge_triggered,
     return irq_handler;
 }
 
-int start_timer(cspace_t *cspace, seL4_CPtr ntfn, void *device_vaddr)
+int 
+start_timer(cspace_t *cspace, seL4_CPtr ntfn, void *device_vaddr)
 {
     if (timer_initialised) {
         stop_timer();
@@ -56,7 +58,7 @@ int start_timer(cspace_t *cspace, seL4_CPtr ntfn, void *device_vaddr)
     timer_initialised = 1;
 
     // setup registers
-    timer->timer_mux |= TIMER_F_EN | TIMER_F_MODE | (TIMEBASE_1_US << TIMER_F_INPUT_CLK) ; 
+    timer->timer_mux |= TIMER_F_EN | TIMER_F_MODE | (TIMEBASE_1_US << TIMER_F_INPUT_CLK); 
     timer->timer_f |= TICK_10000_US;
 
     start_tick = timestamp_ms(timestamp_get_freq());
@@ -66,12 +68,14 @@ int start_timer(cspace_t *cspace, seL4_CPtr ntfn, void *device_vaddr)
     return CLOCK_R_OK;
 }
 
-uint32_t register_timer(uint64_t delay, job_type_t type, timer_callback_t callback, void *data)
+uint32_t 
+register_timer(uint64_t delay, job_type_t type, timer_callback_t callback, void *data)
 {
     return pqueue_push(pq, 0, delay, type, callback, data);
 }
 
-int remove_timer(uint32_t id)
+int 
+remove_timer(uint32_t id)
 {
     if (!timer_initialised) {
         return CLOCK_R_UINT;
@@ -79,7 +83,8 @@ int remove_timer(uint32_t id)
     return pqueue_remove(pq, id);
 }
 
-int timer_interrupt(void)
+int 
+timer_interrupt(void)
 {
     if (!timer_initialised) {
         return CLOCK_R_UINT;
@@ -87,7 +92,7 @@ int timer_interrupt(void)
 
     struct job *job = pqueue_peek(pq);
     uint64_t curr_tick = 0;
-    while (job != NULL && (((job->tick >= pq->time) && (job->tick < pq->time + TICK_10000_US)))) {
+    while (job != NULL && ISINRANGE(pq->time, job->tick, pq->time + TICK_10000_US - 1)) {
         curr_tick = timestamp_ms(timestamp_get_freq());
         printf("CALLBACK RECEIVED: %lu ms diff: %lu ms\n", curr_tick, curr_tick - last_tick);
         job->callback(job->id, job->data);
@@ -103,7 +108,8 @@ int timer_interrupt(void)
     return CLOCK_R_OK;
 }
 
-int stop_timer(void)
+int 
+stop_timer(void)
 {
     if (!timer_initialised) {
         return CLOCK_R_UINT;
@@ -117,6 +123,8 @@ int stop_timer(void)
     return CLOCK_R_OK;
 }
 
-timestamp_t get_time(void) {
+timestamp_t 
+get_time(void) 
+{
     return pq->time;
 }

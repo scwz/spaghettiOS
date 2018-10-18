@@ -9,7 +9,7 @@ struct job {
     job_type_t type;
     timer_callback_t callback;
     void *data; 
-    struct job * next_job;
+    struct job *next_job;
 };
 
 struct pqueue {
