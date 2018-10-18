@@ -1,5 +1,5 @@
-#include "vnode.h"
 
+#include "vnode.h"
 
 int
 vnode_init(struct vnode *vn, const struct vnode_ops *ops, void *fsdata)
@@ -72,7 +72,6 @@ vnode_check(struct vnode *v, const char *opstr)
 	if (v->vn_ops == (void *)0xdeadbeef) {
 		ZF_LOGE("vnode_check: vop_%s: deadbeef ops pointer\n", opstr);
 	}
-
 
 	if (v->vn_refcount < 0) {
 		ZF_LOGE("vnode_check: vop_%s: negative refcount %d\n", opstr,

@@ -4,15 +4,15 @@
 #include <sos.h>
 #include <time.h>
 
-static int dev_eachopen(struct vnode *v, int flags, pid_t pid)
+static int
+dev_eachopen(struct vnode *v, int flags, pid_t pid)
 {
 	struct device *d = v->vn_data;
 
     return d->open(v, flags, pid);
 }
 
-static
-int
+static int
 dev_write(struct vnode *v, struct uio *uio)
 {
 	struct device *d = v->vn_data;
@@ -21,21 +21,23 @@ dev_write(struct vnode *v, struct uio *uio)
 	return d->write(uio);
 }
 
-static
-int
+static int
 dev_read(struct vnode *v, struct uio *uio)
 {
 	struct device *d = v->vn_data;
 	
-	d->read(uio);
+	return d->read(uio);
 }
 
-static int dev_getdirent(){
+static int 
+dev_getdirent()
+{
     return 0;
 }
 
-static int dev_stat(struct vnode * v, void * buf){
-	printf("dev_stat\n");
+static int
+dev_stat(struct vnode *v, void *buf)
+{
 	sos_stat_t *s = buf;
 	s->st_fmode = FM_READ | FM_WRITE;
 	s->st_atime = 0;
@@ -45,15 +47,21 @@ static int dev_stat(struct vnode * v, void * buf){
     return 0;
 }
 
-static int dev_lookup(){
+static int 
+dev_lookup()
+{
     return 0;
 }
 
-static int dev_lookparent(){
+static int
+dev_lookparent()
+{
     return 0;
 }
 
-static int dev_reclaim(struct vnode *v, pid_t pid){
+static int 
+dev_reclaim(struct vnode *v, pid_t pid)
+{
 	struct device *d = v->vn_data;
     return d->close(v, pid);
 }
@@ -80,7 +88,7 @@ dev_create_vnode(void * data)
 	struct vnode *v;
 
 	v = malloc(sizeof(struct vnode));
-	if (v==NULL) {
+	if (v == NULL) {
 		return NULL;
 	}
 

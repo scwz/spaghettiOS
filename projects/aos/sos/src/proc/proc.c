@@ -15,8 +15,6 @@
 #include "../picoro/picoro.h"
 #include "../vfs/vfs.h"
 
-#define SET_PID_BADGE(pid) (TTY_EP_BADGE | (pid << 20))
-
 struct proc *procs[MAX_PROCESSES];
 
 extern char _cpio_archive[];

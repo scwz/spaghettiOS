@@ -16,10 +16,11 @@ static struct serial *serial;
 static coro curr;
 char buffer[BUFFER_SIZE];
 static size_t nbytes_read = 0;
-static int reading = 1;
+static int reading = 0;
 
-static void console_handler(struct serial *serial, char c) {
-	//bufferWrite(sb_ptr, c);
+static void 
+console_handler(struct serial *serial, char c) 
+{
     if (reading) {
         buffer[nbytes_read++] = c;
         if (c == '\n') {
@@ -28,35 +29,43 @@ static void console_handler(struct serial *serial, char c) {
     }
 }
 
-int console_init(void) {
+int 
+console_init(void) 
+{
     serial = serial_init();
     serial_register_handler(serial, console_handler);
     return 0;
 }
 
-int console_open(struct vnode * vn,int flags, pid_t pid) {
-    struct device * d = vn->vn_data;
-    struct console * c = d->data;
+int 
+console_open(struct vnode *vn,int flags, pid_t pid) 
+{
+    struct device *d = vn->vn_data;
+    struct console *c = d->data;
     printf("flags %x, c->reader = %d\n", flags, c->reader);
-    if(flags & FM_READ){
-        if(c->reader != NULL){
+    if (flags & FM_READ) {
+        if (c->reader != NULL) {
             return -1;
         }
-        c->reader = proc_get(pid); // PLACEHOLDER
+        c->reader = proc_get(pid); 
     }
     return 0;
 }
 
-int console_close(struct vnode * vn, pid_t pid) {
-    struct device * d = vn->vn_data;
-    struct console * c = d->data;
-    if(c->reader == proc_get(pid)){
+int 
+console_close(struct vnode *vn, pid_t pid) 
+{
+    struct device *d = vn->vn_data;
+    struct console *c = d->data;
+    if (c->reader == proc_get(pid)) {
         c->reader = NULL;
     }
     return 0;
 }
 
-int console_read(struct uio *uio) {
+int 
+console_read(struct uio *uio) 
+{
     reading = 1;
 	curr = get_running();
     yield(NULL);
@@ -77,7 +86,9 @@ int console_read(struct uio *uio) {
 	return i;
 }
 
-int console_write(struct uio *uio) {
-    struct proc * p = proc_get(uio->pid);
+int 
+console_write(struct uio *uio) 
+{
+    struct proc *p = proc_get(uio->pid);
 	return serial_send(serial, p->shared_buf, uio->len);
 }

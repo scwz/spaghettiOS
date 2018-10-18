@@ -17,24 +17,33 @@
 
 #include <sel4/sel4.h>
 
-static void check_len(size_t * len){
-    if(*len > 4096 * SHARE_BUF_SIZE){
-        *len = 4096 * SHARE_BUF_SIZE;
+#define PAGE_SIZE_4K 4096
+
+static void 
+check_len(size_t *len){
+    if (*len > PAGE_SIZE_4K * SHARE_BUF_SIZE) {
+        *len = PAGE_SIZE_4K * SHARE_BUF_SIZE;
     }
 }
 
-static size_t user_copyin(void* user_vaddr, size_t len){
+static size_t
+user_copyin(void *user_vaddr, size_t len)
+{
     check_len(&len);
-    memcpy(SHARE_BUF - 4096 * SHARE_BUF_SIZE, user_vaddr, len);
-    return len;
-}
-static size_t user_copyout(void* user_vaddr, size_t len){
-    check_len(&len);
-    memcpy(user_vaddr, SHARE_BUF - 4096 * SHARE_BUF_SIZE, len);
+    memcpy(SHARE_BUF - PAGE_SIZE_4K * SHARE_BUF_SIZE, user_vaddr, len);
     return len;
 }
 
-int sos_sys_open(const char *path, fmode_t mode)
+static size_t 
+user_copyout(void *user_vaddr, size_t len)
+{
+    check_len(&len);
+    memcpy(user_vaddr, SHARE_BUF - PAGE_SIZE_4K * SHARE_BUF_SIZE, len);
+    return len;
+}
+
+int 
+sos_sys_open(const char *path, fmode_t mode)
 {
     seL4_MessageInfo_t tag = seL4_MessageInfo_new(0, 0, 0, 3);
     seL4_SetMR(0, SOS_SYS_OPEN);
@@ -43,14 +52,16 @@ int sos_sys_open(const char *path, fmode_t mode)
     user_copyin(path, strlen(path)+1);
     seL4_Call(SOS_IPC_EP_CAP, tag);
 
-    if(seL4_GetMR(0)){
+    if (seL4_GetMR(0)) {
         return -1;
     }
 
     return seL4_GetMR(1);
 }
 
-int sos_sys_close(int file)  {
+int 
+sos_sys_close(int file)  
+{
     seL4_MessageInfo_t tag = seL4_MessageInfo_new(0, 0, 0, 2);
     seL4_SetMR(0, SOS_SYS_CLOSE);
     seL4_SetMR(1, file);
@@ -59,7 +70,8 @@ int sos_sys_close(int file)  {
     return seL4_GetMR(0);
 }
 
-int sos_sys_read(int file, char *buf, size_t nbyte)
+int
+sos_sys_read(int file, char *buf, size_t nbyte)
 {   
     seL4_MessageInfo_t tag = seL4_MessageInfo_new(0, 0, 0, 3);
     seL4_SetMR(0, SOS_SYS_READ);
@@ -73,7 +85,8 @@ int sos_sys_read(int file, char *buf, size_t nbyte)
     return bytes_read;
 }
 
-int sos_sys_write(int file, const char *buf, size_t nbyte)
+int 
+sos_sys_write(int file, const char *buf, size_t nbyte)
 {
     seL4_MessageInfo_t tag = seL4_MessageInfo_new(0, 0, 0, 3);
     seL4_SetMR(0, SOS_SYS_WRITE);
@@ -85,7 +98,8 @@ int sos_sys_write(int file, const char *buf, size_t nbyte)
     return seL4_GetMR(0);
 }
 
-int sos_getdirent(int pos, char *name, size_t nbyte)
+int 
+sos_getdirent(int pos, char *name, size_t nbyte)
 {
     assert(pos >= 0);
     seL4_MessageInfo_t tag = seL4_MessageInfo_new(0, 0, 0, 3);
@@ -98,21 +112,23 @@ int sos_getdirent(int pos, char *name, size_t nbyte)
     return seL4_GetMR(0);
 }
 
-int sos_stat(const char *path, sos_stat_t *buf)
+int 
+sos_stat(const char *path, sos_stat_t *buf)
 {
     seL4_MessageInfo_t tag = seL4_MessageInfo_new(0, 0, 0, 2);
     seL4_SetMR(0, SOS_SYS_STAT);
     size_t nbyte = user_copyin(path, strlen(path)+1);
     seL4_SetMR(1, nbyte);
     seL4_Call(SOS_IPC_EP_CAP, tag);
-    if(seL4_GetMR(0)){
+    if (seL4_GetMR(0)) {
         return seL4_GetMR(0);
     }
     user_copyout(buf, sizeof(sos_stat_t));
     return seL4_GetMR(0);
 }
 
-pid_t sos_process_create(const char *path)
+pid_t 
+sos_process_create(const char *path)
 {
     seL4_MessageInfo_t tag = seL4_MessageInfo_new(0, 0, 0, 2);
     seL4_SetMR(0, SOS_PROC_CREATE);
@@ -124,7 +140,8 @@ pid_t sos_process_create(const char *path)
     return seL4_GetMR(0);
 }
 
-int sos_process_delete(pid_t pid)
+int 
+sos_process_delete(pid_t pid)
 {
     seL4_MessageInfo_t tag = seL4_MessageInfo_new(0, 0, 0, 2);
     seL4_SetMR(0, SOS_PROC_DELETE);
@@ -134,7 +151,8 @@ int sos_process_delete(pid_t pid)
     return seL4_GetMR(0);
 }
 
-pid_t sos_my_id(void)
+pid_t 
+sos_my_id(void)
 {
     seL4_MessageInfo_t tag = seL4_MessageInfo_new(0, 0, 0, 1);
     seL4_SetMR(0, SOS_PROC_MY_ID);
@@ -143,7 +161,8 @@ pid_t sos_my_id(void)
     return seL4_GetMR(0);
 }
 
-int sos_process_status(sos_process_t *processes, unsigned max)
+int
+sos_process_status(sos_process_t *processes, unsigned max)
 {
     seL4_MessageInfo_t tag = seL4_MessageInfo_new(0, 0, 0, 2);
     seL4_SetMR(0, SOS_PROC_STATUS);
@@ -156,7 +175,8 @@ int sos_process_status(sos_process_t *processes, unsigned max)
     return nactive;
 }
 
-pid_t sos_process_wait(pid_t pid)
+pid_t 
+sos_process_wait(pid_t pid)
 {
     seL4_MessageInfo_t tag = seL4_MessageInfo_new(0, 0, 0, 2);
     seL4_SetMR(0, SOS_PROC_WAIT);
@@ -167,21 +187,21 @@ pid_t sos_process_wait(pid_t pid)
 
 }
 
-void sos_sys_usleep(int msec)
+void 
+sos_sys_usleep(int msec)
 {
-    if(msec < 0){
+    if (msec < 0) {
         return;
     }
     seL4_MessageInfo_t tag = seL4_MessageInfo_new(0, 0, 0, 2);
     seL4_SetMR(0, SOS_SYS_USLEEP);
     seL4_SetMR(1, msec);
     seL4_Call(SOS_IPC_EP_CAP, tag);
-    //printf("end sleep\n");
 }
 
-int64_t sos_sys_time_stamp(void)
+int64_t 
+sos_sys_time_stamp(void)
 {
-    int64_t time;
     seL4_MessageInfo_t tag = seL4_MessageInfo_new(0, 0, 0, 1);
 
     seL4_SetMR(0, SOS_SYS_TIME_STAMP); 
@@ -190,7 +210,9 @@ int64_t sos_sys_time_stamp(void)
     return seL4_GetMR(0);
 }
 
-long sos_sys_brk(uintptr_t newbrk) {
+long 
+sos_sys_brk(uintptr_t newbrk) 
+{
     seL4_MessageInfo_t tag = seL4_MessageInfo_new(0, 0, 0, 2);
 
     seL4_SetMR(0, SOS_SYS_BRK);

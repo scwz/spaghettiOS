@@ -16,6 +16,9 @@
 #include "../vfs/vnode.h"
 #include "../picoro/picoro.h"
 
+#define SET_PID_BADGE(pid) (TTY_EP_BADGE | (pid << 20))
+#define GET_PID_BADGE(badge) (badge >> 20)
+
 #define TTY_NAME             "sosh"
 #define TTY_PRIORITY         (0)
 #define TTY_EP_BADGE         (101)

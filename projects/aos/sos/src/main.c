@@ -62,6 +62,8 @@
 #define IRQ_BADGE_NETWORK_TICK BIT(1)
 #define IRQ_BADGE_TIMER        BIT(2)
 
+#define NUM_SYSCALLS 14
+
 /* The linker will link this symbol to the start address  *
  * of an archive of attached applications.                */
 extern char __eh_frame_start[];
@@ -89,7 +91,6 @@ static int (*syscall_table[])(struct proc *curproc) = {
     syscall_proc_wait
 };
 
-//void handle_syscall(UNUSED seL4_Word badge, UNUSED int num_args)
 void handle_syscall(pid_t pid)
 {
 
@@ -111,7 +112,7 @@ void handle_syscall(pid_t pid)
 
     struct proc *p = proc_get(pid);
 
-    if (syscall_number > 0 && syscall_number < 15) {
+    if (ISINRANGE(1, syscall_number, NUM_SYSCALLS)) {
         int nwords = syscall_table[syscall_number](p);
         seL4_MessageInfo_t reply_msg = seL4_MessageInfo_new(0, 0, 0, nwords);
         seL4_Send(reply, reply_msg);
@@ -123,7 +124,8 @@ void handle_syscall(pid_t pid)
     cspace_free_slot(&cspace, reply);
 }
 
-NORETURN void syscall_loop(seL4_CPtr ep)
+NORETURN void 
+syscall_loop(seL4_CPtr ep)
 {
     while (1) {
         reap();
@@ -136,7 +138,7 @@ NORETURN void syscall_loop(seL4_CPtr ep)
          * see what the message is about */
         seL4_Word label = seL4_MessageInfo_get_label(message);
 
-        pid_t pid = badge >> 20;
+        pid_t pid = GET_PID_BADGE(badge);
         if (badge & IRQ_EP_BADGE) {
             /* It's a notification from our bound notification
              * object! */
@@ -154,21 +156,13 @@ NORETURN void syscall_loop(seL4_CPtr ep)
             }
         } else if (label == seL4_Fault_VMFault) {
             /* it's a vm fault */
-            
-            resume(coroutine((void *(*)(void *))vm_fault), (void *)(seL4_Word)pid);
+            resume(coroutine((void *(*)(void *))vm_fault), (void *)(seL4_Word) pid);
         } else if (label == seL4_Fault_NullFault) {
             /* It's not a fault or an interrupt, it must be an IPC
              * message from tty_test! */
-            resume(coroutine((void *(*)(void *))handle_syscall), (void *)(seL4_Word)pid);
+            resume(coroutine((void *(*)(void *))handle_syscall), (void *)(seL4_Word) pid);
         } else {
-#if 0
-            /* some kind of fault */
-            debug_print_fault(message, TTY_NAME);
-            /* dump registers too */
-            debug_dump_registers(curproc->tcb);
-#endif
-
-            ZF_LOGF("The SOS skeleton does not know how to handle faults!");
+            ZF_LOGF("SOS encountered an unknown fault!");
         }
     }
 }
@@ -177,7 +171,8 @@ NORETURN void syscall_loop(seL4_CPtr ep)
  * Note that these objects will never be freed, so we do not
  * track the allocated ut objects anywhere
  */
-static void sos_ipc_init(seL4_CPtr* ipc_ep, seL4_CPtr* ntfn)
+static void 
+sos_ipc_init(seL4_CPtr* ipc_ep, seL4_CPtr* ntfn)
 {
     /* Create an notification object for interrupts */
     ut_t *ut = alloc_retype(&cspace, ntfn, seL4_NotificationObject, seL4_NotificationBits);
@@ -192,7 +187,8 @@ static void sos_ipc_init(seL4_CPtr* ipc_ep, seL4_CPtr* ntfn)
     ZF_LOGF_IF(!ut, "No memory for endpoint");
 }
 
-static inline seL4_CPtr badge_irq_ntfn(seL4_CPtr ntfn, seL4_Word badge)
+static inline seL4_CPtr 
+badge_irq_ntfn(seL4_CPtr ntfn, seL4_Word badge)
 {
     /* allocate a slot */
     seL4_CPtr badged_cap = cspace_alloc_slot(&cspace);
@@ -207,13 +203,15 @@ static inline seL4_CPtr badge_irq_ntfn(seL4_CPtr ntfn, seL4_Word badge)
 }
 
 /* called by crt */
-seL4_CPtr get_seL4_CapInitThreadTCB(void)
+seL4_CPtr 
+get_seL4_CapInitThreadTCB(void)
 {
     return seL4_CapInitThreadTCB;
 }
 
-/* tell muslc about our "syscalls", which will bve called by muslc on invocations to the c library */
-void init_muslc(void)
+/* tell muslc about our "syscalls", which will be called by muslc on invocations to the c library */
+void 
+init_muslc(void)
 {
     muslcsys_install_syscall(__NR_set_tid_address, sys_set_tid_address);
     muslcsys_install_syscall(__NR_writev, sys_writev);
@@ -250,8 +248,8 @@ void init_muslc(void)
     muslcsys_install_syscall(__NR_madvise, sys_madvise);
 }
 
-
-NORETURN void *main_continued(UNUSED void *arg)
+NORETURN void *
+main_continued(UNUSED void *arg)
 {
     /* Initialise other system compenents here */
     seL4_CPtr ipc_ep, ntfn;
