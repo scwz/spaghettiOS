@@ -27,7 +27,7 @@ struct vnode *pf_vnode;
 static int 
 pagefile_open()
 {
-    return vfs_open("pagefile", FM_READ | FM_WRITE, &pf_vnode, KERNEL_PROC);
+    return vfs_open("pagefile", O_RDWR, &pf_vnode, KERNEL_PROC);
 }
 
 static size_t 

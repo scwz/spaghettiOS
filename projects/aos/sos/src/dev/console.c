@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <sos.h>
 #include <serial/serial.h>
+#include <fcntl.h>
 
 #include "console.h"
 #include "../ringbuffer.h"
@@ -43,7 +44,7 @@ console_open(struct vnode *vn,int flags, pid_t pid)
     struct device *d = vn->vn_data;
     struct console *c = d->data;
     printf("flags %x, c->reader = %d\n", flags, c->reader);
-    if (flags & FM_READ) {
+    if (flags & O_ACCMODE == O_RDONLY) {
         if (c->reader != NULL) {
             return -1;
         }

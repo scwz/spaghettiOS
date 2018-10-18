@@ -151,7 +151,7 @@ nfs_lookup_cb(int status, struct nfs_context *nfs, void *data, void *private_dat
 	struct vnode *result = NULL;
 	while ((nfsdirent = nfs_readdir(nfs, nfsdir)) != NULL) {
 		if (!strcmp(nfsdirent->name, d->path)) {
-			VOP_CREAT(d->vn, d->path, FM_READ | FM_WRITE, FM_READ | FM_WRITE, &result, 0); //stub pid for now
+			VOP_CREAT(d->vn, d->path, O_RDWR, O_RDWR, &result, 0); //stub pid for now
 			d->vn = result;
 			found = true;
 			break;
@@ -396,9 +396,9 @@ vnfs_lookup(struct vnode *dir, char *pathname, struct vnode **result, bool creat
 	
 	if (ret && create) {
 		struct vnode * new;
-		VOP_CREAT(d->vn, d->path, FM_READ | FM_WRITE, FM_READ | FM_WRITE, &new, 0); // stub pid
+		VOP_CREAT(d->vn, d->path, O_RDWR, O_RDWR, &new, 0); // stub pid
 		d->vn = new;
-		int flags= O_RDWR | O_CREAT;
+		int flags = O_RDWR | O_CREAT;
 		int mode = (FM_READ | FM_WRITE) << 6 | (FM_READ | FM_WRITE) << 3 | (FM_READ | FM_WRITE);
 		if (nfs_create_async(nfs, d->path, flags, mode, nfs_create_cb, d)) {
 			VOP_RECLAIM(new, 0); //safe, pid not used in files

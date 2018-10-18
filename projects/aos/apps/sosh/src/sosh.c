@@ -82,8 +82,8 @@ static int cat(int argc, char **argv)
 
     printf("<%s>\n", argv[1]);
 
-    fd = open(argv[1], FM_READ);
-    stdout_fd = open("console", FM_WRITE);
+    fd = open(argv[1], O_RDONLY);
+    stdout_fd = open("console", O_WRONLY);
 
     assert(fd >= 0);
 
@@ -117,8 +117,8 @@ static int cp(int argc, char **argv)
     file1 = argv[1];
     file2 = argv[2];
 
-    fd = open(file1, FM_READ);
-    fd_out = open(file2, FM_WRITE);
+    fd = open(file1, O_RDONLY);
+    fd_out = open(file2, O_WRONLY);
 
     assert(fd >= 0);
 
@@ -197,9 +197,9 @@ static int exec(int argc, char **argv)
     }
 
     if (bg == 0 && pid > 0) {
-        in = open("console", FM_READ | FM_WRITE);
+        in = open("console", O_RDWR);
         while(in < 0){
-            in = open("console", FM_READ | FM_WRITE);
+            in = open("console", O_RDWR);
         }
         assert(in >= 0);
     }
@@ -397,7 +397,7 @@ int main(void)
     int i, r, done, found, new, argc;
     char *bp, *p;
 
-    in = open("console", FM_READ | FM_WRITE);
+    in = open("console", O_RDONLY);
     assert(in >= 0);
 
     bp = buf;

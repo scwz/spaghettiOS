@@ -12,6 +12,7 @@
 #include <utils/util.h>
 #include <stdbool.h>
 #include <sel4/sel4.h>
+#include <fcntl.h>
 #include <elf/elf.h>
 #include <string.h>
 #include <assert.h>
@@ -252,7 +253,7 @@ elf_load_fs(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr load
         ZF_LOGE("File is not executable!");
         return -1;
     }
-    VOP_EACHOPEN(vn, FM_READ | FM_EXEC, KERNEL_PROC);
+    VOP_EACHOPEN(vn, O_RDONLY, KERNEL_PROC);
     struct proc *curproc = proc_get(pid);
     assert(vn);
     

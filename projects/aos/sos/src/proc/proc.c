@@ -2,6 +2,7 @@
 #include <clock/clock.h>
 #include <time.h>
 #include <string.h>
+#include <fcntl.h>
 
 #include <aos/debug.h>
 
@@ -409,12 +410,12 @@ proc_create(char *app_name)
 
     // stdout
     struct vnode *res;
-    vfs_open("console", FM_WRITE, &res, new->pid);
-    fdt_placeat(new->fdt, res, FM_WRITE, STDOUT_FILENO);
+    vfs_open("console", O_WRONLY, &res, new->pid);
+    fdt_placeat(new->fdt, res, O_WRONLY, STDOUT_FILENO);
 
     // stderr
-    vfs_open("console", FM_WRITE, &res, new->pid);
-    fdt_placeat(new->fdt, res, FM_WRITE, STDERR_FILENO);
+    vfs_open("console", O_WRONLY, &res, new->pid);
+    fdt_placeat(new->fdt, res, O_WRONLY, STDERR_FILENO);
 
     return new;
 }
@@ -425,9 +426,9 @@ proc_wait_wakeup(pid_t pid)
     struct proc_wait_node* curr = procs[pid]->wait_list;
     struct proc_wait_node* tmp;
 
-    while(curr != NULL){
+    while (curr != NULL) {
         struct proc *wake_proc = proc_get(curr->pid_to_wake);
-        if(wake_proc && wake_proc->state == WAITING){
+        if (wake_proc && wake_proc->state == WAITING) {
             printf("owner: %d, wake: %d\n", curr->owner, curr->pid_to_wake);
             resume(wake_proc->wake_co, curr);
         }

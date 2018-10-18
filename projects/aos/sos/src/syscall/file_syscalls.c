@@ -1,6 +1,7 @@
 
 #include <sel4/sel4.h>
 #include <stdint.h>
+#include <fcntl.h>
 
 #include "../uio.h"
 #include "../vfs/vfs.h"
@@ -21,17 +22,18 @@ syscall_readwrite(struct proc *curproc, int how)
         seL4_SetMR(0, 0);
         return 1;
     }
-    if (!(of->flags & how)) {
+    if ((how == O_WRONLY && of->flags & O_ACCMODE == O_RDONLY ||
+            how == O_RDONLY && of->flags & O_ACCMODE == O_WRONLY)) {
         seL4_SetMR(0, 0);
         return 1;
     }
     
     struct uio *u = malloc(sizeof(struct uio));
-    if (how == FM_WRITE) {
+    if (how == O_WRONLY) {
         uio_init(u, UIO_WRITE, nbyte, of->offset, curproc->pid);
         bytes_processed = VOP_WRITE(of->vn, u);
     }
-    else if (how == FM_READ) { 
+    else if (how == O_RDONLY) { 
         uio_init(u, UIO_READ, nbyte, of->offset, curproc->pid);
         bytes_processed = VOP_READ(of->vn, u);
     }
@@ -49,13 +51,13 @@ syscall_readwrite(struct proc *curproc, int how)
 int 
 syscall_write(struct proc *curproc) 
 {
-    return syscall_readwrite(curproc, FM_WRITE);
+    return syscall_readwrite(curproc, O_WRONLY);
 }
 
 int 
 syscall_read(struct proc *curproc) 
 {
-    return syscall_readwrite(curproc, FM_READ);
+    return syscall_readwrite(curproc, O_RDONLY);
 }
 
 int
