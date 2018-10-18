@@ -35,7 +35,7 @@ seL4_Word frame_alloc_important(seL4_Word *vaddr);
 
 seL4_Word frame_alloc(seL4_Word *vaddr);
 
-struct frame_table_entry * get_frame(seL4_Word page_num);
+struct frame_table_entry *get_frame(seL4_Word page_num);
 
 void frame_free(seL4_Word page);
 

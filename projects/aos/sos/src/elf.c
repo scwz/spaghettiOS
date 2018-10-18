@@ -16,6 +16,7 @@
 #include <string.h>
 #include <assert.h>
 #include <cspace/cspace.h>
+#include <sos.h>
 
 #include "vm/vmem_layout.h"
 #include "ut/ut.h"
@@ -27,12 +28,13 @@
 
 #include "vfs/vfs.h"
 #include "vfs/vnode.h"
-#include <sos.h>
 #include "vm/shared_buf.h"
+
 /*
  * Convert ELF permissions into seL4 permissions.
  */
-static inline seL4_CapRights_t get_sel4_rights_from_elf(unsigned long permissions)
+static inline 
+seL4_CapRights_t get_sel4_rights_from_elf(unsigned long permissions)
 {
     bool canRead = permissions & PF_R || permissions & PF_X;
     bool canWrite = permissions & PF_W;
@@ -44,11 +46,13 @@ static inline seL4_CapRights_t get_sel4_rights_from_elf(unsigned long permission
     return seL4_CapRights_new(false, canRead, canWrite);
 }
 
-static int perm_from_elf(unsigned long permissions){
+static int
+perm_from_elf(unsigned long permissions)
+{
     int p = 0;
-    if(PF_X & permissions) p |= EXEC;
-    if(PF_R & permissions) p |= READ;
-    if(PF_W & permissions) p |= WRITE;
+    if (PF_X & permissions) p |= EXEC;
+    if (PF_R & permissions) p |= READ;
+    if (PF_W & permissions) p |= WRITE;
     return p;
 }
 
@@ -56,16 +60,6 @@ static uintptr_t vsyscall_table;
 static uint64_t entry_point;
 /*
  * Load an elf segment into the given vspace.
- *
- * TODO: The current implementation maps the frames into the loader vspace AND the target vspace
- *       and leaves them there. Additionally, if the current implementation fails, it does not
- *       clean up after itself.
- *
- *       This is insufficient, as you will run out of resouces quickly, and will be completely fixed
- *       throughout the duration of the project, as different milestones are completed.
- *
- *       Be *very* careful when editing this code. Most students will experience at least one elf-loading
- *       bug.
  *
  * The content to load is either zeros or the content of the ELF
  * file itself, or both.
@@ -88,7 +82,8 @@ static uint64_t entry_point;
  * @return
  *
  */
-static int load_segment_into_vspace(pid_t pid, cspace_t *cspace, seL4_CPtr loader, seL4_CPtr loadee,
+static int 
+load_segment_into_vspace(pid_t pid, cspace_t *cspace, seL4_CPtr loader, seL4_CPtr loadee,
                                     char *src, size_t segment_size,
                                     size_t file_size, uintptr_t dst, seL4_CapRights_t permissions, seL4_Word flags)
 {
@@ -110,13 +105,13 @@ static int load_segment_into_vspace(pid_t pid, cspace_t *cspace, seL4_CPtr loade
         struct frame_table_entry* loadee_frame_info = get_frame(loadee_page);
         
         seL4_CPtr loadee_slot = cspace_alloc_slot(cspace);
-        if(loadee_slot == seL4_CapNull){
+        if (loadee_slot == seL4_CapNull) {
             ZF_LOGE("failed to alloc slot");
             return -1;
         }
         
         err = cspace_copy(cspace, loadee_slot, cspace, loadee_frame_info->cap, seL4_AllRights);
-        if(err){
+        if (err) {
             ZF_LOGE("failed to copy frame");
             cspace_free_slot(cspace, loadee_slot);
             return err;
@@ -130,16 +125,17 @@ static int load_segment_into_vspace(pid_t pid, cspace_t *cspace, seL4_CPtr loade
         loadee_frame_info->user_vaddr = loadee_vaddr;
         loadee_frame_info->pid = pid;
 
-        if(err && err != seL4_DeleteFirst){
+        if (err && err != seL4_DeleteFirst) {
             ZF_LOGE("failed to map frame");
             cspace_delete(cspace, loadee_slot);
             cspace_free_slot(cspace, loadee_slot);
             frame_free(loadee_page);
             return err;
-        } else if (err == seL4_DeleteFirst){
+        } 
+        else if (err == seL4_DeleteFirst) {
             struct proc *p = proc_get(pid);
-            struct region * r = as_seek_region(p->as, loadee_vaddr);
-            if(r->accmode != perm_from_elf(flags)){
+            struct region *r = as_seek_region(p->as, loadee_vaddr);
+            if (r->accmode != perm_from_elf(flags)) {
                 //do not map if different permissions
                 ZF_LOGE("failed to map frame");
                 cspace_delete(cspace, loadee_slot);
@@ -150,13 +146,13 @@ static int load_segment_into_vspace(pid_t pid, cspace_t *cspace, seL4_CPtr loade
 
         //loader
         seL4_CPtr loader_slot = cspace_alloc_slot(cspace);
-        if(loader_slot == seL4_CapNull){
+        if (loader_slot == seL4_CapNull) {
             ZF_LOGE("failed to alloc slot");
             return -1;
         }
 
         err = cspace_copy(cspace, loader_slot, cspace, loadee_slot, seL4_AllRights);
-        if(err){
+        if (err) {
             ZF_LOGE("failed to copy frame");
             cspace_delete(cspace, loadee_slot);
             cspace_free_slot(cspace, loadee_slot);
@@ -166,7 +162,7 @@ static int load_segment_into_vspace(pid_t pid, cspace_t *cspace, seL4_CPtr loade
         err = sos_map_frame(cspace, curproc->as->pt, loader_slot, loader, 
                         loader_vaddr, seL4_AllRights, 
                         seL4_ARM_Default_VMAttributes, 0 , false);
-        if(err){
+        if (err) {
             ZF_LOGE("failed to map frame");
             cspace_delete(cspace, loadee_slot);
             cspace_delete(cspace, loader_slot);
@@ -197,7 +193,8 @@ static int load_segment_into_vspace(pid_t pid, cspace_t *cspace, seL4_CPtr loade
     return 0;
 }
 
-int elf_load(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr loadee_vspace, char *elf_file)
+int
+elf_load(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr loadee_vspace, char *elf_file)
 {
     struct proc *curproc = proc_get(pid);
     /* Ensure that the file is an elf file. */
@@ -238,12 +235,13 @@ int elf_load(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr loa
     return 0;
 }
 
-static int load_segment_from_fs(pid_t pid, struct vnode * vn, cspace_t * cspace, seL4_CPtr loader, seL4_CPtr loadee, 
-size_t offset, size_t segment_size, size_t file_size,  uintptr_t dst, seL4_CapRights_t permissions, seL4_Word flags)
+static int 
+load_segment_from_fs(pid_t pid, struct vnode *vn, cspace_t *cspace, seL4_CPtr loader, seL4_CPtr loadee, 
+                    size_t offset, size_t segment_size, size_t file_size,  uintptr_t dst, seL4_CapRights_t permissions, seL4_Word flags)
 {
     struct proc *curproc = proc_get(pid);
     assert(file_size <= segment_size);
-    struct uio * u = malloc(sizeof(struct uio));
+    struct uio *u = malloc(sizeof(struct uio));
     assert(u);
     uio_init(u, UIO_READ, PAGE_SIZE_4K, offset, 0);
     /* We work a page at a time in the destination vspace. */
@@ -256,17 +254,17 @@ size_t offset, size_t segment_size, size_t file_size,  uintptr_t dst, seL4_CapRi
         //loadee
         seL4_Word temp_vaddr;
         seL4_Word loadee_page = frame_alloc(&temp_vaddr);
-        struct frame_table_entry* loadee_frame_info = get_frame(loadee_page);
+        struct frame_table_entry *loadee_frame_info = get_frame(loadee_page);
         
         seL4_CPtr loadee_slot = cspace_alloc_slot(cspace);
-        if(loadee_slot == seL4_CapNull){
+        if (loadee_slot == seL4_CapNull) {
             ZF_LOGE("failed to alloc slot");
             free(u);
             return -1;
         }
         
         err = cspace_copy(cspace, loadee_slot, cspace, loadee_frame_info->cap, seL4_AllRights);
-        if(err){
+        if (err) {
             ZF_LOGE("failed to copy frame");
             cspace_free_slot(cspace, loadee_slot);
             free(u);
@@ -281,17 +279,18 @@ size_t offset, size_t segment_size, size_t file_size,  uintptr_t dst, seL4_CapRi
         loadee_frame_info->user_vaddr = loadee_vaddr;
         loadee_frame_info->pid = pid;
 
-        if(err && err != seL4_DeleteFirst){
+        if (err && err != seL4_DeleteFirst) {
             ZF_LOGE("failed to map frame");
             cspace_delete(cspace, loadee_slot);
             cspace_free_slot(cspace, loadee_slot);
             frame_free(loadee_page);
             free(u);
             return err;
-        } else if (err == seL4_DeleteFirst){
+        } 
+        else if (err == seL4_DeleteFirst) {
             struct proc *p = proc_get(pid);
-            struct region * r = as_seek_region(p->as, loadee_vaddr);
-            if(r->accmode != perm_from_elf(flags)){
+            struct region *r = as_seek_region(p->as, loadee_vaddr);
+            if (r->accmode != perm_from_elf(flags)) {
                 //do not map if different permissions
                 ZF_LOGE("failed to map frame");
                 cspace_delete(cspace, loadee_slot);
@@ -303,14 +302,14 @@ size_t offset, size_t segment_size, size_t file_size,  uintptr_t dst, seL4_CapRi
 
         //loader
         seL4_CPtr loader_slot = cspace_alloc_slot(cspace);
-        if(loader_slot == seL4_CapNull){
+        if (loader_slot == seL4_CapNull) {
             ZF_LOGE("failed to alloc slot");
             free(u);
             return -1;
         }
 
         err = cspace_copy(cspace, loader_slot, cspace, loadee_slot, seL4_AllRights);
-        if(err){
+        if (err) {
             ZF_LOGE("failed to copy frame");
             cspace_delete(cspace, loadee_slot);
             cspace_free_slot(cspace, loadee_slot);
@@ -321,7 +320,7 @@ size_t offset, size_t segment_size, size_t file_size,  uintptr_t dst, seL4_CapRi
         err = sos_map_frame(cspace, curproc->as->pt, loader_slot, loader, 
                         loader_vaddr, seL4_AllRights, 
                         seL4_ARM_Default_VMAttributes, 0 , false);
-        if(err){
+        if (err) {
             ZF_LOGE("failed to map frame");
             cspace_delete(cspace, loadee_slot);
             cspace_delete(cspace, loader_slot);
@@ -362,18 +361,19 @@ size_t offset, size_t segment_size, size_t file_size,  uintptr_t dst, seL4_CapRi
     return 0;
 }
 
-int elf_load_fs(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr loadee_vspace, char *path){
-    struct vnode * vn;
-    if(vfs_lookup(path, &vn, 0, KERNEL_PROC)){
+int 
+elf_load_fs(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr loadee_vspace, char *path)
+{
+    struct vnode *vn;
+    if (vfs_lookup(path, &vn, 0, KERNEL_PROC)) {
         return -1;
     }
-    printf("lookup completed\n");
     sos_stat_t buf;
-    if(VOP_STAT(vn, &buf, KERNEL_PROC)){
+    if (VOP_STAT(vn, &buf, KERNEL_PROC)) {
         printf("file doesn't exist\n");
         return -1;
     }
-    if(!(buf.st_fmode & FM_EXEC)){
+    if (!(buf.st_fmode & FM_EXEC)) {
         printf("file is not executable\n");
         return -1;
     }
@@ -381,7 +381,7 @@ int elf_load_fs(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr 
     struct proc *curproc = proc_get(pid);
     assert(vn);
     
-    struct uio * u = malloc(sizeof(struct uio));
+    struct uio *u = malloc(sizeof(struct uio));
     uio_init(u, UIO_READ, PAGE_SIZE_4K, 0, KERNEL_PROC);
 
     //first read
@@ -427,10 +427,14 @@ int elf_load_fs(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr 
     return 0;
 }
 
-uintptr_t get_last_vsyscall_table(void){
+uintptr_t
+get_last_vsyscall_table(void)
+{
     return vsyscall_table;
 }
 
-uint64_t get_last_entry_point(void){
+uint64_t
+get_last_entry_point(void)
+{
     return entry_point;
 }
