@@ -25,10 +25,8 @@ find_device(char *name)
 int 
 vfs_lookup(char *path, struct vnode **retval, bool create, pid_t pid) 
 {
-    printf("LOOKUP %s\n", path);
     struct vnode *startvn;
     int result;
-    printf("stat path %s\n", path);
     startvn = find_device(path);
     if (startvn!= NULL) {
         *retval = startvn;
@@ -44,7 +42,6 @@ vfs_lookup(char *path, struct vnode **retval, bool create, pid_t pid)
         *retval = startvn;
         result = 0;
     }
-    printf("vn : %lx \n", *retval);
     return result;
 }
 

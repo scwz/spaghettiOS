@@ -34,7 +34,7 @@ nfs_dirent_cb(int status, struct nfs_context *nfs, void *data, void *private_dat
 		printf("opendir failed with \"%s\"\n", (char *)data);
 		exit(10);
 	}
-	printf("opendir successful\n");
+	//printf("opendir successful\n");
 	size_t i = d->i;
 	while ((nfsdirent = nfs_readdir(nfs, nfsdir)) != NULL && i <= d->u->len) {
 		//printf("i %d, Inode:%d Name:%s\n", i,   (int)nfsdirent->inode, nfsdirent->name);
@@ -529,7 +529,6 @@ nfs_bootstrap()
 int 
 nfs_get_statbuf(struct vnode *dir, char *path, sos_stat_t *statbuf, pid_t pid)
 {
-	printf("statbuf\n");
 	struct proc *curproc = proc_get(pid);
 	if (curproc->state == ZOMBIE) {
 		return 0;

@@ -145,7 +145,6 @@ syscall_stat(struct proc *curproc)
         seL4_SetMR(0, -1);
         return 1;
     }
-    printf("doest this run\n");
     if (nfs_get_statbuf(res, path, &buf, curproc->pid)){
         seL4_SetMR(0, -1);
         return 1;
