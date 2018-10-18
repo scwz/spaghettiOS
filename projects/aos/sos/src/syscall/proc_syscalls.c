@@ -3,6 +3,7 @@
 #include "proc_syscalls.h"
 
 #include "../proc/proc.h"
+#include "../vm/pagetable.h"
 #include "../vm/shared_buf.h"
 
 int 
@@ -52,7 +53,7 @@ syscall_proc_status(struct proc *curproc)
         if ((curr = proc_get(id)) != NULL) {
             processes[nactive].pid = id;
             processes[nactive].stime = curr->stime;
-            processes[nactive].size = curr->size;
+            processes[nactive].size = get_proc_size(curr);
             strcpy(processes[nactive].command, curr->name);
             nactive++;
         }

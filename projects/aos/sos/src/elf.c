@@ -219,7 +219,7 @@ elf_load(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr loadee_
 
         /* Copy it across into the vspace. */
         ZF_LOGD(" * Loading segment %p-->%p\n", (void *) vaddr, (void *)(vaddr + segment_size));
-        printf(" * Loading segment %p-->%p, f_size %d\n", (void *) vaddr, (void *)(vaddr + segment_size), file_size);
+        //printf(" * Loading segment %p-->%p, f_size %d\n", (void *) vaddr, (void *)(vaddr + segment_size), file_size);
         int err = load_segment_into_vspace(pid, cspace, loader_vspace, loadee_vspace,
                                            source_addr, segment_size, file_size, vaddr,
                                            get_sel4_rights_from_elf(flags), flags);
@@ -240,15 +240,16 @@ elf_load_fs(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr load
 {
     struct vnode *vn;
     if (vfs_lookup(path, &vn, 0, KERNEL_PROC)) {
+        ZF_LOGE("File not found!");
         return -1;
     }
     sos_stat_t buf;
     if (VOP_STAT(vn, &buf, KERNEL_PROC)) {
-        printf("file doesn't exist\n");
+        ZF_LOGE("File does not exist!");
         return -1;
     }
     if (!(buf.st_fmode & FM_EXEC)) {
-        printf("file is not executable\n");
+        ZF_LOGE("File is not executable!");
         return -1;
     }
     VOP_EACHOPEN(vn, FM_READ | FM_EXEC, KERNEL_PROC);
@@ -262,8 +263,7 @@ elf_load_fs(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr load
     //printf("size %ld ptr: %p\n", buf.st_size, elf_file);
     assert(elf_file != NULL);
     size_t read_offset = 0;
-    int i = 0;
-    while(read_offset < (buf.st_size)){
+    while (read_offset < (buf.st_size)) {
         //printf("i: %d, size - offset %ld, read_offset %ld\n", i++, buf.st_size - read_offset, read_offset);
         u->offset = read_offset;
         u->len = MIN(PAGE_SIZE_4K, buf.st_size - read_offset);
@@ -276,7 +276,6 @@ elf_load_fs(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr load
     free(u);
     int num_headers = elf_getNumProgramHeaders(elf_file);
     for (int i = 0; i < num_headers; i++) {
-
         /* Skip non-loadable segments (such as debugging data). */
         if (elf_getProgramHeaderType(elf_file, i) != PT_LOAD) {
             continue;
@@ -290,7 +289,7 @@ elf_load_fs(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr load
 
         /* Copy it across into the vspace. */
         ZF_LOGD(" * Loading segment %p-->%p\n", (void *) vaddr, (void *)(vaddr + segment_size));
-        printf(" * Loading segment %p-->%p, f_size %d\n", (void *) vaddr, (void *)(vaddr + segment_size), file_size);
+        //printf(" * Loading segment %p-->%p, f_size %d\n", (void *) vaddr, (void *)(vaddr + segment_size), file_size);
         int err = load_segment_into_vspace(pid, cspace, loader_vspace, loadee_vspace,
                                            source_addr, segment_size, file_size, vaddr,
                                            get_sel4_rights_from_elf(flags), flags);

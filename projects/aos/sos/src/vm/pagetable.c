@@ -11,7 +11,7 @@
 
 static cspace_t *cspace;
 
-static struct pt_index {
+struct pt_index {
     uint16_t offset;
     uint16_t l4;
     uint16_t l3;
@@ -216,6 +216,32 @@ page_table_destroy(struct page_table * page_table, cspace_t * cspace)
     }
     frame_free(vaddr_to_page_num((seL4_Word) pgd));
     frame_free(vaddr_to_page_num((seL4_Word) page_table));
+}
+
+int 
+get_proc_size(struct proc *proc) 
+{
+    int size = 0;
+    struct pgd *pgd = proc->as->pt->pgd;
+    for (unsigned int i = 0; i < PAGE_INDEX_SIZE; i++) {
+        if (pgd->pud[i] != NULL) {
+            for (unsigned int j = 0; j < PAGE_INDEX_SIZE; j++) {
+                if (pgd->pud[i]->pd[j] != NULL) {
+                    for (unsigned int k = 0; k < PAGE_INDEX_SIZE; k++) {
+                        if (pgd->pud[i]->pd[j]->pt[k] != NULL) {
+                            for (unsigned int l = 0; l < PAGE_INDEX_SIZE; l++) {
+                                seL4_Word *pte = &(pgd->pud[i]->pd[j]->pt[k]->page[l]);
+                                if (pte != NULL) {
+                                    size++;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return size;
 }
 
 void 

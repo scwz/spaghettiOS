@@ -15,7 +15,7 @@
 #include "../picoro/picoro.h"
 #include "../vfs/vfs.h"
 
-static char const * init_app_name = "sosh";
+static const char *init_app_name = "sosh";
 
 struct proc *procs[MAX_PROCESSES];
 
@@ -26,6 +26,7 @@ static pid_t curr_pid = 0;
 static struct proc_reap_node * reap_list = NULL;
 
 static int proc_destroy(pid_t pid);
+
 static int 
 stack_write(seL4_Word *mapped_stack, int index, uintptr_t val)
 {
@@ -159,7 +160,6 @@ kernel_proc(void)
 {
     struct proc *kernel = malloc(sizeof(struct proc));
     kernel->stime = get_time() / NS_IN_MS; 
-    kernel->size = 0;
     pid_t pid = 0;
 
     strcpy(kernel->name, "spaghettiOS");
@@ -257,9 +257,9 @@ proc_start(char *app_name)
     NAME_THREAD(new->tcb, app_name);
 
     /* load the elf image*/
-    if(new->pid == INIT_PROC){
+    if (new->pid == INIT_PROC) {
         unsigned long elf_size;
-        char* elf_base = cpio_get_file(_cpio_archive, app_name, &elf_size);
+        char *elf_base = cpio_get_file(_cpio_archive, app_name, &elf_size);
         if (elf_base == NULL) {
             ZF_LOGE("Unable to locate cpio header for %s", app_name);
             new->state = ZOMBIE;
@@ -273,7 +273,8 @@ proc_start(char *app_name)
             proc_destroy(new->pid);
             return -1;
         }
-    } else {
+    } 
+    else {
         err = elf_load_fs(new->pid, cspace, seL4_CapInitThreadVSpace, new->vspace, app_name);
         if (err) {
             ZF_LOGE("Failed to load elf image");
@@ -287,20 +288,20 @@ proc_start(char *app_name)
     seL4_Word sp = init_process_stack(new, seL4_CapInitThreadVSpace);
     
     // setup/create region for stack
-    if(as_define_stack(new->as)) {
+    if (as_define_stack(new->as)) {
         ZF_LOGE("Failed to define stack");
         new->state = ZOMBIE;
         proc_destroy(new->pid);
         return -1;
     }
-    if(as_define_heap(new->as)) {
+    if (as_define_heap(new->as)) {
         ZF_LOGE("Failed to define heap");
         new->state = ZOMBIE;
         proc_destroy(new->pid);
         return -1;
     }
     //define buffer region
-    if(as_define_shared_buffer(new->as)) {
+    if (as_define_shared_buffer(new->as)) {
         ZF_LOGE("Failed to define shared_buffer");
         new->state = ZOMBIE;
         proc_destroy(new->pid);
@@ -319,7 +320,7 @@ proc_start(char *app_name)
         return -1;
     }
     // setup region for ipc buffer
-    if(as_define_region(new->as, PROCESS_IPC_BUFFER, PAGE_SIZE_4K, READ | WRITE)) {
+    if (as_define_region(new->as, PROCESS_IPC_BUFFER, PAGE_SIZE_4K, READ | WRITE)) {
         ZF_LOGE("Failed to define IPC buffer");
         new->state = ZOMBIE;
         proc_destroy(new->pid);
@@ -334,7 +335,7 @@ proc_start(char *app_name)
     new->state = RUNNING;
     printf("Starting %s at %p\n", app_name, (void *) context.pc);
     err = seL4_TCB_WriteRegisters(new->tcb, 1, 0, 2, &context);
-    if(err){
+    if (err) {
         ZF_LOGE("Failed to write registers");
         new->state = ZOMBIE;
         proc_destroy(new->pid);
@@ -348,7 +349,6 @@ proc_create(char *app_name)
 {
     struct proc *new = malloc(sizeof(struct proc));
     new->stime = get_time() / NS_IN_MS; 
-    new->size = 0;
     pid_t pid = find_next_pid();
 
     strcpy(new->name, app_name);
@@ -546,10 +546,10 @@ proc_destroy(pid_t pid)
     if (p->coro_count != 0) {
         return -1;
     }
-    if(p->shared_buf){
+    if (p->shared_buf) {
         sos_unmap_buf(pid);
     }
-    if(p->as->pt){
+    if (p->as->pt) {
         page_table_destroy(p->as->pt, cspace);
     }
     if (p->as) {

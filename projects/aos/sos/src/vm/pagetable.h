@@ -12,7 +12,9 @@
 #include <aos/sel4_zf_logif.h>
 #include <aos/debug.h>
 #include <utils/page.h>
+
 #include "../ut/ut.h"
+#include "../proc/proc.h"
 
 #define P_INVALID 1
 #define P_PAGEFILE 2
@@ -76,6 +78,8 @@ uint8_t page_get_bits(seL4_Word page_entry);
 int page_table_invalidate(struct page_table * page_table, seL4_Word vaddr);
 
 void page_table_destroy(struct page_table *page_table, cspace_t *cspace);
+
+int get_proc_size(struct proc *proc);
 
 seL4_Word page_entry_number(seL4_Word page);
 

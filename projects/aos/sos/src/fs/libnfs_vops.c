@@ -148,7 +148,7 @@ nfs_lookup_cb(int status, struct nfs_context *nfs, void *data, void *private_dat
 		exit(10);
 	}
 	bool found = false;
-	struct vnode * result = NULL;
+	struct vnode *result = NULL;
 	while ((nfsdirent = nfs_readdir(nfs, nfsdir)) != NULL) {
 		if (!strcmp(nfsdirent->name, d->path)) {
 			VOP_CREAT(d->vn, d->path, FM_READ | FM_WRITE, FM_READ | FM_WRITE, &result, 0); //stub pid for now
@@ -162,7 +162,6 @@ nfs_lookup_cb(int status, struct nfs_context *nfs, void *data, void *private_dat
 		d->ret = 0;
     }
 	resume(d->co, NULL);
-	
 }
 
 void 

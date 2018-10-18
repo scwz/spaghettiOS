@@ -21,8 +21,9 @@ get_buf_from_pid(pid_t pid)
 }
 
 static void * 
-zero_buf(pid_t pid){
-    char * buf = (char *) get_buf_from_pid(pid);
+zero_buf(pid_t pid)
+{
+    char *buf = (char *) get_buf_from_pid(pid);
     memset(buf, 0, SHARE_BUF_SIZE * PAGE_SIZE_4K);
 }
 
@@ -61,12 +62,13 @@ sos_map_buf(pid_t pid)
 }
 
 void 
-sos_unmap_buf(pid_t pid){
+sos_unmap_buf(pid_t pid)
+{
     struct proc *curproc = proc_get(pid);
     curproc->shared_buf = NULL;
-    for(size_t i = 0; i < SHARE_BUF_SIZE; i++){
-        seL4_Word page = vaddr_to_page_num((seL4_Word) (get_buf_from_pid(pid) + i*PAGE_SIZE_4K));
-        struct frame_table_entry * fte = get_frame(page);
+    for (size_t i = 0; i < SHARE_BUF_SIZE; i++) {
+        seL4_Word page = vaddr_to_page_num((seL4_Word) (get_buf_from_pid(pid) + i * PAGE_SIZE_4K));
+        struct frame_table_entry *fte = get_frame(page);
         fte->user_cap = seL4_ARM_Page_Unmap(fte->user_cap);
         cspace_delete(cs, fte->user_cap);
         cspace_free_slot(cs, fte->user_cap);

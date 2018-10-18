@@ -31,7 +31,7 @@
  */
 #define MORECORE_AREA_BYTE_SIZE 0x100000
 char morecore_area[MORECORE_AREA_BYTE_SIZE];
-cspace_t * cspace;
+cspace_t *cspace;
 
 /* Pointer to free space in the morecore area. */
 static uintptr_t morecore_base = (uintptr_t) &morecore_area;
@@ -82,18 +82,18 @@ long sys_mmap(va_list ap)
         return morecore_top;
     }
 #endif
-    if(ogaddr != 0){
+    if (ogaddr != 0) {
         ZF_LOGF("not implemented");
         return -1;
     }
     length += PAGE_SIZE_4K;
     seL4_Word addr = MMAP_BOT;
-    while(addr < MMAP_TOP){
+    while (addr < MMAP_TOP) {
         //printf("ADDR: %lx\n", addr);
-        struct region * reg = as_seek_region(kernel_proc->as, addr);
+        struct region *reg = as_seek_region(kernel_proc->as, addr);
         // if address is free try to define region
-        if(reg == NULL){
-            if(!as_define_region(kernel_proc->as, addr, length, READ | WRITE)){
+        if (reg == NULL) {
+            if (!as_define_region(kernel_proc->as, addr, length, READ | WRITE)) {
                 break;
             }
             //if it fails, its because theres something in the top half or in the middle, try add the length
@@ -101,15 +101,15 @@ long sys_mmap(va_list ap)
         }
         addr = PAGE_ALIGN_4K(reg->vtop) + PAGE_SIZE_4K;
     }
-    if(addr > MMAP_TOP || addr + length > MMAP_TOP) return -1;
+    if (addr > MMAP_TOP || addr + length > MMAP_TOP) return -1;
 
     struct region* reg = as_seek_region(kernel_proc->as, addr);
     printf("reg %lx, %lx\n", reg->vbase, reg->vtop);
-    for(size_t i = 0; i < BYTES_TO_4K_PAGES(length); i++){
+    for (size_t i = 0; i < BYTES_TO_4K_PAGES(length); i++) {
         seL4_Word vaddr;
         seL4_Word page = frame_alloc_important(&vaddr);
         //printf("alloc page: %ld\n", page);
-        struct frame_table_entry * fte = get_frame(page);
+        struct frame_table_entry *fte = get_frame(page);
         seL4_CPtr slot = cspace_alloc_slot(cspace);
         cspace_copy(cspace, slot, cspace, fte->cap, seL4_AllRights);
         sos_map_frame(cspace, kernel_proc->as->pt, slot, kernel_proc->vspace, 
@@ -119,27 +119,30 @@ long sys_mmap(va_list ap)
     return reg->vbase;
 }
 
-long sys_munmap(va_list ap){
+long 
+sys_munmap(va_list ap)
+{
     void* addr = va_arg(ap, void*);
     size_t length = va_arg(ap, size_t);
     printf("munmap: size %ld\n", length);
-    struct proc * kernel_proc = proc_get(0);
-    struct region* reg = as_seek_region(kernel_proc->as, addr);
+    struct proc *kernel_proc = proc_get(0);
+    struct region *reg = as_seek_region(kernel_proc->as, addr);
     PAGE_ALIGN_4K(reg->vtop);
     uint8_t bits;
     seL4_Word entry;
-    for(size_t i = 0; i < BYTES_TO_4K_PAGES(length); i++){
-        seL4_Word * pte = page_lookup(kernel_proc->as->pt, PAGE_ALIGN_4K(reg->vbase + i *PAGE_SIZE_4K));
+    for (size_t i = 0; i < BYTES_TO_4K_PAGES(length); i++) {
+        seL4_Word *pte = page_lookup(kernel_proc->as->pt, PAGE_ALIGN_4K(reg->vbase + i * PAGE_SIZE_4K));
         
-        if(!pte){ // lookup failed
+        if (!pte) { // lookup failed
             bits = P_INVALID;
-        } else {
+        } 
+        else {
             assert(pte);
             entry = page_entry_number(*pte);
             bits = page_get_bits(*pte);
         }
         //printf("Munmapping: %lx; pte %ld, bits %lx, entry %lx\n", reg->vbase + i * PAGE_SIZE_4K, *pte);
-        if(!bits){
+        if (!bits) {
             frame_free(entry);
         }
         else {
@@ -170,7 +173,7 @@ void mmap_tests(void ){
     COMPILER_MEMORY_FENCE();
     free(addr);
     printf("MALLOC TEST2: addr %p\n", addr);
-    void* addr2 = malloc(1146881);
+    void *addr2 = malloc(1146881);
     addr = malloc(1146881);
     printf("MALLOC TEST3: addr %p\n", addr);
     free(addr2);

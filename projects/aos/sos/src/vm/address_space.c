@@ -44,13 +44,13 @@ valid_new_region(struct addrspace *as, struct region *new_region)
             return false;
         }
         //new wraps around a region
-        if(new_region->vtop >= curr_region->vtop &&
-            new_region->vbase <= curr_region->vbase){
+        if (new_region->vtop >= curr_region->vtop &&
+            new_region->vbase <= curr_region->vbase) {
             return false;
         }
         //new is inside a region
-        if(new_region->vtop <= curr_region->vtop &&
-            new_region->vbase >= curr_region->vbase){
+        if (new_region->vtop <= curr_region->vtop &&
+            new_region->vbase >= curr_region->vbase) {
             return false;
         }
         curr_region = curr_region->next;
