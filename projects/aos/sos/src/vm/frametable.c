@@ -30,17 +30,23 @@ static cspace_t *cspace;
 
 static seL4_Word clock_curr;
 
-seL4_Word vaddr_to_page_num(seL4_Word vaddr){
+seL4_Word 
+vaddr_to_page_num(seL4_Word vaddr)
+{
     return ((vaddr - base_vaddr) / PAGE_SIZE_4K); 
 }
 
-seL4_Word page_num_to_vaddr(seL4_Word page){
-    return  page * PAGE_SIZE_4K + base_vaddr;
+seL4_Word 
+page_num_to_vaddr(seL4_Word page)
+{
+    return page * PAGE_SIZE_4K + base_vaddr;
 }
 
-static ut_t *alloc_retype_map(seL4_CPtr *cptr, uintptr_t *vaddr, uintptr_t *paddr) {
+static ut_t *
+alloc_retype_map(seL4_CPtr *cptr, uintptr_t *vaddr, uintptr_t *paddr) 
+{
     ut_t *ut = ut_alloc_4k_untyped(paddr);
-    if(ut == NULL){
+    if (ut == NULL) {
         *vaddr = (seL4_Word) NULL;
         ZF_LOGE("Out of memory");
         return NULL;
@@ -81,10 +87,11 @@ static ut_t *alloc_retype_map(seL4_CPtr *cptr, uintptr_t *vaddr, uintptr_t *padd
     return ut;
 }
 
-void frame_table_init(cspace_t *cs) {
+void 
+frame_table_init(cspace_t *cs) 
+{
     cspace = cs;
     frame_table_curr_size = 0;
-    //frame_table_size = 2500; // REMOVE THis AFTER PAGING IS DONE
     frame_table_size = 0.8 * (ut_size() / PAGE_SIZE_4K);
     frame_table_pages = BYTES_TO_4K_PAGES(frame_table_size * sizeof(struct frame_table_entry));
     seL4_Word frame_table_vaddr = SOS_FRAME_TABLE;
@@ -92,7 +99,7 @@ void frame_table_init(cspace_t *cs) {
     
     alloc_retype_map(&cap, &frame_table_vaddr, &top_paddr);
     frame_table = (struct frame_table_entry *) frame_table_vaddr;
-    for(size_t i = 1; i < frame_table_pages; i++){
+    for (size_t i = 1; i < frame_table_pages; i++) {
         frame_table_vaddr += PAGE_SIZE_4K;
         alloc_retype_map(&cap, &frame_table_vaddr, &top_paddr);
     }
@@ -102,7 +109,7 @@ void frame_table_init(cspace_t *cs) {
 
     //set up frame table initial values
     seL4_Word i;
-    for(i = 0; i < frame_table_size; i++){
+    for (i = 0; i < frame_table_size; i++) {
         frame_table[i].cap = seL4_CapNull;
         frame_table[i].important = false;
         frame_table[i].ref_bit = false;
@@ -125,34 +132,38 @@ void frame_table_init(cspace_t *cs) {
     clock_curr = 0;
 }
 
-struct frame_table_entry * get_frame(seL4_Word page_num){
-    if(page_num > frame_table_size){
+struct frame_table_entry * 
+get_frame(seL4_Word page_num)
+{
+    if (page_num > frame_table_size) {
         ZF_LOGE("Page does not exist");
         return seL4_Fault_NullFault;
     }
     return &frame_table[page_num];
 }
 
-seL4_Word frame_alloc_important(seL4_Word *vaddr){
+seL4_Word 
+frame_alloc_important(seL4_Word *vaddr)
+{
     uintptr_t paddr;
     seL4_CPtr cap;
     seL4_Word page = next_free_page;
     // if null that means all frames used, use clock
     assert(frame_table_curr_size <= frame_table_size);
 
-    if(frame_table_curr_size == frame_table_size){ 
+    if (frame_table_curr_size == frame_table_size) { 
         // go around the frametable
-        while(frame_table[clock_curr].ref_bit){
+        while (frame_table[clock_curr].ref_bit) {
             //printf("clock_curr: %ld\n", clock_curr);
-            if(!frame_table[clock_curr].important || frame_table[clock_curr].pid <= MAX_PROCESSES){
+            if (!frame_table[clock_curr].important || frame_table[clock_curr].pid <= MAX_PROCESSES) {
                 frame_table[clock_curr].ref_bit = false;
-                if(frame_table[clock_curr].user_cap != seL4_CapNull){
+                if (frame_table[clock_curr].user_cap != seL4_CapNull) {
                     seL4_ARM_Page_Unmap(frame_table[clock_curr].user_cap);
                 }
             }
             clock_curr = (clock_curr + 1) % frame_table_size;
         }
-        if(pageout(clock_curr)){
+        if (pageout(clock_curr)) {
             ZF_LOGE("PAGEOUT ERROR");
         }
         frame_free(clock_curr);
@@ -178,25 +189,27 @@ seL4_Word frame_alloc_important(seL4_Word *vaddr){
     return page;
 }
 
-seL4_Word frame_alloc(seL4_Word *vaddr) {
+seL4_Word 
+frame_alloc(seL4_Word *vaddr) 
+{
     uintptr_t paddr;
     seL4_CPtr cap;
     seL4_Word page = next_free_page;
     // if null that means all frames used, use clock
     assert(frame_table_curr_size <= frame_table_size);
-    if(frame_table_curr_size == frame_table_size){ 
+    if (frame_table_curr_size == frame_table_size) { 
         // go around the frametable
-        while(frame_table[clock_curr].ref_bit){
+        while (frame_table[clock_curr].ref_bit) {
             //printf("clock_curr: %ld\n", clock_curr);
-            if(!frame_table[clock_curr].important || frame_table[clock_curr].pid <= MAX_PROCESSES){
+            if (!frame_table[clock_curr].important || frame_table[clock_curr].pid <= MAX_PROCESSES) {
                 frame_table[clock_curr].ref_bit = 0;
-                if(frame_table[clock_curr].user_cap != seL4_CapNull){
+                if (frame_table[clock_curr].user_cap != seL4_CapNull) {
                     seL4_ARM_Page_Unmap(frame_table[clock_curr].user_cap);
                 }
             }
             clock_curr = (clock_curr + 1) % frame_table_size;
         }
-        if(pageout(clock_curr)){
+        if (pageout(clock_curr)) {
             ZF_LOGE("PAGEOUT ERROR");
         }
         frame_free(clock_curr);
@@ -223,17 +236,19 @@ seL4_Word frame_alloc(seL4_Word *vaddr) {
     return page;
 }
 
-void frame_free(seL4_Word page) {
-    if(page > frame_table_size){
+void 
+frame_free(seL4_Word page) 
+{
+    if (page > frame_table_size) {
         ZF_LOGE("Page does not exist");
         return;
     }
-    if(frame_table[page].cap == seL4_CapNull){
+    if (frame_table[page].cap == seL4_CapNull) {
         //printf("%ld\n", page);
     }
     assert(frame_table[page].cap != seL4_CapNull);
     printf("freeing page %ld\n", page);
-    if(frame_table[page].cap == seL4_CapNull){
+    if (frame_table[page].cap == seL4_CapNull) {
         ZF_LOGE("Page is already free");
         return;
     }
@@ -243,7 +258,7 @@ void frame_free(seL4_Word page) {
     seL4_ARM_Page_Unmap(frame_table[page].cap);
     cspace_delete(cspace, frame_table[page].cap);
     cspace_free_slot(cspace, frame_table[page].cap);
-    if(frame_table[page].user_cap){
+    if (frame_table[page].user_cap) {
         seL4_ARM_Page_Unmap(frame_table[page].user_cap);
     }
     
