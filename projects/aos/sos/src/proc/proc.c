@@ -535,6 +535,9 @@ static int proc_destroy(pid_t pid){
     if(p->coro_count != 0){
         return -1;
     }
+    if(p->shared_buf){
+        sos_unmap_buf(pid);
+    }
     if(p->as->pt){
         page_table_destroy(p->as->pt, cspace);
     }

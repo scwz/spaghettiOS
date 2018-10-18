@@ -16,6 +16,13 @@ static void * get_buf_from_pid(pid_t pid){
     return shared_buf_begin + buf_offset(pid); 
 }
 
+static void * zero_buf(pid_t pid){
+    char * buf = (char *) = get_buf_from_pid(pid);
+    for(size_t i = 0; i < get_buf_from_pid(pid+1); i++){
+        buf[i] = 0;
+    }
+}
+
 void shared_buf_init(cspace_t * cspace){
     cs = cspace;
     seL4_Word first_frame;
@@ -41,8 +48,22 @@ void sos_map_buf(pid_t pid){
         cspace_copy(cs, slot, cs, fte->cap, seL4_AllRights);
         sos_map_frame(cs, curproc->as->pt, slot, curproc->vspace, 
         reg->vbase + i*PAGE_SIZE_4K, seL4_AllRights, seL4_ARM_Default_VMAttributes, page, false);
+        fte->user_cap = slot;
         //printf("mapping vaddr: %lx, kernel vaddr: %lx\n", reg->vbase + i*PAGE_SIZE_4K, curproc->shared_buf + i*PAGE_SIZE_4K);
     }
+}
+
+void sos_unmap_buf(pid_t pid){
+    struct proc *curproc = proc_get(pid);
+    curproc->shared_buf = NULL;
+    for(size_t i = 0; i < SHARE_BUF_SIZE; i++){
+        seL4_Word page = vaddr_to_page_num((seL4_Word) (get_buf_from_pid(pid) + i*PAGE_SIZE_4K));
+        struct frame_table_entry * fte = get_frame(page);
+        fte->user_cap = seL4_ARM_Page_Unmap(frame_table[page].user_cap);
+        cspace_delete(cs, frame_table[page].user_cap);
+        cspace_free_slot(cs, frame_table[page].user_cap);
+    }
+    zero_buf(pid);
 }
 
 void share_buf_check_len(size_t * len){

@@ -148,6 +148,7 @@ long sys_munmap(va_list ap){
         page_update_entry(pte, P_INVALID, 0);
     }
     as_destroy_region(kernel_proc->as, addr);
+    return 0;
 }
 
 long sys_madvise(UNUSED va_list ap) {
