@@ -343,6 +343,7 @@ void *malloc(size_t n)
 		c = (void *)(base + SIZE_ALIGN - OVERHEAD);
 		c->csize = len - (SIZE_ALIGN - OVERHEAD);
 		c->psize = SIZE_ALIGN - OVERHEAD;
+		printf("malloc size: %ld\n", c->csize);
 		return CHUNK_TO_MEM(c);
 	}
 #endif
@@ -470,6 +471,7 @@ void free(void *p)
 	if (!p) return;
 
 	if (IS_MMAPPED(self)) {
+		printf("mmap = true\n");
 		size_t extra = self->psize;
 		char *base = (char *)self - extra;
 		size_t len = CHUNK_SIZE(self) + extra;

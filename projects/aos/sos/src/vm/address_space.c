@@ -88,3 +88,31 @@ int as_define_heap(struct addrspace *as) {
     as->heap = as->regions;
     return 0;
 }
+
+//destroy if vaddr in region
+int as_destroy_region(struct addrspace *as, seL4_Word vaddr){
+    struct region *curr = as->regions;
+    if(curr == NULL){
+        return -1;
+    }
+    //if head
+    if ((vaddr >= curr->vbase && vaddr <= curr->vtop)) {
+        if(curr == as->regions){
+            as->regions = curr->next;
+            free(curr);
+            return 0;
+        }
+    }
+
+    struct region *prev = as->regions;
+    curr = curr->next;
+    while (curr != NULL) {
+        if (vaddr >= curr->vbase && vaddr <= curr->vtop) {
+            prev->next = curr->next;
+            free(curr);
+            return 0;
+        }
+        curr = curr->next;
+    }
+    return -1;
+}

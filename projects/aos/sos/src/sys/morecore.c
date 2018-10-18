@@ -100,16 +100,15 @@ long sys_mmap(va_list ap)
     struct region* reg = as_seek_region(kernel_proc->as, addr);
     
     for(size_t i = 0; i < BYTES_TO_4K_PAGES(length); i++){
-        printf("mmap pages %ld: length\n", BYTES_TO_4K_PAGES(length));
         seL4_Word vaddr;
         seL4_Word page = frame_alloc_important(&vaddr);
+        //printf("alloc page: %ld\n", page);
         struct frame_table_entry * fte = get_frame(page);
         seL4_CPtr slot = cspace_alloc_slot(cspace);
         cspace_copy(cspace, slot, cspace, fte->cap, seL4_AllRights);
         sos_map_frame(cspace, kernel_proc->as->pt, slot, kernel_proc->vspace, 
         reg->vbase + i*PAGE_SIZE_4K, seL4_AllRights, seL4_ARM_Default_VMAttributes, page, true);
         fte->user_cap = slot;
-        //printf("mapping vaddr: %lx, kernel vaddr: %lx\n", reg->vbase + i*PAGE_SIZE_4K, curproc->shared_buf + i*PAGE_SIZE_4K);
     }
     return reg->vbase;
 }
@@ -117,7 +116,7 @@ long sys_mmap(va_list ap)
 long sys_munmap(va_list ap){
     void* addr = va_arg(ap, void*);
     size_t length = va_arg(ap, size_t);
-
+    printf("munmap: size %ld\n", length);
     struct proc * kernel_proc = proc_get(0);
     struct region* reg = as_seek_region(kernel_proc->as, addr);
     PAGE_ALIGN_4K(reg->vtop);
@@ -125,7 +124,7 @@ long sys_munmap(va_list ap){
     seL4_Word entry;
     for(size_t i = 0; i < BYTES_TO_4K_PAGES(length); i++){
         seL4_Word * pte = page_lookup(kernel_proc->as->pt, PAGE_ALIGN_4K(reg->vbase + i *PAGE_SIZE_4K));
-
+        
         if(!pte){ // lookup failed
             bits = P_INVALID;
         } else {
@@ -133,15 +132,12 @@ long sys_munmap(va_list ap){
             entry = page_entry_number(*pte);
             bits = page_get_bits(*pte);
         }
-
+        printf("Munmapping: %lx; pte %ld, bits %lx, entry %lx\n", reg->vbase + i * PAGE_SIZE_4K, *pte);
         if(!bits){
-            return -1;
-        }
-        else if(bits & P_PAGEFILE){
-            return -1;
+            frame_free(entry);
         }
         else {
-            frame_free(entry);
+            return -1;
         }
         page_update_entry(pte, P_INVALID, 0);
     }

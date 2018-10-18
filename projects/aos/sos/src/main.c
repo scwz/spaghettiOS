@@ -288,6 +288,7 @@ NORETURN void *main_continued(UNUSED void *arg)
     printf("Start first process\n");
     bool success = proc_bootstrap(&cspace, ipc_ep);
     void *addr = malloc(1146881);
+    free(addr);
     printf("MALLOC TEST: addr %p\n", addr);
     ZF_LOGF_IF(!success, "Failed to start first process");
     printf("\nSOS entering syscall loop\n");
