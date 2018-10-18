@@ -27,13 +27,7 @@ struct vnode *pf_vnode;
 static int 
 pagefile_open()
 {
-    if (VOP_LOOKUP(root, "pagefile", &pf_vnode, 1, 0)) {
-        return -1;
-    }
-    if (VOP_EACHOPEN(pf_vnode, FM_READ | FM_WRITE, 0)) {
-        return -1;
-    }
-    return 0;
+    return vfs_open("pagefile", FM_READ | FM_WRITE, &pf_vnode, KERNEL_PROC);
 }
 
 static size_t 

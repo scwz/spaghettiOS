@@ -15,6 +15,9 @@
 #include "../picoro/picoro.h"
 #include "../vfs/vfs.h"
 
+#define STDOUT_FILENO 1
+#define STDERR_FILENO 2
+
 static const char *init_app_name = "sosh";
 
 struct proc *procs[MAX_PROCESSES];
@@ -406,22 +409,20 @@ proc_create(char *app_name)
 
     // stdout
     struct vnode *res;
-    vfs_lookup("console", &res, 0, pid);
-    VOP_EACHOPEN(res, FM_WRITE, new->pid);
-    new->fdt->openfiles[1] = malloc(sizeof(struct open_file));
-    new->fdt->openfiles[1]->vn = res;
-    new->fdt->openfiles[1]->refcnt = 1;
-    new->fdt->openfiles[1]->offset = 0;
-    new->fdt->openfiles[1]->flags = FM_WRITE;
+    vfs_open("console", FM_WRITE, &res, new->pid);
+    new->fdt->openfiles[STDOUT_FILENO] = malloc(sizeof(struct open_file));
+    new->fdt->openfiles[STDOUT_FILENO]->vn = res;
+    new->fdt->openfiles[STDOUT_FILENO]->refcnt = 1;
+    new->fdt->openfiles[STDOUT_FILENO]->offset = 0;
+    new->fdt->openfiles[STDOUT_FILENO]->flags = FM_WRITE;
 
     // stderr
-    vfs_lookup("console", &res, 0, pid);
-    VOP_EACHOPEN(res, FM_WRITE, new->pid);
-    new->fdt->openfiles[2] = malloc(sizeof(struct open_file));
-    new->fdt->openfiles[2]->vn = res;
-    new->fdt->openfiles[2]->refcnt = 1;
-    new->fdt->openfiles[2]->offset = 0;
-    new->fdt->openfiles[2]->flags = FM_WRITE;
+    vfs_open("console", FM_WRITE, &res, new->pid);
+    new->fdt->openfiles[STDERR_FILENO] = malloc(sizeof(struct open_file));
+    new->fdt->openfiles[STDERR_FILENO]->vn = res;
+    new->fdt->openfiles[STDERR_FILENO]->refcnt = 1;
+    new->fdt->openfiles[STDERR_FILENO]->offset = 0;
+    new->fdt->openfiles[STDERR_FILENO]->flags = FM_WRITE;
 
     return new;
 }

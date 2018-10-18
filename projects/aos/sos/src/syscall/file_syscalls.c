@@ -68,15 +68,13 @@ syscall_open(struct proc *curproc)
     struct vnode *res;
     char path[size];
     sos_copyout(curproc->pid, (seL4_Word) path, size);
-    //printf("OPENING %s\n", path);
-    if (vfs_lookup(path, &res, 1, curproc->pid)) {
+
+    if (vfs_open(path, mode, &res, curproc->pid)) {
         seL4_SetMR(0, 1);
         return 1;
-    } 
-    if (VOP_EACHOPEN(res, mode, curproc->pid)) {
-        seL4_SetMR(0, 1);
-        return 1;
+
     }
+
     bool full = true;
     for (unsigned int i = 0; i < PROCESS_MAX_FILES; i ++) {
         if (curproc->fdt->openfiles[i] == NULL) {

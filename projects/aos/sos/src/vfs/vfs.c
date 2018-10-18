@@ -45,6 +45,20 @@ vfs_lookup(char *path, struct vnode **retval, bool create, pid_t pid)
     return result;
 }
 
+int 
+vfs_open(char *path, int mode, struct vnode **ret, pid_t pid)
+{
+    struct vnode *res;
+    if (vfs_lookup(path, &res, 1, pid)) {
+        return 1;
+    } 
+    if (VOP_EACHOPEN(res, mode, pid)) {
+        return 1;
+    }
+    *ret = res;
+    return 0;
+}
+
 void 
 vfs_close(struct vnode *vn, pid_t pid) 
 {
