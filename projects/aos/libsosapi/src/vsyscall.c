@@ -32,5 +32,5 @@ void sosapi_init_syscall_table(void)
     muslcsys_install_syscall(__NR_set_tid_address, sys_set_tid_address);
     muslcsys_install_syscall(__NR_clock_gettime, sys_clock_gettime);
     muslcsys_install_syscall(__NR_nanosleep, sys_nanosleep);
-
+    muslcsys_install_syscall(__NR_mmap, sys_mmap);
 }

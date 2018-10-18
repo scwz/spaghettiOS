@@ -167,15 +167,16 @@ proc_bootstrap(cspace_t *cs, seL4_CPtr pep)
     kernel->shared_buf = shared_buf_begin;
     kernel->protected_proc = true;
     kernel->state = RUNNING;
+    kernel->as = as_create(); // for mmap
+    kernel->vspace = seL4_CapInitThreadVSpace;
     procs[0] = kernel;
-    proc_start_init("sosh");
+    proc_start_init("tty_test");
     return true;
 }
 
 pid_t
 proc_start(char *app_name)
 {
-    return proc_start_init(app_name);
     struct proc *new = proc_create(app_name);
     seL4_Word err;
 
@@ -221,8 +222,6 @@ proc_start(char *app_name)
 
     /* Provide a name for the thread -- Helpful for debugging */
     NAME_THREAD(new->tcb, app_name);
-    /* parse the cpio image */
-    ZF_LOGI( "\nStarting \"%s\"...\n", app_name);
 
     /* load the elf image from the cpio file */
     err = elf_load_fs(new->pid, cspace, seL4_CapInitThreadVSpace, new->vspace, app_name);
@@ -233,6 +232,7 @@ proc_start(char *app_name)
 
     /* set up the stack */
     seL4_Word sp = init_process_stack(new, seL4_CapInitThreadVSpace);
+    
     // setup/create region for stack
     as_define_stack(new->as);
     as_define_heap(new->as);
@@ -462,6 +462,7 @@ destroy_child_list(pid_t pid)
         if (curproc != NULL) {
             proc_wait_list_add(curr->child, 1);
             add_child(1, curr->child);
+            printf("reparenting... %d\n", curr->child);
         }
         tmp = curr;
         curr = curr->next;
@@ -489,7 +490,7 @@ wait_all_child(pid_t parent)
     struct proc_child_node *curr = procs[parent]->child_list;
     while (curr != NULL) {
         if (proc_get(curr->child) != NULL) {
-            proc_wait_list_add(parent, curr->child); // add init as parent
+            proc_wait_list_add(parent, curr->child); // add all children
         }
         curr = curr->next;
     }
@@ -531,6 +532,8 @@ zombiefy(pid_t pid) {
     }
     p->state = ZOMBIE;
     assert(add_reap_list(pid) == 0);
+    destroy_child_list(pid); //reparent immediately
+    proc_wait_wakeup(pid);
     seL4_TCB_Suspend(p->tcb);
     return 0;
 }
@@ -549,9 +552,10 @@ proc_destroy(pid_t pid)
     if (p->coro_count != 0) {
         return -1;
     }
-    destroy_child_list(pid);
-    proc_wait_wakeup(pid);
-    if (p->as->pt) {
+    if(p->shared_buf){
+        sos_unmap_buf(pid);
+    }
+    if(p->as->pt){
         page_table_destroy(p->as->pt, cspace);
     }
     if (p->as) {
@@ -563,6 +567,7 @@ proc_destroy(pid_t pid)
     if (p->ipc_buffer_ut) {
         ut_free(p->ipc_buffer_ut, seL4_PageBits);
     }
+    
     cspace_delete(cspace, p->tcb);
     cspace_delete(cspace, p->vspace);
     cspace_delete(cspace, p->ipc_buffer);

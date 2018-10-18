@@ -39,7 +39,8 @@ static struct {
 #define SIZE_ALIGN (4*sizeof(size_t))
 #define SIZE_MASK (-SIZE_ALIGN)
 #define OVERHEAD (2*sizeof(size_t))
-#define MMAP_THRESHOLD (0x1c00*SIZE_ALIGN)
+//#define MMAP_THRESHOLD (0x1c00*SIZE_ALIGN)
+#define MMAP_THRESHOLD (1 << 15)
 #define DONTCARE 16
 #define RECLAIM 163840
 
@@ -334,16 +335,18 @@ void *malloc(size_t n)
 
 	if (adjust_size(&n) < 0) return 0;
 
-#if 0
+#if 1
 	if (n > MMAP_THRESHOLD) {
 		size_t len = n + OVERHEAD + PAGE_SIZE - 1 & -PAGE_SIZE;
 		char *base = __mmap(0, len, PROT_READ|PROT_WRITE,
 			MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
 		if (base == (void *)-1) return 0;
-		c = (void *)(base + SIZE_ALIGN - OVERHEAD);
-		c->csize = len - (SIZE_ALIGN - OVERHEAD);
-		c->psize = SIZE_ALIGN - OVERHEAD;
-		return CHUNK_TO_MEM(c);
+		if (base != 0){
+			c = (void *)(base + SIZE_ALIGN - OVERHEAD);
+			c->csize = len - (SIZE_ALIGN - OVERHEAD);
+			c->psize = SIZE_ALIGN - OVERHEAD;
+			return CHUNK_TO_MEM(c);
+		}
 	}
 #endif
 
@@ -470,6 +473,7 @@ void free(void *p)
 	if (!p) return;
 
 	if (IS_MMAPPED(self)) {
+		printf("mmap = true\n");
 		size_t extra = self->psize;
 		char *base = (char *)self - extra;
 		size_t len = CHUNK_SIZE(self) + extra;

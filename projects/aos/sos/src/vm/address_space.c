@@ -41,6 +41,14 @@ valid_new_region(struct addrspace *as, struct region *new_region)
             new_region->vtop <= curr_region->vtop) {
             return false;
         }
+        if(new_region->vtop >= curr_region->vtop &&
+           new_region->vbase <= curr_region->vbase){
+               return false;
+           }
+        if(new_region->vtop <= curr_region->vtop &&
+           new_region->vbase >= curr_region->vbase){
+               return false;
+           }
         curr_region = curr_region->next;
     }
     return true;
@@ -101,4 +109,32 @@ as_define_heap(struct addrspace *as)
                             READ | WRITE);
     as->heap = as->regions;
     return result;
+}
+
+//destroy if vaddr in region
+int as_destroy_region(struct addrspace *as, seL4_Word vaddr){
+    struct region *curr = as->regions;
+    if(curr == NULL){
+        return -1;
+    }
+    //if head
+    if ((vaddr >= curr->vbase && vaddr <= curr->vtop)) {
+        if(curr == as->regions){
+            as->regions = curr->next;
+            free(curr);
+            return 0;
+        }
+    }
+
+    struct region *prev = as->regions;
+    curr = curr->next;
+    while (curr != NULL) {
+        if (vaddr >= curr->vbase && vaddr <= curr->vtop) {
+            prev->next = curr->next;
+            free(curr);
+            return 0;
+        }
+        curr = curr->next;
+    }
+    return -1;
 }

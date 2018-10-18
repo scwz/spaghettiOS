@@ -53,7 +53,7 @@ syscall_read(struct proc *curproc)
     struct uio *u = malloc(sizeof(struct uio));
     uio_init(u, UIO_READ, nbyte, curproc->fdt->openfiles[fd]->offset, curproc->pid);
     size_t bytes_read = VOP_READ(vn, u);
-    //printf("bytes_read %s, %d\n", shared_buf, bytes_read);
+    printf("bytes_read %s, %d\n", curproc->shared_buf, bytes_read);
     curproc->fdt->openfiles[fd]->offset += bytes_read;
     free(u);
     seL4_SetMR(0, bytes_read);

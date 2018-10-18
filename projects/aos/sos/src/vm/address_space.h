@@ -46,3 +46,5 @@ int as_define_region(struct addrspace *as, seL4_Word vbase, size_t size, perm_t 
 int as_define_stack(struct addrspace *as);
 
 int as_define_heap(struct addrspace *as);
+
+int as_destroy_region(struct addrspace *as, seL4_Word vaddr);

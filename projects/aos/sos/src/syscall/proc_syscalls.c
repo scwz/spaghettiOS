@@ -16,8 +16,8 @@ syscall_proc_create(struct proc *curproc)
     if (pid >= 2) {
         add_child(curproc->pid, pid);
     }
+    printf("proc create end %d\n", pid);
     seL4_SetMR(0, pid);
-
     return 1;
 }
 

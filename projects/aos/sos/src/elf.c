@@ -383,37 +383,42 @@ elf_load_fs(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr load
     
     struct uio *u = malloc(sizeof(struct uio));
     uio_init(u, UIO_READ, PAGE_SIZE_4K, 0, KERNEL_PROC);
-
-    //first read
-    char elf_chunk[PAGE_SIZE_4K];
-    size_t bytes_read = VOP_READ(vn, u);
-    assert(bytes_read >= PAGE_SIZE_4K);
-    sos_copyout(KERNEL_PROC, (seL4_Word)elf_chunk, bytes_read);
-    free(u);
-
-    if (elf_chunk == NULL || elf_checkFile(elf_chunk)) {
-        ZF_LOGE("Invalid elf file");
-        return -1;
-    }
     
-    int num_headers = elf_getNumProgramHeaders(elf_chunk);
+    char *elf_file = malloc(buf.st_size);
+    //printf("size %ld ptr: %p\n", buf.st_size, elf_file);
+    assert(elf_file != NULL);
+    size_t read_offset = 0;
+    int i = 0;
+    while(read_offset < (buf.st_size)){
+        //printf("i: %d, size - offset %ld, read_offset %ld\n", i++, buf.st_size - read_offset, read_offset);
+        u->offset = read_offset;
+        u->len = MIN(PAGE_SIZE_4K, buf.st_size - read_offset);
+        size_t bytes_read = VOP_READ(vn, u);
+        sos_copyout(KERNEL_PROC, (seL4_Word)elf_file + read_offset, bytes_read);
+        //printf("end cpyout\n");
+        read_offset += bytes_read;
+    }
+
+    free(u);
+    int num_headers = elf_getNumProgramHeaders(elf_file);
     for (int i = 0; i < num_headers; i++) {
 
         /* Skip non-loadable segments (such as debugging data). */
-        if (elf_getProgramHeaderType(elf_chunk, i) != PT_LOAD) {
+        if (elf_getProgramHeaderType(elf_file, i) != PT_LOAD) {
             continue;
         }
         /* Fetch information about this segment. */
-        size_t offset = elf_getProgramHeaderOffset(elf_chunk, i);
-        size_t file_size = elf_getProgramHeaderFileSize(elf_chunk, i);
-        size_t segment_size = elf_getProgramHeaderMemorySize(elf_chunk, i);
-        uintptr_t vaddr = elf_getProgramHeaderVaddr(elf_chunk, i);
-        seL4_Word flags = elf_getProgramHeaderFlags(elf_chunk, i);
-        printf("segment %d, %lx->%lx, offset: %d, file_size %d, segment_size %d\n", i, vaddr, vaddr+segment_size, offset, file_size, segment_size);
+        char *source_addr = elf_file + elf_getProgramHeaderOffset(elf_file, i);
+        size_t file_size = elf_getProgramHeaderFileSize(elf_file, i);
+        size_t segment_size = elf_getProgramHeaderMemorySize(elf_file, i);
+        uintptr_t vaddr = elf_getProgramHeaderVaddr(elf_file, i);
+        seL4_Word flags = elf_getProgramHeaderFlags(elf_file, i);
+
         /* Copy it across into the vspace. */
         ZF_LOGD(" * Loading segment %p-->%p\n", (void *) vaddr, (void *)(vaddr + segment_size));
-        int err = load_segment_from_fs(pid, vn, cspace, loader_vspace, loadee_vspace,
-                                           offset, segment_size, file_size, vaddr,
+        printf(" * Loading segment %p-->%p, f_size %d\n", (void *) vaddr, (void *)(vaddr + segment_size), file_size);
+        int err = load_segment_into_vspace(pid, cspace, loader_vspace, loadee_vspace,
+                                           source_addr, segment_size, file_size, vaddr,
                                            get_sel4_rights_from_elf(flags), flags);
         if (err) {
             ZF_LOGE("Elf loading failed!");
@@ -422,8 +427,9 @@ elf_load_fs(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr load
 
         as_define_region(curproc->as, vaddr, segment_size, perm_from_elf(flags));
     }
-    entry_point = elf_getEntryPoint(elf_chunk);
-    //vsyscall_table = *((uintptr_t *) elf_getSectionNamed(elf_chunk, "__vsyscall", NULL));
+    vsyscall_table = *((uintptr_t *) elf_getSectionNamed(elf_file, "__vsyscall", NULL));
+    entry_point = elf_getEntryPoint(elf_file);
+    free(elf_file);
     return 0;
 }
 

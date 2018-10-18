@@ -21,8 +21,8 @@ void *shared_buf_begin;
 void shared_buf_init(cspace_t *cspace);
 
 void sos_map_buf(pid_t pid);
+void sos_unmap_buf(pid_t pid);
 
 size_t sos_copyin(pid_t pid, seL4_Word kernel_vaddr, size_t len);
 size_t sos_copyout(pid_t pid, seL4_Word kernel_vaddr, size_t len);
-void share_buf_check_len(size_t *len);
-void shared_buf_zero(pid_t pid);
+void share_buf_check_len(size_t * len);
