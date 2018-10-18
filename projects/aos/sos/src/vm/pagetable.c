@@ -53,7 +53,10 @@ page_entry_number(seL4_Word page)
 void 
 page_set_bits(seL4_Word *page_entry, uint8_t bits) 
 {
-    //clear bits
+    /* clear bits
+    We do a weird shift, because shifting more than 16 bits
+    gives unexpected values (even for uint64_t)
+    */
     seL4_Word mask = 0x00 << 16;
     mask |= 0xFFFF;
     mask = mask << 16;
@@ -81,6 +84,10 @@ page_update_entry(seL4_Word *page_entry, uint8_t bits, seL4_Word num)
 uint8_t 
 page_get_bits(seL4_Word page_entry)
 {
+    /*
+    We do a weird shift, because shifting more than 16 bits
+    gives unexpected values (even for uint64_t)
+    */
     page_entry = page_entry >> 16;
     page_entry = page_entry >> 16;
     page_entry = page_entry >> 16;
@@ -169,14 +176,10 @@ page_table_destroy(struct page_table * page_table, cspace_t * cspace)
             for (unsigned int j = 0; j < PAGE_INDEX_SIZE; j++) {
                 if (pgd->pud[i]->pd[j] != NULL) {
                     for (unsigned int k = 0; k < PAGE_INDEX_SIZE; k++) {
-                        //printf("%ld\n",vaddr_to_page_num( &(pgd->pud[i]->pd[j])));
                         if (pgd->pud[i]->pd[j]->pt[k] != NULL) {
                             for (unsigned int l = 0; l < PAGE_INDEX_SIZE; l++) {
                                 seL4_Word *pte = &(pgd->pud[i]->pd[j]->pt[k]->page[l]);
-                                //printf("%p\n",&( pgd->pud[i]->pd[j]->pt[k]->page[l]));
-                                //printf("i %u, j %u, k %u, l %u\n", i, j, k, l);
                                 seL4_Word entry = page_entry_number(*pte);
-                                //printf("%ld\n", entry);
                                 seL4_Word bits = page_get_bits(*pte);
                                 if (P_INVALID & bits) {
                                     continue;
@@ -188,8 +191,6 @@ page_table_destroy(struct page_table * page_table, cspace_t * cspace)
                                     frame_free(entry);
                                 }
                             }
-                            //printf("this %ld, vaddr%p\n",vaddr_to_page_num((seL4_Word) &(pgd->pud[i]->pd[j]->pt[k])), &(pgd->pud[i]->pd[j]->pt[k]));
-                            //printf("next %ld, vaddr%p\n", vaddr_to_page_num((seL4_Word) &(pgd->pud[i]->pd[j]->pt[k+1])), &(pgd->pud[i]->pd[j]->pt[k+1]));
                             frame_free(vaddr_to_page_num((seL4_Word) pgd->pud[i]->pd[j]->pt[k]));
                         }
                     }
@@ -204,7 +205,6 @@ page_table_destroy(struct page_table * page_table, cspace_t * cspace)
     frame = page_table->seL4_pages;
     while (frame!= NULL){
         for (unsigned i = 0; i < frame->size; i++) {
-            printf("i %d\n", i);
             struct seL4_page_objects object = frame->page_objects[i];
             ut_free(object.ut, PAGE_BITS_4K);
             cspace_delete(cspace, object.cap);
@@ -267,7 +267,7 @@ vm_fault(pid_t pid)
     int err = cspace_save_reply_cap(cspace, reply);
     struct region *reg = as_seek_region(as, faultaddress);
     seL4_MessageInfo_t reply_msg = seL4_MessageInfo_new(0, 0, 0, 1); 
-    printf("vm_fault %lx\n", faultaddress);
+
     if (reg != NULL && (reg->accmode & READ || reg->accmode & WRITE)) {
         //as->stack->vbase = PAGE_ALIGN_4K(faultaddress);
         seL4_Word *pte = page_lookup(as->pt, PAGE_ALIGN_4K(faultaddress));
@@ -289,7 +289,7 @@ vm_fault(pid_t pid)
             entry = page_entry_number(*pte);
             bits = page_get_bits(*pte);
         }
-        printf("===vm fault at %llx: entry %llx bits: %llx!\n", faultaddress, pte, bits);
+        //printf("===vm fault at %llx: entry %llx bits: %llx!\n", faultaddress, pte, bits);
         //remap a deref'd page
         if (!bits) {
             frame_info = get_frame(entry);
