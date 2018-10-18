@@ -1,4 +1,5 @@
 #pragma once
+
 #include "frametable.h"
 
 void pager_bootstrap(void);
