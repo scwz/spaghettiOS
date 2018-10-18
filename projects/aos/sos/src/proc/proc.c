@@ -167,7 +167,7 @@ kernel_proc(void)
     kernel->tcb_ut = NULL;
     kernel->tcb = seL4_CapNull;
     kernel->vspace_ut = NULL;
-    kernel->vspace = seL4_CapNull;
+    kernel->vspace = seL4_CapInitThreadVSpace;
     kernel->stack_ut = NULL;
     kernel->stack = seL4_CapNull;
 

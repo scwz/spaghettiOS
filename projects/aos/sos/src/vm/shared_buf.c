@@ -23,9 +23,7 @@ get_buf_from_pid(pid_t pid)
 static void * 
 zero_buf(pid_t pid){
     char * buf = (char *) get_buf_from_pid(pid);
-    for(size_t i = 0; i < get_buf_from_pid(pid+1); i++){
-        buf[i] = 0;
-    }
+    memset(buf, 0, SHARE_BUF_SIZE * PAGE_SIZE_4K);
 }
 
 void 
