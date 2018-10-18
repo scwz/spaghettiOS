@@ -15,6 +15,8 @@
 #include "../picoro/picoro.h"
 #include "../vfs/vfs.h"
 
+static char const * init_app_name = "tty_test";
+
 struct proc *procs[MAX_PROCESSES];
 
 extern char _cpio_archive[];
@@ -23,8 +25,7 @@ static seL4_CPtr ep; //endpoint
 static pid_t curr_pid = 0;
 static struct proc_reap_node * reap_list = NULL;
 
-static pid_t proc_start_init(char* app_name);
-
+static int proc_destroy(pid_t pid);
 static int 
 stack_write(seL4_Word *mapped_stack, int index, uintptr_t val)
 {
@@ -143,7 +144,7 @@ find_next_pid(void)
 {
     pid_t pid = curr_pid;
     do {
-        if (pid && procs[pid] == NULL) {
+        if (procs[pid] == NULL) {
             curr_pid = (pid + 1 % MAX_PROCESSES);
             return pid;
         }
@@ -153,24 +154,43 @@ find_next_pid(void)
     return -1;
 }
 
+static struct proc * 
+kernel_proc(void)
+{
+    struct proc *kernel = malloc(sizeof(struct proc));
+    kernel->stime = get_time() / NS_IN_MS; 
+    kernel->size = 0;
+    pid_t pid = 0;
+
+    strcpy(kernel->name, "spaghettiOS");
+
+    kernel->tcb_ut = NULL;
+    kernel->tcb = seL4_CapNull;
+    kernel->vspace_ut = NULL;
+    kernel->vspace = seL4_CapNull;
+    kernel->stack_ut = NULL;
+    kernel->stack = seL4_CapNull;
+
+    kernel->as = as_create(); // for mmap
+    kernel->fdt = NULL;
+    kernel->pid = pid;
+    kernel->wait_list = NULL;
+    kernel->child_list = NULL;
+    kernel->coro_count = 0;
+    kernel->protected_proc = false;
+    kernel->shared_buf = shared_buf_begin;
+    procs[0] = kernel;
+    return kernel;
+}
+
 bool 
 proc_bootstrap(cspace_t *cs, seL4_CPtr pep) 
 {
     cspace = cs;
     ep = pep;
-    struct proc *kernel = malloc(sizeof(struct proc));
-    kernel->stime = get_time() / NS_IN_MS; 
-    strcpy(kernel->name, "sos");
-    kernel->pid = KERNEL_PROC;
-    kernel->wait_list = NULL;
-    kernel->fdt = NULL;
-    kernel->shared_buf = shared_buf_begin;
-    kernel->protected_proc = true;
-    kernel->state = RUNNING;
-    kernel->as = as_create(); // for mmap
-    kernel->vspace = seL4_CapInitThreadVSpace;
-    procs[0] = kernel;
-    proc_start_init("tty_test");
+    struct proc * kernel = kernel_proc();
+    assert(kernel);
+    proc_start((char *)init_app_name);
     return true;
 }
 
@@ -178,6 +198,9 @@ pid_t
 proc_start(char *app_name)
 {
     struct proc *new = proc_create(app_name);
+    if(new == NULL){
+        return -1;
+    }
     seL4_Word err;
 
     /* allocate a new slot in the target cspace which we will mint a badged endpoint cap into --
@@ -186,21 +209,27 @@ proc_start(char *app_name)
     seL4_CPtr user_ep = cspace_alloc_slot(&new->cspace);
     if (user_ep == seL4_CapNull) {
         ZF_LOGE("Failed to alloc user ep slot");
-        return false;
+        new->state = ZOMBIE;
+        proc_destroy(new->pid);
+        return -1;
     }
 
     /* now mutate the cap, thereby setting the badge */
     err = cspace_mint(&new->cspace, user_ep, cspace, ep, seL4_AllRights, SET_PID_BADGE(new->pid));
     if (err) {
         ZF_LOGE("Failed to mint user ep");
-        return false;
+        new->state = ZOMBIE;
+        proc_destroy(new->pid);
+        return -1;
     }
 
     /* Create a new TCB object */
     new->tcb_ut = alloc_retype(cspace, &new->tcb, seL4_TCBObject, seL4_TCBBits);
     if (new->tcb_ut == NULL) {
         ZF_LOGE("Failed to alloc tcb ut");
-        return false;
+        new->state = ZOMBIE;
+        proc_destroy(new->pid);
+        return -1;
     }
 
     /* Configure the TCB */
@@ -210,34 +239,73 @@ proc_start(char *app_name)
                              new->ipc_buffer);
     if (err != seL4_NoError) {
         ZF_LOGE("Unable to configure new TCB");
-        return false;
+        new->state = ZOMBIE;
+        proc_destroy(new->pid);
+        return -1;
     }
 
     /* Set the priority */
     err = seL4_TCB_SetPriority(new->tcb, seL4_CapInitThreadTCB, TTY_PRIORITY);
     if (err != seL4_NoError) {
         ZF_LOGE("Unable to set priority of new TCB");
-        return false;
+        new->state = ZOMBIE;
+        proc_destroy(new->pid);
+        return -1;
     }
 
     /* Provide a name for the thread -- Helpful for debugging */
     NAME_THREAD(new->tcb, app_name);
 
-    /* load the elf image from the cpio file */
-    err = elf_load_fs(new->pid, cspace, seL4_CapInitThreadVSpace, new->vspace, app_name);
-    if (err) {
-        ZF_LOGE("Failed to load elf image");
-        return false;
+    /* load the elf image*/
+    if(new->pid == INIT_PROC){
+        unsigned long elf_size;
+        char* elf_base = cpio_get_file(_cpio_archive, app_name, &elf_size);
+        if (elf_base == NULL) {
+            ZF_LOGE("Unable to locate cpio header for %s", app_name);
+            new->state = ZOMBIE;
+            proc_destroy(new->pid);
+            return -1;
+        }
+        err = elf_load(new->pid, cspace, seL4_CapInitThreadVSpace, new->vspace, elf_base);
+        if (err) {
+            ZF_LOGE("Failed to load elf image");
+            new->state = ZOMBIE;
+            proc_destroy(new->pid);
+            return -1;
+        }
+    } else {
+        err = elf_load_fs(new->pid, cspace, seL4_CapInitThreadVSpace, new->vspace, app_name);
+        if (err) {
+            ZF_LOGE("Failed to load elf image");
+            new->state = ZOMBIE;
+            proc_destroy(new->pid);
+            return -1;
+        }
     }
-
+    
     /* set up the stack */
     seL4_Word sp = init_process_stack(new, seL4_CapInitThreadVSpace);
     
     // setup/create region for stack
-    as_define_stack(new->as);
-    as_define_heap(new->as);
-
-    as_define_region(new->as, PROCESS_SHARED_BUF_TOP - PAGE_SIZE_4K * SHARE_BUF_SIZE, PAGE_SIZE_4K * SHARE_BUF_SIZE, READ | WRITE);
+    if(as_define_stack(new->as)) {
+        ZF_LOGE("Failed to define stack");
+        new->state = ZOMBIE;
+        proc_destroy(new->pid);
+        return -1;
+    }
+    if(as_define_heap(new->as)) {
+        ZF_LOGE("Failed to define heap");
+        new->state = ZOMBIE;
+        proc_destroy(new->pid);
+        return -1;
+    }
+    //define buffer region
+    if(as_define_shared_buffer(new->as)) {
+        ZF_LOGE("Failed to define shared_buffer");
+        new->state = ZOMBIE;
+        proc_destroy(new->pid);
+        return -1;
+    }
     //map buffer
     sos_map_buf(new->pid);
 
@@ -246,10 +314,17 @@ proc_start(char *app_name)
                     seL4_AllRights, seL4_ARM_Default_VMAttributes);
     if (err != 0) {
         ZF_LOGE("Unable to map IPC buffer for user app");
-        return false;
+        new->state = ZOMBIE;
+        proc_destroy(new->pid);
+        return -1;
     }
     // setup region for ipc buffer
-    as_define_region(new->as, PROCESS_IPC_BUFFER, PAGE_SIZE_4K, READ | WRITE);
+    if(as_define_region(new->as, PROCESS_IPC_BUFFER, PAGE_SIZE_4K, READ | WRITE)) {
+        ZF_LOGE("Failed to define IPC buffer");
+        new->state = ZOMBIE;
+        proc_destroy(new->pid);
+        return -1;
+    }
     
     /* Start the new process */
     seL4_UserContext context = {
@@ -259,104 +334,12 @@ proc_start(char *app_name)
     new->state = RUNNING;
     printf("Starting %s at %p\n", app_name, (void *) context.pc);
     err = seL4_TCB_WriteRegisters(new->tcb, 1, 0, 2, &context);
-    ZF_LOGE_IF(err, "Failed to write registers");
-    return new->pid;
-}
-
-pid_t
-proc_start_init(char* app_name)
-{
-    struct proc *new = proc_create(app_name);
-    seL4_Word err;
-
-    /* allocate a new slot in the target cspace which we will mint a badged endpoint cap into --
-     * the badge is used to identify the process, which will come in handy when you have multiple
-     * processes. */
-    seL4_CPtr user_ep = cspace_alloc_slot(&new->cspace);
-    if (user_ep == seL4_CapNull) {
-        ZF_LOGE("Failed to alloc user ep slot");
-        return false;
+    if(err){
+        ZF_LOGE("Failed to write registers");
+        new->state = ZOMBIE;
+        proc_destroy(new->pid);
+        return -1;
     }
-
-    /* now mutate the cap, thereby setting the badge */
-    err = cspace_mint(&new->cspace, user_ep, cspace, ep, seL4_AllRights, SET_PID_BADGE(new->pid));
-    if (err) {
-        ZF_LOGE("Failed to mint user ep");
-        return false;
-    }
-
-    /* Create a new TCB object */
-    new->tcb_ut = alloc_retype(cspace, &new->tcb, seL4_TCBObject, seL4_TCBBits);
-    if (new->tcb_ut == NULL) {
-        ZF_LOGE("Failed to alloc tcb ut");
-        return false;
-    }
-
-    /* Configure the TCB */
-    err = seL4_TCB_Configure(new->tcb, user_ep,
-                             new->cspace.root_cnode, seL4_NilData,
-                             new->vspace, seL4_NilData, PROCESS_IPC_BUFFER,
-                             new->ipc_buffer);
-    if (err != seL4_NoError) {
-        ZF_LOGE("Unable to configure new TCB");
-        return false;
-    }
-
-    /* Set the priority */
-    err = seL4_TCB_SetPriority(new->tcb, seL4_CapInitThreadTCB, TTY_PRIORITY);
-    if (err != seL4_NoError) {
-        ZF_LOGE("Unable to set priority of new TCB");
-        return false;
-    }
-
-    /* Provide a name for the thread -- Helpful for debugging */
-    NAME_THREAD(new->tcb, app_name);
-    /* parse the cpio image */
-    ZF_LOGI( "\nStarting \"%s\"...\n", app_name);
-    unsigned long elf_size;
-    char* elf_base = cpio_get_file(_cpio_archive, app_name, &elf_size);
-    if (elf_base == NULL) {
-        ZF_LOGE("Unable to locate cpio header for %s", app_name);
-        return false;
-    }
-
-    /* load the elf image from the cpio file */
-    err = elf_load(new->pid, cspace, seL4_CapInitThreadVSpace, new->vspace, elf_base);
-    if (err) {
-        ZF_LOGE("Failed to load elf image");
-        return false;
-    }
-
-    /* set up the stack */
-    seL4_Word sp = init_process_stack(new, seL4_CapInitThreadVSpace);
-    
-    // setup/create region for stack
-    as_define_stack(new->as);
-    as_define_heap(new->as);
-
-    as_define_region(new->as, PROCESS_SHARED_BUF_TOP - PAGE_SIZE_4K * SHARE_BUF_SIZE, PAGE_SIZE_4K * SHARE_BUF_SIZE, READ | WRITE);
-    //map buffer
-    sos_map_buf(new->pid);
-
-    /* Map in the IPC buffer for the thread */
-    err = map_frame(cspace, new->ipc_buffer, new->vspace, PROCESS_IPC_BUFFER,
-                    seL4_AllRights, seL4_ARM_Default_VMAttributes);
-    if (err != 0) {
-        ZF_LOGE("Unable to map IPC buffer for user app");
-        return false;
-    }
-    // setup region for ipc buffer
-    as_define_region(new->as, PROCESS_IPC_BUFFER, PAGE_SIZE_4K, READ | WRITE);
-    
-    /* Start the new process */
-    seL4_UserContext context = {
-        .pc = get_last_entry_point(),
-        .sp = sp,
-    };
-    new->state = RUNNING;
-    printf("Starting %s at %p\n", app_name, (void *) context.pc);
-    err = seL4_TCB_WriteRegisters(new->tcb, 1, 0, 2, &context);
-    ZF_LOGE_IF(err, "Failed to write registers");
     return new->pid;
 }
 
@@ -369,6 +352,14 @@ proc_create(char *app_name)
     pid_t pid = find_next_pid();
 
     strcpy(new->name, app_name);
+
+    new->tcb_ut = NULL;
+    new->tcb = seL4_CapNull;
+    new->vspace_ut = NULL;
+    new->vspace = seL4_CapNull;
+    new->stack_ut = NULL;
+    new->stack = seL4_CapNull;
+
     new->as = as_create();
     new->fdt = fdt_create();
     new->pid = pid;
@@ -376,11 +367,14 @@ proc_create(char *app_name)
     new->child_list = NULL;
     new->coro_count = 0;
     new->protected_proc = false;
+    new->shared_buf = NULL;
+
     if (pid == INIT_PROC || pid == KERNEL_PROC) {
         new->protected_proc = true;
     }
-    procs[pid] = new;
 
+    procs[pid] = new;
+    
     /* Create a VSpace */
     new->vspace_ut = alloc_retype(cspace, &new->vspace, seL4_ARM_PageGlobalDirectoryObject,
                                               seL4_PGDBits);

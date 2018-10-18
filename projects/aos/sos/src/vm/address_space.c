@@ -89,6 +89,16 @@ as_define_region(struct addrspace *as, seL4_Word vbase, size_t size, perm_t accm
 }
 
 int 
+as_define_shared_buffer(struct addrspace *as){
+    int result = as_define_region(as, 
+                            PROCESS_SHARED_BUF_TOP - PAGE_SIZE_4K * SHARE_BUF_SIZE, 
+                            PAGE_SIZE_4K * SHARE_BUF_SIZE, 
+                            READ | WRITE);
+    as->buffer = as->regions;
+    return result;
+}
+
+int 
 as_define_stack(struct addrspace *as) 
 {
     //stub accmode and size
