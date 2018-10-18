@@ -63,7 +63,7 @@ start_timer(cspace_t *cspace, seL4_CPtr ntfn, void *device_vaddr)
 
     start_tick = timestamp_ms(timestamp_get_freq());
     last_tick = start_tick; 
-    printf("TIMER STARTED: %lu ms\n", last_tick);
+    ZF_LOGI("TIMER STARTED: %lu ms", last_tick);
 
     return CLOCK_R_OK;
 }
@@ -94,7 +94,7 @@ timer_interrupt(void)
     uint64_t curr_tick = 0;
     while (job != NULL && ISINRANGE(pq->time, job->tick, pq->time + TICK_10000_US - 1)) {
         curr_tick = timestamp_ms(timestamp_get_freq());
-        printf("CALLBACK RECEIVED: %lu ms diff: %lu ms\n", curr_tick, curr_tick - last_tick);
+        ZF_LOGD("CALLBACK RECEIVED: %lu ms diff: %lu ms\n", curr_tick, curr_tick - last_tick);
         job->callback(job->id, job->data);
         pqueue_pop(pq);
         job = pqueue_peek(pq);

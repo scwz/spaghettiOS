@@ -89,7 +89,6 @@ long sys_mmap(va_list ap)
     length += PAGE_SIZE_4K;
     seL4_Word addr = MMAP_BOT;
     while (addr < MMAP_TOP) {
-        //printf("ADDR: %lx\n", addr);
         struct region *reg = as_seek_region(kernel_proc->as, addr);
         // if address is free try to define region
         if (reg == NULL) {
@@ -104,11 +103,10 @@ long sys_mmap(va_list ap)
     if (addr > MMAP_TOP || addr + length > MMAP_TOP) return -1;
 
     struct region* reg = as_seek_region(kernel_proc->as, addr);
-    printf("reg %lx, %lx\n", reg->vbase, reg->vtop);
+    ZF_LOGD("reg %lx, %lx\n", reg->vbase, reg->vtop);
     for (size_t i = 0; i < BYTES_TO_4K_PAGES(length); i++) {
         seL4_Word vaddr;
         seL4_Word page = frame_alloc_important(&vaddr);
-        //printf("alloc page: %ld\n", page);
         struct frame_table_entry *fte = get_frame(page);
         seL4_CPtr slot = cspace_alloc_slot(cspace);
         cspace_copy(cspace, slot, cspace, fte->cap, seL4_AllRights);
@@ -124,7 +122,7 @@ sys_munmap(va_list ap)
 {
     void* addr = va_arg(ap, void*);
     size_t length = va_arg(ap, size_t);
-    printf("munmap: size %ld\n", length);
+    ZF_LOGD("munmap: size %ld\n", length);
     struct proc *kernel_proc = proc_get(0);
     struct region *reg = as_seek_region(kernel_proc->as, addr);
     PAGE_ALIGN_4K(reg->vtop);
@@ -141,7 +139,6 @@ sys_munmap(va_list ap)
             entry = page_entry_number(*pte);
             bits = page_get_bits(*pte);
         }
-        //printf("Munmapping: %lx; pte %ld, bits %lx, entry %lx\n", reg->vbase + i * PAGE_SIZE_4K, *pte);
         if (!bits) {
             frame_free(entry);
         }

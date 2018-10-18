@@ -31,13 +31,11 @@ nfs_dirent_cb(int status, struct nfs_context *nfs, void *data, void *private_dat
 	d->path = NULL;
 	d->ret = -1;
 	if (status < 0) {
-		printf("opendir failed with \"%s\"\n", (char *)data);
+		ZF_LOGE("opendir failed with \"%s\"\n", (char *)data);
 		exit(10);
 	}
-	//printf("opendir successful\n");
 	size_t i = d->i;
 	while ((nfsdirent = nfs_readdir(nfs, nfsdir)) != NULL && i <= d->u->len) {
-		//printf("i %d, Inode:%d Name:%s\n", i,   (int)nfsdirent->inode, nfsdirent->name);
 		if (i == d->u->len) {
 			d->path = malloc(strlen(nfsdirent->name)+1);
 			strcpy(d->path, nfsdirent->name);
@@ -56,11 +54,11 @@ nfs_read_cb(int status, UNUSED struct nfs_context *nfs, void *data, void *privat
 	struct nfs_data *d = private_data;
 
 	if (status < 0) {
-		printf("read failed with \"%s\"\n", (char *)data);
+		ZF_LOGE("read failed with \"%s\"\n", (char *)data);
 		exit(10);
 	}
 
-	printf("read successful with %d bytes of data\n", status);
+	ZF_LOGI("read successful with %d bytes of data\n", status);
 	d->ret = sos_copyin(d->u->pid, (seL4_Word) data, status);
 	resume(d->co, NULL);
 }
@@ -71,10 +69,10 @@ nfs_write_cb(int status, UNUSED struct nfs_context *nfs, void *data, void *priva
 	struct nfs_data *d = private_data;
 
 	if (status < 0) {
-		printf("write failed with \"%s\"\n", (char *)data);
+		ZF_LOGE("write failed with \"%s\"\n", (char *)data);
 		exit(10);
 	}
-	printf("write successful with %d bytes of data\n", status);
+	ZF_LOGI("write successful with %d bytes of data\n", status);
 	d->ret = status;
 	resume(d->co, NULL);
 }
@@ -87,7 +85,7 @@ nfs_close_cb(int status, UNUSED struct nfs_context *nfs, void *data, void *priva
 	//struct nfsfh *nfsfh;
 
 	if (status < 0) {
-		printf("close call failed with \"%s\"\n", (char *)data);
+		ZF_LOGE("close call failed with \"%s\"\n", (char *)data);
 		exit(10);
 	}
 
@@ -105,7 +103,7 @@ nfs_open_cb(int status, UNUSED struct nfs_context *nfs, void *data, void *privat
 	struct nfsfh *nfsfh;
 
 	if (status < 0) {
-		printf("open call failed with \"%s\"\n", (char *)data);
+		ZF_LOGE("open call failed with \"%s\"\n", (char *)data);
 	}
 
 	nfsfh = data;
@@ -144,7 +142,7 @@ nfs_lookup_cb(int status, struct nfs_context *nfs, void *data, void *private_dat
 	struct nfsdirent *nfsdirent;
 	d->ret = -1;
 	if (status < 0) {
-		printf("opendir failed with \"%s\"\n", (char *)data);
+		ZF_LOGE("opendir failed with \"%s\"\n", (char *)data);
 		exit(10);
 	}
 	bool found = false;
@@ -171,7 +169,7 @@ nfs_create_cb(int status, UNUSED struct nfs_context *nfs, void *data, void *priv
 	struct vnode_nfs_data *vnode_dat = d->vn->vn_data;
 	vnode_dat->nfsfh = data;
 	if (status < 0) {
-		printf("create failed with \"%s\"\n", (char *)data);
+		ZF_LOGE("create failed with \"%s\"\n", (char *)data);
 		exit(10);
 	}
 	VOP_INCREF(d->vn);
@@ -246,7 +244,6 @@ vnfs_write(struct vnode *v, struct uio *uio)
 	struct nfs_data *d = malloc(sizeof(struct nfs_data));
 	struct vnode_nfs_data *vnode_dat = v->vn_data;
 	d->u = uio;
-	//printf("nfs %d, vnode_dat %d, offset %d, len %d, shared_buf %x, nfs_write_cb %x, d %x\n", nfs, vnode_dat->nfsfh,uio->offset, uio->len, shared_buf, nfs_write_cb, d);
 	if (uio->len > 1 << 14) { // prevent malloc from failing
 		uio->len = 1 << 14;
 	}

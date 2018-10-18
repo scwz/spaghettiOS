@@ -39,7 +39,7 @@ page_table_init(void)
     assert(sizeof(struct pud) == PAGE_SIZE_4K);
     assert(sizeof(struct pd) == PAGE_SIZE_4K);
     assert(sizeof(struct pt) == PAGE_SIZE_4K);
-    printf("page_table %p\n", page_table);
+    ZF_LOGD("page_table %p\n", page_table);
     return page_table;
 }
 
@@ -130,7 +130,6 @@ page_table_insert(struct page_table *page_table, seL4_Word vaddr, seL4_Word page
         pgd->pud[ind.l1]->pd[ind.l2]->pt[ind.l3] = pt;
     }
     pt->page[ind.l4] = page_num;
-    //printf("PAGETABLE, ADDR: %lx, l1: %lx l2: %lx l3:%lx l4:%lx, PAGENUM: %ld, addr: %p\n", vaddr, ind.l1, ind.l2, ind.l3, ind.l4, page_num, pt);
     return 0;
 }
 
@@ -151,7 +150,6 @@ page_lookup(struct page_table *page_table, seL4_Word vaddr)
     if (pt == NULL) {
         return NULL;
     }
-    //printf("LOOKUP, ADDR: %lx, l1: %lx l2: %lx l3:%lx l4:%lx\n", vaddr, ind.l1, ind.l2, ind.l3, ind.l4);
     return &pt->page[ind.l4];
 }
 
@@ -277,7 +275,6 @@ save_seL4_info(struct page_table * page_table, ut_t * ut, seL4_CPtr slot)
         }
     }
     seL4_Word ind = frame->size++;
-    //printf("frame addr: %lx, frame size: %ld\n", frame, frame->size);
     frame->page_objects[ind].ut = ut;
     frame->page_objects[ind].cap = slot;
 }
@@ -315,7 +312,6 @@ vm_fault(pid_t pid)
             entry = page_entry_number(*pte);
             bits = page_get_bits(*pte);
         }
-        //printf("===vm fault at %llx: entry %llx bits: %llx!\n", faultaddress, pte, bits);
         //remap a deref'd page
         if (!bits) {
             frame_info = get_frame(entry);
@@ -334,15 +330,12 @@ vm_fault(pid_t pid)
             frame_info = get_frame(page);
             slot = cspace_alloc_slot(cspace);
             err = cspace_copy(cspace, slot, cspace, frame_info->cap, seL4_AllRights);
-            //printf("err %d\n", err);
             err = sos_map_frame(cspace, as->pt,  slot,  curproc->vspace, 
                             PAGE_ALIGN_4K(faultaddress), seL4_AllRights, 
                             seL4_ARM_Default_VMAttributes, page, true); 
             ZF_LOGE_IFERR(err, "failed to map frame");
-            //printf("err %d\n", err);
             err = pagein(entry, vaddr);
             sos_copyin(pid, (seL4_Word) shared_buf_begin, PAGE_SIZE_4K);
-            //printf("err %d\n", err);
             frame_info->user_cap = slot;
             frame_info->pid = pid; //hardcoded atm;
             frame_info->user_vaddr = PAGE_ALIGN_4K(faultaddress);
@@ -354,7 +347,6 @@ vm_fault(pid_t pid)
             frame_info = get_frame(page);
             slot = cspace_alloc_slot(cspace);
             err = cspace_copy(cspace, slot, cspace, frame_info->cap, seL4_AllRights);
-            //printf("cptr1: %lx, cptr2: %lx  \n", slot, frame_info->cap);
             ZF_LOGE_IFERR(err, "fail alloc");
             err = sos_map_frame(cspace, as->pt,  slot,  curproc->vspace, 
                             PAGE_ALIGN_4K(faultaddress), seL4_AllRights, 

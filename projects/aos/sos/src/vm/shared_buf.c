@@ -38,7 +38,6 @@ shared_buf_init(cspace_t *cspace)
         frame_alloc_important(&vaddr);
     }
     shared_buf_begin = (void *) first_frame;
-    //printf("share buf: %lx\n", shared_buf_begin);
     assert(first_frame);
     assert(vaddr);
 }
@@ -57,7 +56,6 @@ sos_map_buf(pid_t pid)
         sos_map_frame(cs, curproc->as->pt, slot, curproc->vspace, 
             reg->vbase + i*PAGE_SIZE_4K, seL4_AllRights, seL4_ARM_Default_VMAttributes, page, false);
         fte->user_cap = slot;
-        //printf("mapping vaddr: %lx, kernel vaddr: %lx\n", reg->vbase + i*PAGE_SIZE_4K, curproc->shared_buf + i*PAGE_SIZE_4K);
     }
 }
 

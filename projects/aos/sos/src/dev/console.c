@@ -43,7 +43,6 @@ console_open(struct vnode *vn,int flags, pid_t pid)
 {
     struct device *d = vn->vn_data;
     struct console *c = d->data;
-    printf("flags %x, c->reader = %d\n", flags, c->reader);
     if (flags & O_ACCMODE == O_RDONLY) {
         if (c->reader != NULL) {
             return -1;

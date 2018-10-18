@@ -81,7 +81,7 @@ vnode_check(struct vnode *v, const char *opstr)
 		ZF_LOGE("vnode_check: vop_%s: zero refcount\n", opstr);
 	}
 	else if (v->vn_refcount > 0x100000) {
-		printf("vnode_check: vop_%s: warning: large refcount %d\n",
+		ZF_LOGE("vnode_check: vop_%s: warning: large refcount %d\n",
 			opstr, v->vn_refcount);
 	}
 

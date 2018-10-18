@@ -14,8 +14,8 @@ static struct vnode *
 find_device(char *name)
 {
     struct device_entry * curr = device_list;
-    for(; curr != NULL; curr = curr->next){
-        if(!strcmp(name, curr->name)){
+    for (; curr != NULL; curr = curr->next) {
+        if (!strcmp(name, curr->name)) {
             return curr->vn;
         }
     }
@@ -85,5 +85,5 @@ vfs_bootstrap(void)
     root = nfs_bootstrap();
     struct vnode_nfs_data *nfs_dat = root->vn_data;
     nfs_dat->dev_list = device_list;
-    printf("vn : %lx \n", root);
+    ZF_LOGD("vn : %lx \n", root);
 }

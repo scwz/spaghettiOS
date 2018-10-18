@@ -220,7 +220,6 @@ elf_load(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr loadee_
 
         /* Copy it across into the vspace. */
         ZF_LOGD(" * Loading segment %p-->%p\n", (void *) vaddr, (void *)(vaddr + segment_size));
-        //printf(" * Loading segment %p-->%p, f_size %d\n", (void *) vaddr, (void *)(vaddr + segment_size), file_size);
         int err = load_segment_into_vspace(pid, cspace, loader_vspace, loadee_vspace,
                                            source_addr, segment_size, file_size, vaddr,
                                            get_sel4_rights_from_elf(flags), flags);
@@ -261,16 +260,13 @@ elf_load_fs(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr load
     uio_init(u, UIO_READ, PAGE_SIZE_4K, 0, KERNEL_PROC);
     
     char *elf_file = malloc(buf.st_size);
-    //printf("size %ld ptr: %p\n", buf.st_size, elf_file);
     assert(elf_file != NULL);
     size_t read_offset = 0;
     while (read_offset < (buf.st_size)) {
-        //printf("i: %d, size - offset %ld, read_offset %ld\n", i++, buf.st_size - read_offset, read_offset);
         u->offset = read_offset;
         u->len = MIN(PAGE_SIZE_4K, buf.st_size - read_offset);
         size_t bytes_read = VOP_READ(vn, u);
         sos_copyout(KERNEL_PROC, (seL4_Word)elf_file + read_offset, bytes_read);
-        //printf("end cpyout\n");
         read_offset += bytes_read;
     }
 
@@ -290,7 +286,6 @@ elf_load_fs(pid_t pid, cspace_t *cspace, seL4_CPtr loader_vspace, seL4_CPtr load
 
         /* Copy it across into the vspace. */
         ZF_LOGD(" * Loading segment %p-->%p\n", (void *) vaddr, (void *)(vaddr + segment_size));
-        //printf(" * Loading segment %p-->%p, f_size %d\n", (void *) vaddr, (void *)(vaddr + segment_size), file_size);
         int err = load_segment_into_vspace(pid, cspace, loader_vspace, loadee_vspace,
                                            source_addr, segment_size, file_size, vaddr,
                                            get_sel4_rights_from_elf(flags), flags);

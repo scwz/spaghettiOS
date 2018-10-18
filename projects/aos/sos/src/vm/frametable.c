@@ -59,7 +59,6 @@ alloc_retype_map(seL4_CPtr *cptr, uintptr_t *vaddr, uintptr_t *paddr)
         ut_free(ut, seL4_PageBits);
         return NULL;
     }
-    //printf("ut->cap %ld, cptr %ld\n", ut->cap, *cptr);
     seL4_Error err = cspace_untyped_retype(cspace, 
                                             ut->cap, 
                                             *cptr, 
@@ -199,7 +198,6 @@ frame_alloc(seL4_Word *vaddr)
     if (frame_table_curr_size == frame_table_size) { 
         // go around the frametable
         while (frame_table[clock_curr].ref_bit) {
-            //printf("clock_curr: %ld\n", clock_curr);
             if (!frame_table[clock_curr].important || frame_table[clock_curr].pid <= MAX_PROCESSES) {
                 frame_table[clock_curr].ref_bit = 0;
                 if (frame_table[clock_curr].user_cap != seL4_CapNull) {
@@ -215,7 +213,6 @@ frame_alloc(seL4_Word *vaddr)
         page = clock_curr;
     }
     *vaddr = page_num_to_vaddr(page);
-    //printf("pagenum %ld, vaddr %lx, freepage: %ld\n", page, *vaddr, next_free_page);
     ut_t *ut = alloc_retype_map(&cap, vaddr, &paddr);
     
     if (ut == NULL) {
@@ -231,7 +228,6 @@ frame_alloc(seL4_Word *vaddr)
     frame_table[page].ref_bit = 1;
     next_free_page = frame_table[page].next_free_page;
     frame_table_curr_size++;
-    //printf("framealloc PAGE: %ld, SIZE: %ld, cap: %ld\n", page, frame_table_curr_size, cap);
     return page;
 }
 
@@ -245,7 +241,6 @@ frame_free(seL4_Word page)
     if (frame_table[page].cap == seL4_CapNull) {
     }
     assert(frame_table[page].cap != seL4_CapNull);
-    //printf("freeing page %ld\n", page);
     if (frame_table[page].cap == seL4_CapNull) {
         ZF_LOGE("Page is already free");
         return;

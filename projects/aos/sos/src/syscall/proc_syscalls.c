@@ -17,7 +17,7 @@ syscall_proc_create(struct proc *curproc)
     if (pid >= 2) {
         add_child(curproc->pid, pid);
     }
-    printf("proc create end %d\n", pid);
+    ZF_LOGD("proc create end %d\n", pid);
     seL4_SetMR(0, pid);
     return 1;
 }
@@ -88,7 +88,7 @@ syscall_proc_wait(struct proc *curproc)
     struct proc_wait_node *node = yield(NULL);
    
     curproc = proc_get(node->pid_to_wake);
-    printf("rerunning again %d\n",curproc->pid);
+    ZF_LOGD("rerunning again %d\n",curproc->pid);
     curproc->state = RUNNING;
     seL4_SetMR(0, node->owner);
     return 1;

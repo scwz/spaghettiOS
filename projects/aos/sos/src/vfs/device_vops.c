@@ -16,7 +16,6 @@ static int
 dev_write(struct vnode *v, struct uio *uio)
 {
 	struct device *d = v->vn_data;
-	int result;
 
 	return d->write(uio);
 }

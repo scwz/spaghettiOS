@@ -266,13 +266,13 @@ main_continued(UNUSED void *arg)
     void *timer_vaddr = sos_map_device(&cspace, PAGE_ALIGN_4K(TIMER_PADDR), PAGE_SIZE_4K);
 
     /* Initialise the network hardware. */
-    printf("Network init\n");
+    ZF_LOGI("Network init\n");
     network_init(&cspace,
                  badge_irq_ntfn(ntfn, IRQ_BADGE_NETWORK_IRQ),
                  badge_irq_ntfn(ntfn, IRQ_BADGE_NETWORK_TICK),
                  timer_vaddr);
 
-    printf("Starting timers\n");
+    ZF_LOGI("Starting timers\n");
     start_timer(&cspace, badge_irq_ntfn(ntfn, IRQ_BADGE_TIMER), timer_vaddr);
 
     frame_table_init(&cspace);
@@ -283,12 +283,12 @@ main_continued(UNUSED void *arg)
     pager_bootstrap();
 
     /* Start the user application */
-    printf("Start first process\n");
+    ZF_LOGI("Start first process\n");
     bool success = proc_bootstrap(&cspace, ipc_ep);
     //run_tests(&cspace);
     //mmap_tests();
     ZF_LOGF_IF(!success, "Failed to start first process");
-    printf("\nSOS entering syscall loop\n");
+    ZF_LOGI("\nSOS entering syscall loop\n");
     syscall_loop(ipc_ep);
 }
 /*

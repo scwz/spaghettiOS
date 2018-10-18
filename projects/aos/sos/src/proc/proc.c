@@ -337,7 +337,7 @@ proc_start(char *app_name)
         .sp = sp,
     };
     new->state = RUNNING;
-    printf("Starting %s at %p\n", app_name, (void *) context.pc);
+    ZF_LOGI("Starting %s at %p\n", app_name, (void *) context.pc);
     err = seL4_TCB_WriteRegisters(new->tcb, 1, 0, 2, &context);
     if (err) {
         ZF_LOGE("Failed to write registers");
@@ -429,7 +429,7 @@ proc_wait_wakeup(pid_t pid)
     while (curr != NULL) {
         struct proc *wake_proc = proc_get(curr->pid_to_wake);
         if (wake_proc && wake_proc->state == WAITING) {
-            printf("owner: %d, wake: %d\n", curr->owner, curr->pid_to_wake);
+            ZF_LOGD("owner: %d, wake: %d\n", curr->owner, curr->pid_to_wake);
             resume(wake_proc->wake_co, curr);
         }
         tmp = curr;
@@ -450,7 +450,7 @@ destroy_child_list(pid_t pid)
         if (curproc != NULL) {
             proc_wait_list_add(curr->child, 1);
             add_child(1, curr->child);
-            printf("reparenting... %d\n", curr->child);
+            ZF_LOGD("reparenting... %d\n", curr->child);
         }
         tmp = curr;
         curr = curr->next;
