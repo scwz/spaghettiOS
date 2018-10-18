@@ -75,13 +75,13 @@ console_read(struct uio *uio)
         msg[i] = buffer[i];
         i++;
 	}
-    printf("i %ld\n", i);
-    printf("HANDLED %d\n", nbytes_read);
+    //printf("i %ld\n", i);
+    //printf("HANDLED %d\n", nbytes_read);
     reading = 0;
     nbytes_read = 0;
 
 	msg[i] = '\0'; 
-	printf("msg: %s\n", msg);
+	//printf("msg: %s\n", msg);
 	sos_copyin(uio->pid, msg, i);
 	return i;
 }

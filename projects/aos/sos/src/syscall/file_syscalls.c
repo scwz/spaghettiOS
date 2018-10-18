@@ -53,7 +53,7 @@ syscall_read(struct proc *curproc)
     struct uio *u = malloc(sizeof(struct uio));
     uio_init(u, UIO_READ, nbyte, curproc->fdt->openfiles[fd]->offset, curproc->pid);
     size_t bytes_read = VOP_READ(vn, u);
-    printf("bytes_read %s, %d\n", curproc->shared_buf, bytes_read);
+    //printf("bytes_read %s, %d\n", curproc->shared_buf, bytes_read);
     curproc->fdt->openfiles[fd]->offset += bytes_read;
     free(u);
     seL4_SetMR(0, bytes_read);
@@ -68,7 +68,7 @@ syscall_open(struct proc *curproc)
     struct vnode *res;
     char path[size];
     sos_copyout(curproc->pid, (seL4_Word) path, size);
-    printf("OPENING %s\n", path);
+    //printf("OPENING %s\n", path);
     if (vfs_lookup(path, &res, 1, curproc->pid)) {
         seL4_SetMR(0, 1);
         return 1;
