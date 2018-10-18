@@ -33,22 +33,26 @@ valid_new_region(struct addrspace *as, struct region *new_region)
 {
     struct region *curr_region = as->regions;
     while (curr_region != NULL) {
+        // new->vbase in a mapped region
         if (new_region->vbase >= curr_region->vbase && 
             new_region->vbase <= curr_region->vtop) {
             return false;
         }
+        //new->vtop in a mapped region
         if (new_region->vtop >= curr_region->vbase && 
             new_region->vtop <= curr_region->vtop) {
             return false;
         }
+        //new wraps around a region
         if(new_region->vtop >= curr_region->vtop &&
-           new_region->vbase <= curr_region->vbase){
-               return false;
-           }
+            new_region->vbase <= curr_region->vbase){
+            return false;
+        }
+        //new is inside a region
         if(new_region->vtop <= curr_region->vtop &&
-           new_region->vbase >= curr_region->vbase){
-               return false;
-           }
+            new_region->vbase >= curr_region->vbase){
+            return false;
+        }
         curr_region = curr_region->next;
     }
     return true;
@@ -68,6 +72,7 @@ as_seek_region(struct addrspace *as, seL4_Word vaddr)
     return NULL;
 }
 
+/* defined region is always at the head */
 int 
 as_define_region(struct addrspace *as, seL4_Word vbase, size_t size, perm_t accmode) 
 {
@@ -121,7 +126,7 @@ as_define_heap(struct addrspace *as)
     return result;
 }
 
-//destroy if vaddr in region
+// destroy if vaddr in region
 int as_destroy_region(struct addrspace *as, seL4_Word vaddr){
     struct region *curr = as->regions;
     if(curr == NULL){
