@@ -15,7 +15,7 @@
 #include "../picoro/picoro.h"
 #include "../vfs/vfs.h"
 
-static char const * init_app_name = "tty_test";
+static char const * init_app_name = "sosh";
 
 struct proc *procs[MAX_PROCESSES];
 
