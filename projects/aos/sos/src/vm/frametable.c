@@ -92,7 +92,7 @@ frame_table_init(cspace_t *cs)
 {
     cspace = cs;
     frame_table_curr_size = 0;
-    frame_table_size = 0.8 * (ut_size() / PAGE_SIZE_4K);
+    frame_table_size = 0.8 * (ut_size() / PAGE_SIZE_4K); // a full alloc crashes the system?
     frame_table_pages = BYTES_TO_4K_PAGES(frame_table_size * sizeof(struct frame_table_entry));
     seL4_Word frame_table_vaddr = SOS_FRAME_TABLE;
     seL4_CPtr cap;
@@ -124,10 +124,7 @@ frame_table_init(cspace_t *cs)
     top_paddr -= PAGE_SIZE_4K; // first page will be here
     bot_paddr = top_paddr - ut_size();
     
-    // test
     assert(frame_table_vaddr);
-    //printf("frame_table_vaddr: %lx, value %lx\n", frame_table_vaddr, *(seL4_Word *)frame_table_vaddr);
-    //printf("frame_table_size: %lu\n", frame_table_size);
     
     clock_curr = 0;
 }
@@ -142,6 +139,7 @@ get_frame(seL4_Word page_num)
     return &frame_table[page_num];
 }
 
+/* important frames cannot be paged out */
 seL4_Word 
 frame_alloc_important(seL4_Word *vaddr)
 {
@@ -154,15 +152,16 @@ frame_alloc_important(seL4_Word *vaddr)
     if (frame_table_curr_size == frame_table_size) { 
         // go around the frametable
         while (frame_table[clock_curr].ref_bit) {
-            //printf("clock_curr: %ld\n", clock_curr);
             if (!frame_table[clock_curr].important || frame_table[clock_curr].pid <= MAX_PROCESSES) {
                 frame_table[clock_curr].ref_bit = false;
+                // unmap every frame if its a user frame
                 if (frame_table[clock_curr].user_cap != seL4_CapNull) {
                     seL4_ARM_Page_Unmap(frame_table[clock_curr].user_cap);
                 }
             }
             clock_curr = (clock_curr + 1) % frame_table_size;
         }
+        // page out the victim
         if (pageout(clock_curr)) {
             ZF_LOGE("PAGEOUT ERROR");
         }
@@ -171,11 +170,11 @@ frame_alloc_important(seL4_Word *vaddr)
     }
     
     *vaddr = page_num_to_vaddr(page);
-    //printf("pagenum %ld, vaddr %lx, freepage: %ld\n", page, *vaddr, next_free_page);
     ut_t *ut = alloc_retype_map(&cap, vaddr, &paddr);
     if (ut == NULL) {
         return (seL4_Word) NULL;
     }
+    // zero frame
     memset((void *) *vaddr, 0, PAGE_SIZE_4K);
     frame_table[page].cap = cap;
     frame_table[page].ut = ut;
@@ -244,7 +243,6 @@ frame_free(seL4_Word page)
         return;
     }
     if (frame_table[page].cap == seL4_CapNull) {
-        //printf("%ld\n", page);
     }
     assert(frame_table[page].cap != seL4_CapNull);
     //printf("freeing page %ld\n", page);
@@ -252,7 +250,6 @@ frame_free(seL4_Word page)
         ZF_LOGE("Page is already free");
         return;
     }
-    //assert(!frame_table[page].important);
     frame_table[page].next_free_page = next_free_page;
     
     seL4_ARM_Page_Unmap(frame_table[page].cap);
@@ -260,10 +257,9 @@ frame_free(seL4_Word page)
     cspace_free_slot(cspace, frame_table[page].cap);
     if (frame_table[page].user_cap) {
         seL4_ARM_Page_Unmap(frame_table[page].user_cap);
+        cspace_delete(cspace, frame_table[page].user_cap);
+        cspace_free_slot(cspace, frame_table[page].user_cap);
     }
-    
-    cspace_delete(cspace, frame_table[page].user_cap);
-    cspace_free_slot(cspace, frame_table[page].user_cap);
     
     ut_free(frame_table[page].ut, PAGE_BITS_4K);
     frame_table[page].cap = seL4_CapNull;
@@ -271,7 +267,6 @@ frame_free(seL4_Word page)
     frame_table[page].user_vaddr = 0;
     frame_table[page].pid = -1;
     
-    //printf("page free: %ld\n", page);
     frame_table_curr_size--;
     next_free_page = page;
 }
