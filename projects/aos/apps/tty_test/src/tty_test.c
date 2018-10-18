@@ -100,8 +100,10 @@ int main(void)
     ttyout_init();
     //char msg[10];
     //sos_sys_usleep(10000000);
-    //test_m3();
-
+    int fd = open("console", 0xF);
+    test_m3();
+    
+#if 0
     do {
         /*
         int fd = open("console", 0xF);
@@ -119,7 +121,7 @@ int main(void)
         }
         //sos_read(msg, 10);
         //sos_write(msg, 10);
-        
+#endif      
 #if 0
         printf("HELLO\tI\tAM\tTTY_TEST!\n");
         char *msg = "############### Testing tty_test!!! ##################\n";
@@ -135,10 +137,10 @@ int main(void)
         sos_write(msg, strlen(msg));
 
         printf("GOODBYE\tI\tAM\tTTY_TEST!\n");
-#endif
+
         thread_block();
         // sleep(1);	// Implement this as a syscall
     } while (1);
-
+#endif
     return 0;
 }

@@ -72,6 +72,9 @@ long sys_mmap(va_list ap)
     int fd = va_arg(ap, int);
     off_t offset = va_arg(ap, off_t);
 
+    //send 0 to malloc (this is hardcoded in malloc to use expandheap())
+    return 0;
+
     if (flags & MAP_ANONYMOUS) {
         /* Check that we don't try and allocate more than exists */
         if (length > morecore_top - morecore_base) {

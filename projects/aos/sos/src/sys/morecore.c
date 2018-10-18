@@ -84,7 +84,7 @@ long sys_mmap(va_list ap)
 #endif
     if(ogaddr != 0){
         ZF_LOGF("not implemented");
-        return -ENOMEM;
+        return -1;
     }
     length += PAGE_SIZE_4K;
     seL4_Word addr = MMAP_BOT;
@@ -101,7 +101,7 @@ long sys_mmap(va_list ap)
         }
         addr = PAGE_ALIGN_4K(reg->vtop) + PAGE_SIZE_4K;
     }
-    if(addr > MMAP_TOP || addr + length > MMAP_TOP) return -ENOMEM;
+    if(addr > MMAP_TOP || addr + length > MMAP_TOP) return -1;
 
     struct region* reg = as_seek_region(kernel_proc->as, addr);
     printf("reg%lx, %lx\n", reg->vbase, reg->vtop);

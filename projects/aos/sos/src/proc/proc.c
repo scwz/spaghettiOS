@@ -166,7 +166,7 @@ bool proc_bootstrap(cspace_t *cs, seL4_CPtr pep) {
     kernel->as = as_create(); // for mmap
     kernel->vspace = seL4_CapInitThreadVSpace;
     procs[0] = kernel;
-    proc_start_init("sosh");
+    proc_start_init("tty_test");
     return true;
 }
 

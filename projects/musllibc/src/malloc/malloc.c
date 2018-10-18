@@ -341,11 +341,12 @@ void *malloc(size_t n)
 		char *base = __mmap(0, len, PROT_READ|PROT_WRITE,
 			MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
 		if (base == (void *)-1) return 0;
-		c = (void *)(base + SIZE_ALIGN - OVERHEAD);
-		c->csize = len - (SIZE_ALIGN - OVERHEAD);
-		c->psize = SIZE_ALIGN - OVERHEAD;
-		printf("malloc size: %ld\n", c->csize);
-		return CHUNK_TO_MEM(c);
+		if (base != 0){
+			c = (void *)(base + SIZE_ALIGN - OVERHEAD);
+			c->csize = len - (SIZE_ALIGN - OVERHEAD);
+			c->psize = SIZE_ALIGN - OVERHEAD;
+			return CHUNK_TO_MEM(c);
+		}
 	}
 #endif
 
