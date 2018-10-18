@@ -410,19 +410,11 @@ proc_create(char *app_name)
     // stdout
     struct vnode *res;
     vfs_open("console", FM_WRITE, &res, new->pid);
-    new->fdt->openfiles[STDOUT_FILENO] = malloc(sizeof(struct open_file));
-    new->fdt->openfiles[STDOUT_FILENO]->vn = res;
-    new->fdt->openfiles[STDOUT_FILENO]->refcnt = 1;
-    new->fdt->openfiles[STDOUT_FILENO]->offset = 0;
-    new->fdt->openfiles[STDOUT_FILENO]->flags = FM_WRITE;
+    fdt_placeat(new->fdt, res, FM_WRITE, STDOUT_FILENO);
 
     // stderr
     vfs_open("console", FM_WRITE, &res, new->pid);
-    new->fdt->openfiles[STDERR_FILENO] = malloc(sizeof(struct open_file));
-    new->fdt->openfiles[STDERR_FILENO]->vn = res;
-    new->fdt->openfiles[STDERR_FILENO]->refcnt = 1;
-    new->fdt->openfiles[STDERR_FILENO]->offset = 0;
-    new->fdt->openfiles[STDERR_FILENO]->flags = FM_WRITE;
+    fdt_placeat(new->fdt, res, FM_WRITE, STDERR_FILENO);
 
     return new;
 }

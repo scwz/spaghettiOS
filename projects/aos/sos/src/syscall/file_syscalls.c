@@ -16,31 +16,31 @@ syscall_readwrite(struct proc *curproc, int how)
     int fd = seL4_GetMR(1);
     size_t nbyte = seL4_GetMR(2);
     size_t bytes_processed = 0;
-    if (curproc->fdt->openfiles[fd] == NULL || nbyte <= 0) {
+    struct open_file *of = curproc->fdt->openfiles[fd];
+    if (of == NULL || nbyte <= 0) {
         seL4_SetMR(0, 0);
         return 1;
     }
-    if (!(curproc->fdt->openfiles[fd]->flags & how)) {
+    if (!(of->flags & how)) {
         seL4_SetMR(0, 0);
         return 1;
     }
     
-    struct vnode *vn = curproc->fdt->openfiles[fd]->vn; 
     struct uio *u = malloc(sizeof(struct uio));
     if (how == FM_WRITE) {
-        uio_init(u, UIO_WRITE, nbyte, curproc->fdt->openfiles[fd]->offset, curproc->pid);
-        bytes_processed = VOP_WRITE(vn, u);
+        uio_init(u, UIO_WRITE, nbyte, of->offset, curproc->pid);
+        bytes_processed = VOP_WRITE(of->vn, u);
     }
     else if (how == FM_READ) { 
-        uio_init(u, UIO_READ, nbyte, curproc->fdt->openfiles[fd]->offset, curproc->pid);
-        bytes_processed = VOP_READ(vn, u);
+        uio_init(u, UIO_READ, nbyte, of->offset, curproc->pid);
+        bytes_processed = VOP_READ(of->vn, u);
     }
     else {
         ZF_LOGE("Unknown flag encountered!");
         seL4_SetMR(0, 0);
         return 1;
     }
-    curproc->fdt->openfiles[fd]->offset += bytes_processed;
+    of->offset += bytes_processed;
     free(u);
     seL4_SetMR(0, bytes_processed);
     return 1;
@@ -63,6 +63,7 @@ syscall_open(struct proc *curproc)
 {
     fmode_t mode = seL4_GetMR(1);
     size_t size = seL4_GetMR(2);
+    int fd;
     struct vnode *res;
     char path[size];
     sos_copyout(curproc->pid, (seL4_Word) path, size);
@@ -72,24 +73,13 @@ syscall_open(struct proc *curproc)
         return 1;
     }
 
-    bool full = true;
-    for (unsigned int i = 0; i < PROCESS_MAX_FILES; i ++) {
-        if (curproc->fdt->openfiles[i] == NULL) {
-            curproc->fdt->openfiles[i] = malloc(sizeof(struct open_file));
-            curproc->fdt->openfiles[i]->vn = res;
-            curproc->fdt->openfiles[i]->refcnt = 1;
-            curproc->fdt->openfiles[i]->offset = 0;
-            curproc->fdt->openfiles[i]->flags = mode;
-            seL4_SetMR(0, 0);
-            seL4_SetMR(1, i);
-            full = false;
-            break;
-        }
-    } 
-    if (full) {
+    if (fdt_place(curproc->fdt, res, mode, &fd)) {
         seL4_SetMR(0, 1);
         return 1;
-    }
+    };
+
+    seL4_SetMR(0, 0);
+    seL4_SetMR(1, fd);
     return 2;
 }
 
