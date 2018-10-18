@@ -23,6 +23,7 @@ struct pagefile_list {
 struct pagefile_list *pf_list; 
 struct vnode *pf_vnode;
 
+// open file
 static int 
 pagefile_open()
 {
@@ -91,6 +92,7 @@ pageout(seL4_Word page)
     // get page table entry
     struct frame_table_entry *fte = get_frame(page);
     assert(fte->pid >= 0 && fte->pid <= MAX_PROCESSES);
+    assert(!fte->important);
     //printf("PID: %d, pt: %lx, vaddr: %lx, pn: %ld\n", fte->pid, procs[fte->pid]->as->pt, page_num_to_vaddr(page), page);
     struct page_table *pagetable = proc_get(fte->pid)->as->pt;
     seL4_Word *pte = page_lookup(pagetable, fte->user_vaddr);
@@ -99,7 +101,6 @@ pageout(seL4_Word page)
     size_t ind = next_free_node();
 
     page_update_entry(pte, P_PAGEFILE, ind);
-    //printf("pte: %lx, num %lx, ind %lx\n", *pte, page_entry_number(*pte), ind);
     assert(page_entry_number(*pte) == ind);
 
     // write out
@@ -107,7 +108,7 @@ pageout(seL4_Word page)
     // write
     struct uio *u = malloc(sizeof(struct uio));
     uio_init(u, UIO_WRITE, PAGE_SIZE_4K, offset, 0);
-    size_t bytes_written = sos_copyin(0, page_num_to_vaddr(page), PAGE_SIZE_4K);
+    size_t bytes_written = sos_copyin(KERNEL_PROC, page_num_to_vaddr(page), PAGE_SIZE_4K);
     assert(bytes_written == PAGE_SIZE_4K);
     bytes_written = VOP_WRITE(pf_vnode, u);   
     assert(bytes_written == PAGE_SIZE_4K);
@@ -129,13 +130,14 @@ pagein(seL4_Word entry, seL4_Word kernel_vaddr)
     uio_init(u, UIO_READ, PAGE_SIZE_4K, offset, 0);
     size_t bytes_read = VOP_READ(pf_vnode, u);
     assert(bytes_read == PAGE_SIZE_4K);
-    bytes_read = sos_copyout(0, kernel_vaddr, PAGE_SIZE_4K);
+    bytes_read = sos_copyout(KERNEL_PROC, kernel_vaddr, PAGE_SIZE_4K);
     assert(bytes_read == PAGE_SIZE_4K);
     free(u);
     add_free_list(entry);
     return 0;
 }
 
+// remove entry
 int
 pagefile_remove(seL4_Word entry)
 {
