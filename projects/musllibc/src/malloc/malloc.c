@@ -473,7 +473,6 @@ void free(void *p)
 	if (!p) return;
 
 	if (IS_MMAPPED(self)) {
-		printf("mmap = true\n");
 		size_t extra = self->psize;
 		char *base = (char *)self - extra;
 		size_t len = CHUNK_SIZE(self) + extra;
