@@ -9,13 +9,13 @@
 #include "../proc/proc.h"
 #include "address_space.h"
 
-static struct pagefile_node {
+struct pagefile_node {
     size_t index;
     struct pagefile_node *next;
 };
 
 //store free nodes
-static struct pagefile_list {
+struct pagefile_list {
     size_t size;
     struct pagefile_node *head;
 };

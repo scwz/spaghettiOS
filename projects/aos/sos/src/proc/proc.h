@@ -30,18 +30,18 @@
 
 struct proc_reap_node {
     pid_t pid;
-    struct proc_reap_node * next;
+    struct proc_reap_node *next;
 };
 
 struct proc_wait_node {
     pid_t owner;
     pid_t pid_to_wake;
-    struct proc_wait_node * next;
+    struct proc_wait_node *next;
 };
 
 struct proc_child_node {
     pid_t child;
-    struct proc_child_node * next;
+    struct proc_child_node *next;
 };
 
 enum proc_state
@@ -50,6 +50,7 @@ enum proc_state
     WAITING,
     ZOMBIE,
 };
+
 /* the one process we start */
 struct proc {
     char name[N_NAME];
@@ -72,8 +73,8 @@ struct proc {
     ut_t *stack_ut;
     seL4_CPtr stack;
 
-    struct proc_wait_node * wait_list;
-    struct proc_child_node * child_list;
+    struct proc_wait_node *wait_list;
+    struct proc_child_node *child_list;
 
     struct filetable *fdt;
     coro wake_co; 

@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+#include <sos.h>
 
 #include <cspace/cspace.h>
 #include <aos/sel4_zf_logif.h>
@@ -18,7 +19,7 @@ struct frame_table_entry {
     seL4_CPtr user_cap;
     ut_t *ut;
     seL4_Word next_free_page;
-    seL4_Word pid;
+    pid_t pid;
     seL4_Word user_vaddr;
     bool ref_bit;
     bool important;

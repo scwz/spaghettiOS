@@ -25,7 +25,8 @@ static struct proc_reap_node * reap_list = NULL;
 
 static pid_t proc_start_init(char* app_name);
 
-static int stack_write(seL4_Word *mapped_stack, int index, uintptr_t val)
+static int 
+stack_write(seL4_Word *mapped_stack, int index, uintptr_t val)
 {
     mapped_stack[index] = val;
     return index - 1;
@@ -33,7 +34,8 @@ static int stack_write(seL4_Word *mapped_stack, int index, uintptr_t val)
 
 /* set up System V ABI compliant stack, so that the process can
  * start up and initialise the C library */
-static uintptr_t init_process_stack(struct proc *proc, seL4_CPtr local_vspace)
+static uintptr_t 
+init_process_stack(struct proc *proc, seL4_CPtr local_vspace)
 {
     /* Create a stack frame */
     proc->stack_ut = alloc_retype(cspace, &proc->stack, seL4_ARM_SmallPageObject, seL4_PageBits);
@@ -136,7 +138,9 @@ static uintptr_t init_process_stack(struct proc *proc, seL4_CPtr local_vspace)
     return stack_top;
 }
 
-static pid_t find_next_pid(void) {
+static pid_t 
+find_next_pid(void) 
+{
     pid_t pid = curr_pid;
     do {
         if (pid && procs[pid] == NULL) {
@@ -144,12 +148,14 @@ static pid_t find_next_pid(void) {
             return pid;
         }
         pid = (pid + 1) % MAX_PROCESSES;
-    } while(pid != curr_pid);
+    } while (pid != curr_pid);
 
     return -1;
 }
 
-bool proc_bootstrap(cspace_t *cs, seL4_CPtr pep) {
+bool 
+proc_bootstrap(cspace_t *cs, seL4_CPtr pep) 
+{
     cspace = cs;
     ep = pep;
     struct proc *kernel = malloc(sizeof(struct proc));
@@ -166,13 +172,8 @@ bool proc_bootstrap(cspace_t *cs, seL4_CPtr pep) {
     return true;
 }
 
-/* Start the first process, and return true if successful
- *
- * This function will leak memory if the process does not start successfully.
- * TODO: avoid leaking memory once you implement real processes, otherwise a user
- *       can force your OS to run out of memory by creating lots of failed processes.
- */
-pid_t proc_start(char* app_name)
+pid_t
+proc_start(char *app_name)
 {
     return proc_start_init(app_name);
     struct proc *new = proc_create(app_name);
@@ -262,7 +263,8 @@ pid_t proc_start(char* app_name)
     return new->pid;
 }
 
-pid_t proc_start_init(char* app_name)
+pid_t
+proc_start_init(char* app_name)
 {
     struct proc *new = proc_create(app_name);
     seL4_Word err;
@@ -358,7 +360,9 @@ pid_t proc_start_init(char* app_name)
     return new->pid;
 }
 
-struct proc *proc_create(char *app_name) {
+struct proc *
+proc_create(char *app_name) 
+{
     struct proc *new = malloc(sizeof(struct proc));
     new->stime = get_time() / NS_IN_MS; 
     new->size = 0;
@@ -372,7 +376,9 @@ struct proc *proc_create(char *app_name) {
     new->child_list = NULL;
     new->coro_count = 0;
     new->protected_proc = false;
-    if(pid == INIT_PROC || pid == KERNEL_PROC) new->protected_proc = true;
+    if (pid == INIT_PROC || pid == KERNEL_PROC) {
+        new->protected_proc = true;
+    }
     procs[pid] = new;
 
     /* Create a VSpace */
@@ -426,13 +432,14 @@ struct proc *proc_create(char *app_name) {
     return new;
 }
 
-static int proc_wait_wakeup(pid_t pid){
+static int
+proc_wait_wakeup(pid_t pid)
+{
     struct proc_wait_node* curr = procs[pid]->wait_list;
     struct proc_wait_node* tmp;
-    pid_t * waker = malloc(sizeof(pid_t));
-    *waker = pid;
+
     while(curr != NULL){
-        struct proc * wake_proc = proc_get(curr->pid_to_wake);
+        struct proc *wake_proc = proc_get(curr->pid_to_wake);
         if(wake_proc && wake_proc->state == WAITING){
             printf("owner: %d, wake: %d\n", curr->owner, curr->pid_to_wake);
             resume(wake_proc->wake_co, curr);
@@ -441,17 +448,18 @@ static int proc_wait_wakeup(pid_t pid){
         curr = curr->next;
         free(tmp);
     }
-    free(waker);
     return 0;
 }
 
-static int destroy_child_list(pid_t pid){
-    struct proc_child_node* curr = procs[pid]->child_list;
-    struct proc_child_node* tmp;
-    while(curr != NULL){
-        struct proc * curproc = proc_get(curr->child);
+static int 
+destroy_child_list(pid_t pid)
+{
+    struct proc_child_node *curr = procs[pid]->child_list;
+    struct proc_child_node *tmp;
+    while (curr != NULL) {
+        struct proc *curproc = proc_get(curr->child);
         //reparent orphans
-        if(curproc != NULL){
+        if (curproc != NULL) {
             proc_wait_list_add(curr->child, 1);
             add_child(1, curr->child);
         }
@@ -462,9 +470,11 @@ static int destroy_child_list(pid_t pid){
     return 0;
 }
 
-int add_child(pid_t parent, pid_t child){
-    struct proc_child_node* node = malloc(sizeof(struct proc_wait_node));
-    if(node == NULL){
+int
+add_child(pid_t parent, pid_t child)
+{
+    struct proc_child_node *node = malloc(sizeof(struct proc_wait_node));
+    if (node == NULL) {
         return -1;
     }
     node->child = child;
@@ -473,9 +483,11 @@ int add_child(pid_t parent, pid_t child){
     return 0;
 }
 
-int wait_all_child(pid_t parent){
-    struct proc_child_node* curr = procs[parent]->child_list;
-    while(curr != NULL){
+int
+wait_all_child(pid_t parent)
+{
+    struct proc_child_node *curr = procs[parent]->child_list;
+    while (curr != NULL) {
         if (proc_get(curr->child) != NULL) {
             proc_wait_list_add(parent, curr->child); // add init as parent
         }
@@ -485,32 +497,35 @@ int wait_all_child(pid_t parent){
 }
 
 //add to end of the list
-static int add_reap_list(pid_t pid){
-    struct proc_reap_node* node = malloc(sizeof(struct proc_wait_node));
-    if(node == NULL){
+static int 
+add_reap_list(pid_t pid)
+{
+    struct proc_reap_node *node = malloc(sizeof(struct proc_wait_node));
+    if (node == NULL) {
         return -1;
     }
     node->pid = pid;
     node->next = NULL;
-    struct proc_reap_node* curr = reap_list;
-    if(curr == NULL){
+    struct proc_reap_node *curr = reap_list;
+    if (curr == NULL) {
         reap_list = node;
         return 0;
     }
-    while(curr->next != NULL){
+    while (curr->next != NULL) {
         curr = curr->next;
     }
     curr->next = node;
     return 0;
 }
 
-int zombiefy(pid_t pid){
-    struct proc * p = proc_get(pid);
-    if(p == NULL || p->state == ZOMBIE){
+int
+zombiefy(pid_t pid) {
+    struct proc *p = proc_get(pid);
+    if (p == NULL || p->state == ZOMBIE) {
         ZF_LOGE("Proc already destroyed");
         return -1;
     }
-    if(p->protected_proc){
+    if(p->protected_proc) {
         ZF_LOGE("proc cannot be deleted");
         return -1;
     }
@@ -520,30 +535,32 @@ int zombiefy(pid_t pid){
     return 0;
 }
 
-static int proc_destroy(pid_t pid){
-    struct proc * p = proc_get(pid);
+static int
+proc_destroy(pid_t pid)
+{
+    struct proc *p = proc_get(pid);
     assert(p->state == ZOMBIE);
-    if(p->coro_count != 0){
+    if (p->coro_count != 0) {
         return -1;
     }
-    if(p->fdt){
+    if (p->fdt) {
         fdt_destroy(p->fdt, pid);
     }
-    if(p->coro_count != 0){
+    if (p->coro_count != 0) {
         return -1;
     }
     destroy_child_list(pid);
     proc_wait_wakeup(pid);
-    if(p->as->pt){
+    if (p->as->pt) {
         page_table_destroy(p->as->pt, cspace);
     }
-    if(p->as){
+    if (p->as) {
         as_destroy(p->as);
     }
-    if(p->vspace_ut){
+    if (p->vspace_ut) {
         ut_free(p->vspace_ut, seL4_PGDBits);
     }
-    if(p->ipc_buffer_ut){
+    if (p->ipc_buffer_ut) {
         ut_free(p->ipc_buffer_ut, seL4_PageBits);
     }
     cspace_delete(cspace, p->tcb);
@@ -558,18 +575,22 @@ static int proc_destroy(pid_t pid){
 }
 
 //only try reap head
-void reap(void){
-    if(reap_list == NULL) return;
-    struct proc_reap_node * head = reap_list;
-    if(proc_destroy(head->pid) == 0){
+void 
+reap(void)
+{
+    if (reap_list == NULL) return;
+    struct proc_reap_node *head = reap_list;
+    if (proc_destroy(head->pid) == 0) {
         reap_list = head->next;
         free(head);
     }
 }
 
-int proc_wait_list_add(pid_t pid, pid_t pid_to_add){
-    struct proc_wait_node* node = malloc(sizeof(struct proc_wait_node));
-    if(node == NULL){
+int
+proc_wait_list_add(pid_t pid, pid_t pid_to_add)
+{
+    struct proc_wait_node *node = malloc(sizeof(struct proc_wait_node));
+    if (node == NULL) {
         return -1;
     }
     node->owner = pid;
@@ -579,6 +600,8 @@ int proc_wait_list_add(pid_t pid, pid_t pid_to_add){
     return 0;
 }
 
-struct proc *proc_get(pid_t pid) {
+struct proc *
+proc_get(pid_t pid) 
+{
     return procs[pid];
 }
